@@ -1,0 +1,116 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '17 3 * * *' # nightly: shuffled runs and the performance job
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        node: [20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: git config --global user.name ci && git config --global user.email ci@example.com
+      - name: No dependencies
+        run: node -e "const p=require('./package.json'); if (p.dependencies || p.devDependencies) { console.error('package.json declares dependencies'); process.exit(1) }"
+      - run: node --test
+        env:
+          CI: 'true'
+
+  shuffled:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: git config --global user.name ci && git config --global user.email ci@example.com
+      - run: node scripts/shuffle-tests.js --runs 10
+        env:
+          CI: 'true'
+
+  performance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: git config --global user.name ci && git config --global user.email ci@example.com
+      - name: Performance tests (100,000-file repo, start-up, shaping)
+        run: node --test --test-concurrency=1 test/perf.test.js test/workspace.test.js test/shape.test.js
+        env:
+          CI: 'true'
+          KERB_TEST_PERF: '1'
+      - name: Hook latency (npm path)
+        run: node bench/hook-latency.js --runs 100
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hook-latency
+          path: bench/results/
+
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm pack smoke test
+        run: |
+          npm pack
+          mkdir -p /tmp/prefix
+          npm install -g --prefix /tmp/prefix ./kerb-*.tgz
+          /tmp/prefix/bin/kerb --version
+          cd "$(mktemp -d)" && git init -q && /tmp/prefix/bin/kerb check -- ls
+
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { target: darwin-arm64, os: macos-14 }
+          - { target: darwin-x64, os: macos-13 }
+          - { target: linux-x64, os: ubuntu-latest }
+          - { target: linux-arm64, os: ubuntu-24.04-arm }
+          - { target: win-x64, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: git config --global user.name ci && git config --global user.email ci@example.com
+      - run: node scripts/build-binaries.js --targets ${{ matrix.target }}
+        shell: bash
+      - name: CLI smoke suite against the binary
+        shell: bash
+        run: |
+          BIN="dist/bin/kerb-${{ matrix.target }}"; [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          KERB_TEST_BIN="$BIN" node --test test/cli.test.js test/run.test.js test/precheck.test.js test/loop.test.js test/claude.test.js
+      - name: Runs with no Node on PATH
+        shell: bash
+        run: |
+          BIN="$PWD/dist/bin/kerb-${{ matrix.target }}"; [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          env -i HOME="$HOME" PATH="/usr/bin:/bin" "$BIN" --version
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}
+          path: dist/bin/

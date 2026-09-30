@@ -1,0 +1,106 @@
+name: release
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: git config --global user.name ci && git config --global user.email ci@example.com
+      - run: node --test
+
+  binaries:
+    needs: test
+    strategy:
+      matrix:
+        include:
+          - { target: darwin-arm64, os: macos-14 }
+          - { target: darwin-x64, os: macos-13 }
+          - { target: linux-x64, os: ubuntu-latest }
+          - { target: linux-arm64, os: ubuntu-24.04-arm }
+          - { target: win-x64, os: windows-latest }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: git config --global user.name ci && git config --global user.email ci@example.com
+      - run: node scripts/build-binaries.js --targets ${{ matrix.target }}
+        shell: bash
+      - name: Smoke suite against the binary
+        shell: bash
+        run: |
+          BIN="dist/bin/kerb-${{ matrix.target }}"; [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          KERB_TEST_BIN="$BIN" node --test test/cli.test.js test/run.test.js test/precheck.test.js
+      # macOS: replace the ad-hoc signature with a Developer ID signature when a certificate is configured.
+      - name: Sign (macOS, optional)
+        if: startsWith(matrix.target, 'darwin') && env.MACOS_CERT_P12 != ''
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          MACOS_SIGN_IDENTITY: ${{ secrets.MACOS_SIGN_IDENTITY }}
+        run: |
+          echo "$MACOS_CERT_P12" | base64 --decode > cert.p12
+          security create-keychain -p ci build.keychain && security default-keychain -s build.keychain
+          security unlock-keychain -p ci build.keychain
+          security import cert.p12 -k build.keychain -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k ci build.keychain
+          codesign --force --options runtime --sign "$MACOS_SIGN_IDENTITY" dist/bin/kerb-${{ matrix.target }}
+          rm cert.p12
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}
+          path: dist/bin/kerb-*
+
+  publish:
+    needs: binaries
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bin-*
+          path: dist/bin
+          merge-multiple: true
+      - name: Checksums and SBOM
+        run: |
+          cd dist/bin && sha256sum kerb-* > SHA256SUMS && cd -
+          node scripts/sbom.js --out dist/kerb.cdx.json
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: 'dist/bin/kerb-*'
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/bin/kerb-* dist/bin/SHA256SUMS dist/kerb.cdx.json \
+            --title "$GITHUB_REF_NAME" --notes-file docs/release-notes.md
+      - name: npm publish with provenance
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Update the Homebrew tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git clone "https://x-access-token:${TAP_TOKEN}@github.com/${{ github.repository_owner }}/homebrew-tap.git" tap
+          node scripts/homebrew.js --version "$VERSION" --sums dist/bin/SHA256SUMS --repo "${{ github.repository }}" --out tap/Formula/kerb.rb
+          cd tap && git add Formula/kerb.rb && git -c user.name=kerb-release -c user.email=release@users.noreply.github.com commit -m "kerb $VERSION" && git push
