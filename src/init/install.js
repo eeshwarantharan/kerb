@@ -54,13 +54,15 @@ function markersAction(root, rel, block) {
   return { file: rel, kind: 'markers', before, after: `${before}${prefix}${block}\n`, prefix };
 }
 
-function gitignoreAction(root) {
+function gitignoreAction(root, entries) {
   const rel = '.gitignore';
   const before = readText(path.join(root, rel));
-  if (before !== null && before.split(/\r?\n/).some((l) => /^\/?\.kerb\/?$/.test(l.trim()))) return null;
   if (before === null && !fs.existsSync(path.join(root, '.git'))) return null;
+  const have = new Set((before || '').split(/\r?\n/).map((l) => l.trim().replace(/^\//, '').replace(/\/$/, '')));
+  const missing = [...new Set(entries)].filter((e) => !have.has(e.replace(/\/$/, '')));
+  if (!missing.length) return null;
   const sep = before && !before.endsWith('\n') ? '\n' : '';
-  const added = `${sep}.kerb/\n`;
+  const added = `${sep}${missing.join('\n')}\n`;
   return { file: rel, kind: 'lines', before, after: `${before || ''}${added}`, added };
 }
 
@@ -83,11 +85,13 @@ export function planInit(root, o = {}) {
   /** @type {Record<string, { tier: string, how: string }>} */
   const agents = {};
   const notes = [];
+  const ignores = ['.kerb/'];
   for (const d of detected) {
     const r = d.plan(root, home, inv);
     actions.push(...r.actions.map((a) => ({ ...a, agent: d.id })));
     agents[d.id] = { tier: r.tier, how: r.how };
     notes.push(...(r.notes || []));
+    ignores.push(...(r.gitignore || []));
   }
   // Instructions: AGENTS.md always; the others only when they exist.
   const block = instructionsBlock(briefingLines(root));
@@ -101,7 +105,7 @@ export function planInit(root, o = {}) {
       actions.push({ file: rel, kind: 'file', before: readText(path.join(root, rel)), after: SKILL, agent: d.id });
     }
   }
-  const gi = gitignoreAction(root);
+  const gi = gitignoreAction(root, ignores);
   if (gi) actions.push(gi);
   return { actions: actions.filter((a) => a.before !== a.after), unchanged: actions.filter((a) => a.before === a.after), agents, notes, inv };
 }
@@ -122,6 +126,7 @@ export function applyInit(root, plan) {
       agent: a.agent,
     };
     if (a.kind === 'markers' && prev && prev.prefix == null && a.prefix != null) entry.prefix = a.prefix;
+    if (a.kind === 'lines' && prev) entry.added = `${prev.added || ''}${a.added}`;
     ensureDir(path.dirname(full));
     fs.writeFileSync(full, a.after);
     entry.written = sha256(a.after);
@@ -190,7 +195,10 @@ export function uninstall(root) {
     } else if (entry.kind === 'lines') {
       let next;
       if (entry.added && cur.endsWith(entry.added)) next = cur.slice(0, cur.length - entry.added.length);
-      else next = cur.split('\n').filter((l) => l.trim() !== '.kerb/').join('\n');
+      else {
+        const ours = new Set((entry.added || '.kerb/').split('\n').map((l) => l.trim()).filter(Boolean));
+        next = cur.split('\n').filter((l) => !ours.has(l.trim())).join('\n');
+      }
       if (!entry.existed && next === '') { fs.unlinkSync(full); out.push({ file: rel, action: 'removed' }); }
       else { fs.writeFileSync(full, next); out.push({ file: rel, action: 'line removed' }); }
     }

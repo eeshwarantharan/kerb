@@ -1,0 +1,13 @@
+{
+  "hook_event_name": "PreToolUse",
+  "session_id": "sess-2",
+  "timestamp": "2026-10-01T10:00:00.000Z",
+  "cwd": "/home/user/proj",
+  "tool_name": "run_in_terminal",
+  "tool_input": {
+    "command": "npm test",
+    "explanation": "Run tests",
+    "isBackground": false
+  },
+  "tool_use_id": "tool-123"
+}

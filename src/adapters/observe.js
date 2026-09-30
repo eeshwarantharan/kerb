@@ -14,11 +14,22 @@ import { Shaper } from '../run/shape.js';
 import { redactText } from '../run/redact.js';
 import { Analyzer, compilePatterns } from '../loop/fingerprint.js';
 import { DenialScanner, isNetworkCapable, recordDenial } from '../bound/learn.js';
-import { writePending, takePending, prunePending, kerbInnerCommands } from './pending.js';
+import { writePending, takePending, peekPending, prunePending, kerbInnerCommands, markDone, recentlyDone } from './pending.js';
+import { sha256 } from '../util/core.js';
 import { kerbArgv } from '../bound/human.js';
 import { regenerateBriefing } from '../init/instructions.js';
 
 export const HOOK_HASH_BUDGET_MS = 300;
+const DUPLICATE_WINDOW_MS = 3000;
+
+/**
+ * Call id for agents whose payloads carry none: session + cwd + command. The same call seen
+ * through two hook files (Copilot CLI also reads .claude/settings) maps to one id.
+ */
+export function callId(toolUseId, session, cwd, command) {
+  if (toolUseId) return String(toolUseId);
+  return `h${sha256(`${session || ''}\0${cwd}\0${command}`).slice(0, 24)}`;
+}
 
 function hookCounter(store, agent, field) {
   store.updateSummary((s) => {
@@ -38,12 +49,21 @@ export function observePre(ctx, o) {
   const prep = prepare(hctx, { command: o.command, background: !!o.background, agent: o.agent, tier: 'enforced', session: o.session || null });
   prep.store.ensure();
   prunePending(prep.store.dir);
-  hookCounter(prep.store, o.agent, 'pre');
-  const pre = preRefusal(prep);
-  if (pre.refusal) {
-    recordRefusal(prep, pre.refusal);
-    return { refusal: { ...pre.refusal, key: prep.key }, notes: [] };
+  // The same call seen again within a few seconds (a second hook file): same answer, no new records.
+  const seen = peekPending(prep.store.dir, o.toolUseId);
+  if (seen && seen.command === o.command && Date.now() - seen.wall_ts < DUPLICATE_WINDOW_MS) {
+    return { refusal: seen.refusal || null, notes: seen.notes || [] };
   }
+  hookCounter(prep.store, o.agent, 'pre');
+  const deny = (refusal, matched) => {
+    recordRefusal(prep, refusal, matched);
+    const r = { ...refusal, key: prep.key };
+    delete r.boundary;
+    writePending(prep.store.dir, o.toolUseId, { command: o.command, wall_ts: Date.now(), refusal: r, denied: true });
+    return { refusal: r, notes: [] };
+  };
+  const pre = preRefusal(prep);
+  if (pre.refusal) return deny(pre.refusal, null);
   const isKerb = prep.parsed.segments.some((s) => kerbArgv(s));
   const pending = {
     id: newId(),
@@ -64,14 +84,12 @@ export function observePre(ctx, o) {
     pre_hash: null,
     env_stamp: null,
     loop_skipped: null,
+    notes: pre.notes,
   };
   // Kerb invocations record themselves; background calls get the pre-check only.
   if (!isKerb && prep.cls === 'check') {
     const gate = loopGate(prep, { hashBudgetMs: o.hashBudgetMs || HOOK_HASH_BUDGET_MS });
-    if (gate.refusal) {
-      recordRefusal(prep, gate.refusal, gate.matched);
-      return { refusal: { ...gate.refusal, key: prep.key }, notes: [] };
-    }
+    if (gate.refusal) return deny(gate.refusal, gate.matched);
     Object.assign(pending, { scope: gate.loop.scope, pre_hash: gate.loop.preHash, env_stamp: gate.loop.envStamp, loop_skipped: gate.loop.skipped });
   }
   writePending(prep.store.dir, o.toolUseId, pending);
@@ -91,6 +109,9 @@ export function observePost(ctx, o) {
   const { store } = prep;
   store.ensure();
   const pending = takePending(store.dir, o.toolUseId);
+  if (!pending && recentlyDone(store.dir, o.toolUseId)) return { notes: [], hints: [] };
+  markDone(store.dir, o.toolUseId);
+  if (pending && pending.denied) return { notes: [], hints: [] };
   hookCounter(store, o.agent, pending ? 'full' : 'post');
   if (pending && pending.kerb) return { notes: [], hints: [] };
   if (pending) prep.session = pending.session || prep.session;

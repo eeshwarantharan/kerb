@@ -1,0 +1,19 @@
+{
+  "conversation_id": "conv-1",
+  "generation_id": "gen-1",
+  "model": "auto",
+  "hook_event_name": "preToolUse",
+  "cursor_version": "2.4.0",
+  "workspace_roots": [
+    "/home/user/proj"
+  ],
+  "user_email": null,
+  "transcript_path": null,
+  "tool_name": "Shell",
+  "tool_input": {
+    "command": "npm test",
+    "working_directory": "/home/user/proj"
+  },
+  "tool_use_id": "abc123",
+  "cwd": "/home/user/proj"
+}

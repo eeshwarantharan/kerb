@@ -6,7 +6,8 @@
 //   deny → { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason } }
 //   Stop → top-level systemMessage is shown to the user; SessionEnd discards JSON output.
 import { formatRefusal } from '../ui/format.js';
-import { observePre, observePost } from './observe.js';
+import { observePre, observePost, callId } from './observe.js';
+import { toText, exitFromText, exitField } from './shared.js';
 
 export const AGENT = 'claude';
 /** Claude Code's Bash default when the call sets no timeout (BASH_DEFAULT_TIMEOUT_MS; 2 minutes). */
@@ -36,16 +37,25 @@ function contextOutput(event, lines) {
 }
 
 /** @returns {object | null} JSON to print, or null for no output (no decision). */
+/**
+ * Copilot CLI and VS Code also read .claude/settings files and send their own payload dialect
+ * (with a `timestamp`, no `transcript_path`, `tool_result` instead of `tool_response`).
+ */
+export function agentOf(payload) {
+  return payload.timestamp !== undefined && payload.transcript_path === undefined ? 'copilot' : AGENT;
+}
+
 export function pre(ctx, payload) {
   if (payload.tool_name && payload.tool_name !== 'Bash') return null;
   const command = payload.tool_input && payload.tool_input.command;
   if (typeof command !== 'string' || !command.trim()) return null;
+  const cwd = payload.cwd || ctx.cwd;
   const r = observePre(ctx, {
-    agent: AGENT,
+    agent: agentOf(payload),
     command,
-    cwd: payload.cwd || ctx.cwd,
+    cwd,
     background: !!(payload.tool_input && payload.tool_input.run_in_background),
-    toolUseId: payload.tool_use_id || `${payload.session_id || 's'}-${Date.now()}`,
+    toolUseId: callId(payload.tool_use_id, payload.session_id, cwd, command),
     session: payload.session_id || null,
     agentTimeoutMs: agentTimeout(payload, ctx.env),
   });
@@ -73,18 +83,23 @@ export function post(ctx, payload, { failure = false } = {}) {
     output = exit === null ? err : err.split('\n').slice(1).join('\n');
     interrupted = !!payload.is_interrupt;
     timedOut = /Command timed out after/.test(err);
+  } else if (payload.tool_response === undefined && payload.tool_result !== undefined) {
+    // Copilot dialect: the tool result is text; the exit code only appears inside it.
+    output = toText(payload.tool_result);
+    exit = exitField(payload.tool_result) ?? exitFromText(output);
   } else {
     const resp = payload.tool_response || {};
-    output = [resp.stdout, resp.stderr].filter((x) => typeof x === 'string' && x).join('\n');
+    output = typeof resp === 'string' ? resp : [resp.stdout, resp.stderr].filter((x) => typeof x === 'string' && x).join('\n');
     interrupted = !!resp.interrupted;
     // PostToolUse fires only for calls that succeeded; an explicit exit code wins if present.
-    const explicit = [resp.exit_code, resp.exitCode, resp.returnCode].find((x) => Number.isInteger(x));
-    exit = explicit !== undefined ? explicit : interrupted ? null : 0;
+    const explicit = exitField(resp);
+    exit = explicit !== null ? explicit : interrupted ? null : 0;
   }
+  const cwd = payload.cwd || ctx.cwd;
   const r = observePost(ctx, {
-    agent: AGENT,
-    toolUseId: payload.tool_use_id || '',
-    cwd: payload.cwd || ctx.cwd,
+    agent: agentOf(payload),
+    toolUseId: callId(payload.tool_use_id, payload.session_id, cwd, command),
+    cwd,
     command,
     exit,
     output,

@@ -1,0 +1,1 @@
+Payload shapes for cursor, taken from its hooks documentation as verified on 2026-10-01 (see src/adapters/cursor.js for the links). `cwd` and ids are replaced by the tests. Replace with payloads captured from a real session during dogfooding (step 7.3).

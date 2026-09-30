@@ -1,0 +1,16 @@
+{
+  "conversation_id": "conv-1",
+  "generation_id": "gen-1",
+  "hook_event_name": "postToolUse",
+  "workspace_roots": [
+    "/home/user/proj"
+  ],
+  "tool_name": "Shell",
+  "tool_input": {
+    "command": "npm test"
+  },
+  "tool_output": "{\"exitCode\":1,\"stdout\":\"FAIL: expected 1 to equal 2\"}",
+  "tool_use_id": "abc123",
+  "cwd": "/home/user/proj",
+  "duration": 5432
+}

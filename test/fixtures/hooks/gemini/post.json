@@ -1,0 +1,15 @@
+{
+  "session_id": "g-1",
+  "transcript_path": "/home/user/.gemini/tmp/x.json",
+  "cwd": "/home/user/proj",
+  "hook_event_name": "AfterTool",
+  "timestamp": "2026-10-01T10:00:04.000Z",
+  "tool_name": "run_shell_command",
+  "tool_input": {
+    "command": "npm test"
+  },
+  "tool_response": {
+    "llmContent": "Command: npm test\nDirectory: (root)\nOutput: FAIL: expected 1 to equal 2\nError: (none)\nExit Code: 1\nSignal: (none)\nBackground PIDs: (none)\nProcess Group PGID: 48213",
+    "returnDisplay": "FAIL: expected 1 to equal 2"
+  }
+}

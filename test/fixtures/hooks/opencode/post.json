@@ -1,0 +1,16 @@
+{
+  "tool": "bash",
+  "sessionID": "ses_1",
+  "callID": "call_1",
+  "args": {
+    "command": "npm test",
+    "description": "Run tests"
+  },
+  "cwd": "/home/user/proj",
+  "output": "FAIL: expected 1 to equal 2\n",
+  "metadata": {
+    "exit": 1,
+    "output": "FAIL: expected 1 to equal 2\n",
+    "description": "Run tests"
+  }
+}

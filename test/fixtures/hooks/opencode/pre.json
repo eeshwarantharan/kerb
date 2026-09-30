@@ -1,0 +1,10 @@
+{
+  "tool": "bash",
+  "sessionID": "ses_1",
+  "callID": "call_1",
+  "args": {
+    "command": "npm test",
+    "description": "Run tests"
+  },
+  "cwd": "/home/user/proj"
+}

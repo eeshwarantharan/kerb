@@ -1,0 +1,14 @@
+{
+  "session_id": "s-1",
+  "turn_id": "t-1",
+  "transcript_path": "/home/user/.codex/sessions/x.jsonl",
+  "cwd": "/home/user/proj",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-5-codex",
+  "permission_mode": "default",
+  "tool_name": "Bash",
+  "tool_use_id": "call_1",
+  "tool_input": {
+    "command": "npm test"
+  }
+}

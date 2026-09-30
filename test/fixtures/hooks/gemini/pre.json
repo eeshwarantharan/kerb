@@ -1,0 +1,12 @@
+{
+  "session_id": "g-1",
+  "transcript_path": "/home/user/.gemini/tmp/x.json",
+  "cwd": "/home/user/proj",
+  "hook_event_name": "BeforeTool",
+  "timestamp": "2026-10-01T10:00:00.000Z",
+  "tool_name": "run_shell_command",
+  "tool_input": {
+    "command": "npm test",
+    "description": "Run the tests"
+  }
+}

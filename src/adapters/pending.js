@@ -20,6 +20,26 @@ export function writePending(storeDir, toolUseId, rec) {
   fs.writeFileSync(path.join(dir, `${safeName(toolUseId)}.json`), JSON.stringify(rec), { mode: 0o600 });
 }
 
+/** Read a pending record without consuming it; null if absent. */
+export function peekPending(storeDir, toolUseId) {
+  try { return JSON.parse(fs.readFileSync(path.join(pendingDir(storeDir), `${safeName(toolUseId)}.json`), 'utf8')); } catch { return null; }
+}
+
+/** Mark a call as recorded, so a duplicate post hook (another hook file, same call) is skipped. */
+export function markDone(storeDir, toolUseId) {
+  const dir = ensureDir(pendingDir(storeDir));
+  fs.writeFileSync(path.join(dir, `done-${safeName(toolUseId)}`), String(Date.now()), { mode: 0o600 });
+}
+
+export function recentlyDone(storeDir, toolUseId, withinMs = 5000) {
+  try {
+    const t = Number(fs.readFileSync(path.join(pendingDir(storeDir), `done-${safeName(toolUseId)}`), 'utf8'));
+    return Date.now() - t < withinMs;
+  } catch {
+    return false;
+  }
+}
+
 /** Read and delete a pending record; null if absent. */
 export function takePending(storeDir, toolUseId) {
   const file = path.join(pendingDir(storeDir), `${safeName(toolUseId)}.json`);

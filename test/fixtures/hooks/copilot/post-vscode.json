@@ -1,0 +1,13 @@
+{
+  "hook_event_name": "PostToolUse",
+  "session_id": "sess-2",
+  "timestamp": "2026-10-01T10:00:04.000Z",
+  "cwd": "/home/user/proj",
+  "tool_name": "run_in_terminal",
+  "tool_input": {
+    "command": "npm test",
+    "isBackground": false
+  },
+  "tool_use_id": "tool-123",
+  "tool_response": "FAIL: expected 1 to equal 2\nCommand exited with code 1"
+}

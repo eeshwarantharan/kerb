@@ -1,0 +1,13 @@
+{
+  "sessionId": "sess-1",
+  "timestamp": 1759300004000,
+  "cwd": "/home/user/proj",
+  "toolName": "bash",
+  "toolArgs": {
+    "command": "npm test"
+  },
+  "toolResult": {
+    "resultType": "success",
+    "textResultForLlm": "FAIL: expected 1 to equal 2\n<exited with exit code 1>"
+  }
+}

@@ -18,6 +18,7 @@ const ADAPTERS = {
   cursor: () => import('../adapters/cursor.js'),
   codex: () => import('../adapters/codex.js'),
   gemini: () => import('../adapters/gemini.js'),
+  opencode: () => import('../adapters/opencode.js'),
 };
 
 let delayForTests = 0;
