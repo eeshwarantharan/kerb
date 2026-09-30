@@ -1,5 +1,11 @@
 #!/usr/bin/env node
-import { main } from '../src/cli/main.js';
+import module from 'node:module';
+
+// Node 22+ caches compiled modules between runs, which keeps hooks and `kerb check` fast.
+if (typeof module.enableCompileCache === 'function') {
+  try { module.enableCompileCache(); } catch { /* optional */ }
+}
+const { main } = await import('../src/cli/main.js');
 
 main(process.argv.slice(2)).then(
   (code) => finish(code),

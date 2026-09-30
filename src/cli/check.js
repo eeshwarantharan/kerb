@@ -2,7 +2,6 @@
 import { UsageError } from '../util/core.js';
 import { parseOpts, commandFromRest } from './args.js';
 import { prepare, preRefusal, emitRefusal, refreshOrgIfDue } from '../engine.js';
-import { loopGate } from '../loop/gate.js';
 import { formatNote } from '../ui/format.js';
 
 export default async function check(ctx, args) {
@@ -14,6 +13,7 @@ export default async function check(ctx, args) {
   const pre = preRefusal(prep);
   let refusal = pre.refusal;
   if (!refusal && prep.cls === 'check') {
+    const { loopGate } = await import('../loop/gate.js');
     const gate = loopGate(prep, { force: false, hashBudgetMs: prep.config.values.hash_budget_ms || 2000, dryRun: true });
     refusal = gate.refusal;
   }

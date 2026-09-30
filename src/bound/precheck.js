@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { childProcess } from '../util/lazy.js';
 import { EXIT, globToRegExp } from '../util/core.js';
 import { gitSub } from '../parse/tokenize.js';
 import { explicitHosts, implicitHosts, gitRemoteUrl } from '../parse/hosts.js';
@@ -48,7 +48,7 @@ export function currentBranch(dir) {
     }
   } catch { /* fall through */ }
   try {
-    const r = spawnSync('git', ['-C', dir, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8', timeout: 500 });
+    const r = childProcess().spawnSync('git', ['-C', dir, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8', timeout: 500 });
     const b = r.status === 0 ? r.stdout.trim() : '';
     return b && b !== 'HEAD' ? b : null;
   } catch {
@@ -58,7 +58,7 @@ export function currentBranch(dir) {
 
 function localBranches(dir) {
   try {
-    const r = spawnSync('git', ['-C', dir, 'for-each-ref', '--format=%(refname:short)', 'refs/heads'], { encoding: 'utf8', timeout: 1000 });
+    const r = childProcess().spawnSync('git', ['-C', dir, 'for-each-ref', '--format=%(refname:short)', 'refs/heads'], { encoding: 'utf8', timeout: 1000 });
     return r.status === 0 ? r.stdout.split('\n').filter(Boolean) : [];
   } catch {
     return [];

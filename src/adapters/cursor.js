@@ -6,7 +6,7 @@
 // postToolUse: tool_output is a JSON string with exitCode/stdout; postToolUseFailure: error_message,
 // failure_type ("error" | "timeout" | "permission_denied"), is_interrupt. stop has no user-visible
 // channel (followup_message would be sent as a user message), so there is no recap in Cursor.
-import { observePre, observePost, callId } from './observe.js';
+import { observePre, callId } from './observe.js';
 import { SHELL_TOOLS, toText, exitFromText, exitField, argsObject, commandOf, resolveCwd, refusalText, noteLines } from './shared.js';
 
 export const AGENT = 'cursor';
@@ -20,17 +20,17 @@ function base(ctx, p) {
   return { args, command, cwd, session, id: callId(p.tool_use_id, session, cwd, command || '') };
 }
 
-export function pre(ctx, p) {
+export async function pre(ctx, p) {
   if (!SHELL_TOOLS.has(p.tool_name)) return null;
   const b = base(ctx, p);
   if (!b.command) return null;
-  const r = observePre(ctx, { agent: AGENT, command: b.command, cwd: b.cwd, background: !!b.args.is_background, toolUseId: b.id, session: b.session });
+  const r = await observePre(ctx, { agent: AGENT, command: b.command, cwd: b.cwd, background: !!b.args.is_background, toolUseId: b.id, session: b.session });
   if (!r.refusal) return null;
   const text = refusalText(r.refusal);
   return { permission: 'deny', user_message: text.split('\n')[0], agent_message: text };
 }
 
-export function post(ctx, p, { failure = false } = {}) {
+export async function post(ctx, p, { failure = false } = {}) {
   if (!SHELL_TOOLS.has(p.tool_name)) return null;
   const b = base(ctx, p);
   if (!b.command) return null;
@@ -50,6 +50,7 @@ export function post(ctx, p, { failure = false } = {}) {
     const explicit = exitField(out);
     exit = explicit !== null ? explicit : exitFromText(text);
   }
+  const { observePost } = await import('./observe-post.js');
   const r = observePost(ctx, { agent: AGENT, toolUseId: b.id, cwd: b.cwd, command: b.command, exit, output: text, durationMs: Number.isFinite(p.duration) ? p.duration : null, timedOut, interrupted, session: b.session });
   const lines = noteLines(r.notes, r.hints);
   return lines.length ? { additional_context: lines.join('\n') } : null;

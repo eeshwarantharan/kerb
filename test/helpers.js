@@ -7,6 +7,16 @@ import { fileURLToPath } from 'node:url';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const KERB = path.join(ROOT, 'bin', 'kerb.js');
+/**
+ * Tests can target another build: KERB_TEST_BIN=dist/kerb.cjs (the bundle) or a standalone
+ * binary. Read only here, by the tests; Kerb itself never reads it.
+ */
+export const TEST_BIN = process.env.KERB_TEST_BIN ? path.resolve(ROOT, process.env.KERB_TEST_BIN) : null;
+export function kerbArgv(args) {
+  if (!TEST_BIN) return [process.execPath, [KERB, ...args]];
+  if (TEST_BIN.endsWith('.js') || TEST_BIN.endsWith('.cjs')) return [process.execPath, [TEST_BIN, ...args]];
+  return [TEST_BIN, args];
+}
 
 /** Make a fresh temp directory. */
 export function tmpDir(prefix = 'kerb-test-') {
@@ -71,7 +81,8 @@ export function baseEnv() {
  * @returns {{ code: number, stdout: string, stderr: string, json: any }}
  */
 export function runKerb(args, { cwd = ROOT, env, input, timeout = 60_000, envMerged = false } = {}) {
-  const r = spawnSync(process.execPath, [KERB, ...args], {
+  const [cmd, argv] = kerbArgv(args);
+  const r = spawnSync(cmd, argv, {
     cwd,
     env: envMerged ? env : { ...baseEnv(), ...(env || {}) },
     input,
@@ -86,7 +97,8 @@ export function runKerb(args, { cwd = ROOT, env, input, timeout = 60_000, envMer
 
 /** Run the CLI asynchronously; resolves with code and output. */
 export function runKerbAsync(args, { cwd = ROOT, env, detached = true } = {}) {
-  const child = spawn(process.execPath, [KERB, ...args], { cwd, env: env || baseEnv(), detached, stdio: ['ignore', 'pipe', 'pipe'] });
+  const [cmd, argv] = kerbArgv(args);
+  const child = spawn(cmd, argv, { cwd, env: env || baseEnv(), detached, stdio: ['ignore', 'pipe', 'pipe'] });
   let stdout = '';
   let stderr = '';
   child.stdout.on('data', (d) => { stdout += d; });

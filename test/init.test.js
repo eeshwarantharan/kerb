@@ -139,11 +139,13 @@ test('I9 hook commands use absolute paths (Node plus the script, or the binary)'
   initClaude(repo);
   const s = JSON.parse(repo.read(SETTINGS));
   const cmd = s.hooks.PreToolUse.find((g) => g.matcher === 'Bash').hooks[0].command;
-  const [node, script] = cmd.split(' ');
-  assert.ok(path.isAbsolute(node.replace(/"/g, '')), node);
-  assert.ok(path.isAbsolute(script.replace(/"/g, '')), script);
-  assert.ok(fs.existsSync(node.replace(/"/g, '')));
-  assert.match(script, /bin\/kerb\.js"?$/);
+  const words = cmd.split(' hook ')[0].split(' ').map((w) => w.replace(/"/g, ''));
+  for (const w of words) {
+    assert.ok(path.isAbsolute(w), w);
+    assert.ok(fs.existsSync(w), w);
+  }
+  if (words.length === 2) assert.match(words[1], /(bin\/kerb\.js|kerb\.cjs)$/, 'Node plus the entry script');
+  else assert.equal(words.length, 1, 'or the standalone binary');
 });
 
 test('I10 a moved Node path: doctor reports it stale and init --refresh fixes it', () => {

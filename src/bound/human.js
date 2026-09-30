@@ -1,7 +1,7 @@
 // Human-only actions (4.7.7): the hook refuses agent commands that would switch Kerb off,
 // and the actions themselves need a code typed on the terminal.
 import fs from 'node:fs';
-import { randomInt } from 'node:crypto';
+import { crypto } from '../util/lazy.js';
 import { EXIT, KerbError, isWindows } from '../util/core.js';
 
 export const HUMAN_ONLY_SUBCOMMANDS = new Set(['ack', 'reset', 'forget', 'config', 'uninstall']);
@@ -95,7 +95,7 @@ export function requireHuman(action, io = {}) {
   }
   try {
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    const code = Array.from({ length: 4 }, () => alphabet[randomInt(alphabet.length)]).join('');
+    const code = Array.from({ length: 4 }, () => alphabet[crypto().randomInt(alphabet.length)]).join('');
     fs.writeSync(outFd, `kerb: ${action} is a human-only action.\nType ${code} to confirm: `);
     const buf = Buffer.alloc(64);
     let answer = '';

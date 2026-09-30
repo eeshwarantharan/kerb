@@ -6,17 +6,14 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { sha256, isWindows } from '../util/core.js';
+import { isSea } from '../util/lazy.js';
 import { atomicWrite, ensureDir, readJson } from '../util/fsx.js';
 import { INSTRUCTION_FILES, SKILL, START_MARKER, END_MARKER, instructionsBlock, briefingLines, replaceBlock } from './instructions.js';
 import { AGENT_DESCRIPTORS } from './agents.js';
 
 export const MANIFEST = '.kerb/install.json';
 
-let seaBinary = null;
-try {
-  const sea = await import('node:sea');
-  if (sea.isSea && sea.isSea()) seaBinary = process.execPath;
-} catch { /* not a single-executable build */ }
+const seaBinary = isSea() ? process.execPath : null;
 
 /** Shell-quote a path for a hook command line. */
 export function q(p) {
@@ -30,7 +27,10 @@ export function q(p) {
  */
 export function kerbInvocation() {
   if (seaBinary) return { command: q(seaBinary), binary: seaBinary, node: null, script: null };
-  const script = fs.realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'kerb.js'));
+  // The CommonJS bundle (dist/kerb.cjs) is its own entry script.
+  const script = globalThis.__KERB_BUNDLE__
+    ? fs.realpathSync(process.argv[1])
+    : fs.realpathSync(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'bin', 'kerb.js'));
   const node = fs.realpathSync(process.execPath);
   return { command: `${q(node)} ${q(script)}`, binary: null, node, script };
 }

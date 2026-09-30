@@ -3,7 +3,7 @@
 // untracked cache when the repo enables them.
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
+import { crypto } from '../util/lazy.js';
 import { HashBudgetError, checkDeadline, hashPath, sha } from './hashfile.js';
 
 function git(root, args, deadline) {
@@ -34,6 +34,7 @@ export function parseStatusV2(buf) {
     const e = parts[i];
     if (!e) continue;
     const t = e[0];
+    if (t === '#') continue;
     if (t === '1') {
       const f = e.split(' ');
       out.push({ path: f.slice(8).join(' '), status: f[1], sub: f[2] });
@@ -61,8 +62,7 @@ export function gitWorkspace(root, scope, o = {}) {
   // Base: tree of the scope at HEAD plus blob ids of the root shared files.
   const base = { tree: null, blobs: {}, globs: null };
   if (scope.whole) {
-    const r = git(root, ['rev-parse', '--verify', '-q', 'HEAD^{tree}'], deadline);
-    base.tree = r.status === 0 ? r.stdout.toString().trim() : 'nohead';
+    // Filled from `git status --branch` below (the HEAD commit), saving a git spawn.
   } else {
     const r = git(root, ['ls-tree', '-z', 'HEAD', '--', scope.pkgRel, ...scope.shared], deadline);
     if (r.status === 0) {
@@ -78,14 +78,18 @@ export function gitWorkspace(root, scope, o = {}) {
     if (!base.tree) base.tree = r.status === 0 ? 'absent' : 'nohead';
     if (scope.sharedGlobs.length) {
       const g = git(root, ['ls-files', '-s', '-z', '--', ...scope.sharedGlobs.map((x) => `:(glob)${x}`)], deadline);
-      base.globs = g.status === 0 ? createHash('sha256').update(g.stdout).digest('hex') : null;
+      base.globs = g.status === 0 ? crypto().createHash('sha256').update(g.stdout).digest('hex') : null;
     }
   }
   checkDeadline(deadline);
   // -unormal (not -uall) so the untracked cache applies; untracked directories are
   // expanded below with ls-files, which honours the same ignore rules.
-  const st = git(root, ['status', '--porcelain=v2', '-z', '--untracked-files=normal', ...pathspecs(scope)], deadline);
+  const st = git(root, ['status', '--porcelain=v2', '-z', '--untracked-files=normal', ...(scope.whole ? ['--branch'] : []), ...pathspecs(scope)], deadline);
   if (st.status !== 0) throw new Error(`git status failed: ${st.stderr.toString().trim()}`);
+  if (scope.whole) {
+    const m = /(?:^|\0)# branch\.oid ([^\0\s]+)/.exec(st.stdout.toString('utf8'));
+    base.tree = m && m[1] !== '(initial)' ? m[1] : 'nohead';
+  }
   const isKerb = (p) => p === '.kerb/' || p.startsWith('.kerb/');
   let entries = parseStatusV2(st.stdout).filter((e) => !isKerb(e.path));
   const untrackedDirs = entries.filter((e) => e.status === '??' && e.path.endsWith('/')).map((e) => e.path);
@@ -122,7 +126,7 @@ export function blobContentHash(root, treeish, rel) {
   const spec = rel == null ? treeish : `${treeish}:${rel}`;
   const r = spawnSync('git', ['-C', root, 'cat-file', 'blob', spec], { maxBuffer: 256 * 1024 * 1024 });
   if (r.status !== 0) return 'absent';
-  return createHash('sha256').update(r.stdout).digest('hex');
+  return crypto().createHash('sha256').update(r.stdout).digest('hex');
 }
 
 /** Paths that differ between two trees (relative to the trees). */

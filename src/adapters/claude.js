@@ -6,7 +6,7 @@
 //   deny → { hookSpecificOutput: { hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason } }
 //   Stop → top-level systemMessage is shown to the user; SessionEnd discards JSON output.
 import { formatRefusal } from '../ui/format.js';
-import { observePre, observePost, callId } from './observe.js';
+import { observePre, callId } from './observe.js';
 import { toText, exitFromText, exitField } from './shared.js';
 
 export const AGENT = 'claude';
@@ -45,12 +45,12 @@ export function agentOf(payload) {
   return payload.timestamp !== undefined && payload.transcript_path === undefined ? 'copilot' : AGENT;
 }
 
-export function pre(ctx, payload) {
+export async function pre(ctx, payload) {
   if (payload.tool_name && payload.tool_name !== 'Bash') return null;
   const command = payload.tool_input && payload.tool_input.command;
   if (typeof command !== 'string' || !command.trim()) return null;
   const cwd = payload.cwd || ctx.cwd;
-  const r = observePre(ctx, {
+  const r = await observePre(ctx, {
     agent: agentOf(payload),
     command,
     cwd,
@@ -69,7 +69,7 @@ export function exitFromError(error) {
   return m ? Number(m[1]) : null;
 }
 
-export function post(ctx, payload, { failure = false } = {}) {
+export async function post(ctx, payload, { failure = false } = {}) {
   if (payload.tool_name && payload.tool_name !== 'Bash') return null;
   const command = payload.tool_input && payload.tool_input.command;
   if (typeof command !== 'string') return null;
@@ -96,6 +96,7 @@ export function post(ctx, payload, { failure = false } = {}) {
     exit = explicit !== null ? explicit : interrupted ? null : 0;
   }
   const cwd = payload.cwd || ctx.cwd;
+  const { observePost } = await import('./observe-post.js');
   const r = observePost(ctx, {
     agent: agentOf(payload),
     toolUseId: callId(payload.tool_use_id, payload.session_id, cwd, command),

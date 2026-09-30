@@ -1,6 +1,6 @@
 // Content hashing for workspace files. Files over 5 MB hash size + first and last 1 MB.
 import fs from 'node:fs';
-import { createHash } from 'node:crypto';
+import { crypto } from '../util/lazy.js';
 
 const BIG = 5 * 1024 * 1024;
 const EDGE = 1024 * 1024;
@@ -25,10 +25,10 @@ export function hashPath(file) {
   if (st.isSymbolicLink()) {
     let target = '';
     try { target = fs.readlinkSync(file); } catch { /* */ }
-    return { h: createHash('sha256').update(`link:${target}`).digest('hex'), x: 0, st };
+    return { h: crypto().createHash('sha256').update(`link:${target}`).digest('hex'), x: 0, st };
   }
   if (st.isDirectory()) return { h: 'dir', x: 0, st };
-  const hash = createHash('sha256');
+  const hash = crypto().createHash('sha256');
   if (st.size > BIG) {
     const fd = fs.openSync(file, 'r');
     try {
@@ -47,7 +47,7 @@ export function hashPath(file) {
 }
 
 export function sha(...parts) {
-  const h = createHash('sha256');
+  const h = crypto().createHash('sha256');
   parts.forEach((p, i) => { if (i) h.update('\0'); h.update(String(p)); });
   return h.digest('hex');
 }

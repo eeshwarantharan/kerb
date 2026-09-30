@@ -3,7 +3,7 @@
 // This file and telemetry/otlp.js are the only code paths that touch the network.
 import fs from 'node:fs';
 import path from 'node:path';
-import { createPublicKey, createPrivateKey, generateKeyPairSync, sign, verify } from 'node:crypto';
+import { crypto } from '../util/lazy.js';
 import { UsageError, now } from '../util/core.js';
 import { atomicWrite, ensureDir, homeKerbDir, readJson } from '../util/fsx.js';
 import { lintPolicy } from './policy.js';
@@ -19,6 +19,7 @@ function metaFile() { return path.join(orgDir(), 'meta.json'); }
 /** Public key from base64 (raw 32 bytes) or a PEM. */
 export function publicKeyFrom(value) {
   const v = String(value || '').trim();
+  const { createPublicKey } = crypto();
   if (v.includes('BEGIN PUBLIC KEY')) return createPublicKey(v);
   const raw = Buffer.from(v, 'base64');
   if (raw.length !== 32) throw new Error('org.public_key must be a base64 Ed25519 public key (32 bytes)');
@@ -34,7 +35,7 @@ export function verifyBundle(text, publicKey) {
   const b = JSON.parse(text);
   if (!b || typeof b.payload !== 'string' || typeof b.signature !== 'string') throw new Error('not a Kerb policy bundle');
   const payload = Buffer.from(b.payload, 'base64');
-  const ok = verify(null, payload, publicKeyFrom(publicKey), Buffer.from(b.signature, 'base64'));
+  const ok = crypto().verify(null, payload, publicKeyFrom(publicKey), Buffer.from(b.signature, 'base64'));
   if (!ok) throw new Error('bundle signature does not verify against the pinned key');
   const inner = JSON.parse(payload.toString('utf8'));
   if (!inner || typeof inner.policy !== 'object') throw new Error('bundle has no policy');
@@ -44,7 +45,7 @@ export function verifyBundle(text, publicKey) {
 /** Sign a policy object into a bundle. */
 export function signBundle(policy, privateKeyPem, bundleVersion, signedAt = new Date().toISOString()) {
   const payload = Buffer.from(JSON.stringify({ bundle_version: bundleVersion, signed_at: signedAt, policy }), 'utf8');
-  const signature = sign(null, payload, createPrivateKey(privateKeyPem));
+  const signature = crypto().sign(null, payload, crypto().createPrivateKey(privateKeyPem));
   return { format: 'kerb-bundle', version: 1, bundle_version: bundleVersion, signed_at: signedAt, payload: payload.toString('base64'), signature: signature.toString('base64') };
 }
 
@@ -134,7 +135,7 @@ export async function policyCommand(ctx, sub, args) {
     const { opts } = parseOpts(args, { out: 'string' });
     const dir = path.resolve(ctx.cwd, opts.out || '.');
     fs.mkdirSync(dir, { recursive: true });
-    const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+    const { publicKey, privateKey } = crypto().generateKeyPairSync('ed25519');
     const priv = privateKey.export({ type: 'pkcs8', format: 'pem' });
     const pub = Buffer.from(publicKey.export({ format: 'jwk' }).x, 'base64url').toString('base64');
     const privPath = path.join(dir, 'kerb-org.key');

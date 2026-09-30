@@ -7,7 +7,7 @@
 //  - VS Code-compatible snake_case: { session_id, cwd, tool_name, tool_input, tool_result | tool_response, tool_use_id? }
 // Deny: permissionDecision "deny" (top-level for the CLI, inside hookSpecificOutput for VS Code).
 // A command preToolUse hook that exits non-zero denies the call, so the handler always exits 0.
-import { observePre, observePost, callId } from './observe.js';
+import { observePre, callId } from './observe.js';
 import { SHELL_TOOLS, toText, exitFromText, exitField, argsObject, commandOf, resolveCwd, refusalText, noteLines } from './shared.js';
 
 export const AGENT = 'copilot';
@@ -26,11 +26,11 @@ function norm(p) {
   };
 }
 
-export function pre(ctx, p) {
+export async function pre(ctx, p) {
   const n = norm(p);
   if (!SHELL_TOOLS.has(n.tool) || !n.command) return null;
   const cwd = resolveCwd(n.cwdBase || ctx.cwd, n.args.cwd || n.args.directory);
-  const r = observePre(ctx, { agent: AGENT, command: n.command, cwd, background: n.background, toolUseId: callId(n.id, n.session, cwd, n.command), session: n.session });
+  const r = await observePre(ctx, { agent: AGENT, command: n.command, cwd, background: n.background, toolUseId: callId(n.id, n.session, cwd, n.command), session: n.session });
   if (r.refusal) {
     const reason = refusalText(r.refusal);
     return {
@@ -43,7 +43,7 @@ export function pre(ctx, p) {
   return lines.length ? { hookSpecificOutput: { hookEventName: 'PreToolUse', additionalContext: lines.join('\n') } } : null;
 }
 
-export function post(ctx, p, { failure = false } = {}) {
+export async function post(ctx, p, { failure = false } = {}) {
   const n = norm(p);
   if (!SHELL_TOOLS.has(n.tool) || !n.command) return null;
   const cwd = resolveCwd(n.cwdBase || ctx.cwd, n.args.cwd || n.args.directory);
@@ -58,6 +58,7 @@ export function post(ctx, p, { failure = false } = {}) {
     const explicit = exitField(res);
     exit = explicit !== null ? explicit : exitFromText(text);
   }
+  const { observePost } = await import('./observe-post.js');
   const r = observePost(ctx, { agent: AGENT, toolUseId: callId(n.id, n.session, cwd, n.command), cwd, command: n.command, exit, output: text, session: n.session });
   const lines = noteLines(r.notes, r.hints);
   if (!lines.length) return null;

@@ -2,7 +2,7 @@
 import { EXIT, UsageError } from '../util/core.js';
 import { parseOpts, commandFromRest } from './args.js';
 import { requireHuman } from '../bound/human.js';
-import { prepare, preRefusal, recordRefusal, emitRefusal, runBackground, runSupervised, printRun, limits, refreshOrgIfDue } from '../engine.js';
+import { prepare, preRefusal, recordRefusal, emitRefusal, limits, refreshOrgIfDue } from '../engine.js';
 import { loopGate } from '../loop/gate.js';
 import { hookContextFor } from '../adapters/pending.js';
 import { formatNote } from '../ui/format.js';
@@ -35,6 +35,7 @@ export default async function run(ctx, args) {
     emitRefusal(ctx, pre.refusal, prep.key);
     return pre.refusal.exit;
   }
+  const { runBackground, runSupervised, printRun } = await import('../run/runner.js');
   if (prep.cls === 'background') {
     for (const n of pre.notes) ctx.err(formatNote(n, ctx.color.err));
     const code = await runBackground(prep);

@@ -4,7 +4,7 @@
 // deny: { decision: "deny", reason } (reason goes to the agent). AfterTool: tool_response
 // { llmContent, returnDisplay, error } where the shell output carries an "Exit Code: N" line.
 // SessionStart accepts hookSpecificOutput.additionalContext; AfterAgent accepts systemMessage.
-import { observePre, observePost, callId } from './observe.js';
+import { observePre, callId } from './observe.js';
 import { SHELL_TOOLS, toText, exitFromText, argsObject, commandOf, resolveCwd, refusalText, noteLines } from './shared.js';
 
 export const AGENT = 'gemini';
@@ -14,19 +14,19 @@ export function cleanShellOutput(text) {
   return String(text || '').split('\n').filter((l) => !/^(Process Group PGID|Background PIDs|Directory):/.test(l)).join('\n');
 }
 
-export function pre(ctx, p) {
+export async function pre(ctx, p) {
   if (!SHELL_TOOLS.has(p.tool_name)) return null;
   const args = argsObject(p.tool_input);
   const command = commandOf(args);
   if (!command) return null;
   const cwd = resolveCwd(p.cwd || ctx.cwd, args.dir_path || args.directory);
-  const r = observePre(ctx, { agent: AGENT, command, cwd, background: !!args.is_background, toolUseId: callId(null, p.session_id, cwd, command), session: p.session_id || null });
+  const r = await observePre(ctx, { agent: AGENT, command, cwd, background: !!args.is_background, toolUseId: callId(null, p.session_id, cwd, command), session: p.session_id || null });
   if (r.refusal) return { decision: 'deny', reason: refusalText(r.refusal) };
   const lines = noteLines(r.notes);
   return lines.length ? { hookSpecificOutput: { additionalContext: lines.join('\n') } } : null;
 }
 
-export function post(ctx, p) {
+export async function post(ctx, p) {
   if (!SHELL_TOOLS.has(p.tool_name)) return null;
   const args = argsObject(p.tool_input);
   const command = commandOf(args);
@@ -35,6 +35,7 @@ export function post(ctx, p) {
   const resp = p.tool_response || {};
   const text = toText(resp.llmContent ?? resp.returnDisplay ?? resp);
   const exit = exitFromText(text);
+  const { observePost } = await import('./observe-post.js');
   const r = observePost(ctx, { agent: AGENT, toolUseId: callId(null, p.session_id, cwd, command), cwd, command, exit, output: cleanShellOutput(text), session: p.session_id || null });
   const lines = noteLines(r.notes, r.hints);
   return lines.length ? { hookSpecificOutput: { additionalContext: lines.join('\n') } } : null;

@@ -1,5 +1,5 @@
 // Fingerprints and failure kinds (4.7.4).
-import { createHash } from 'node:crypto';
+import { crypto } from '../util/lazy.js';
 import os from 'node:os';
 
 const MONTHS = '(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
@@ -71,7 +71,7 @@ export function compilePatterns(list = []) {
 export class Analyzer {
   /** @param {{ transient?: RegExp[], dependency?: RegExp[] }} [policy] compiled policy patterns */
   constructor(policy = {}) {
-    this.hash = createHash('sha256');
+    this.hash = crypto().createHash('sha256');
     this.transient = [...TRANSIENT_DEFAULT, ...(policy.transient || [])];
     this.dependency = [...DEPENDENCY_DEFAULT, ...(policy.dependency || [])];
     this.sawTransient = false;

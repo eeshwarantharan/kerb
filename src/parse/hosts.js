@@ -3,7 +3,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { childProcess } from '../util/lazy.js';
 import { gitSub } from './tokenize.js';
 
 /**
@@ -177,7 +177,7 @@ function dedupe(list) {
 /** URL of a git remote via `git remote get-url` (respects insteadOf); null on failure. */
 export function gitRemoteUrl(dir, name) {
   try {
-    const r = spawnSync('git', ['-C', dir, 'remote', 'get-url', name], { encoding: 'utf8', timeout: 500 });
+    const r = childProcess().spawnSync('git', ['-C', dir, 'remote', 'get-url', name], { encoding: 'utf8', timeout: 500 });
     return r.status === 0 ? r.stdout.trim() : null;
   } catch {
     return null;

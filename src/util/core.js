@@ -1,5 +1,5 @@
 // Small shared helpers: exit codes, errors, clock, ids, durations, sizes, hashing.
-import { createHash, randomBytes } from 'node:crypto';
+import { crypto } from './lazy.js';
 
 /** Exit codes (4.2). Loop and policy codes are configurable by the human or managed config. */
 export const EXIT = {
@@ -43,13 +43,13 @@ export function newId(ts = now()) {
   else { lastIdTs = ts; seq = 0; }
   const t = Math.floor(ts).toString(36).padStart(9, '0');
   const s = (seq % 1296).toString(36).padStart(2, '0');
-  const r = randomBytes(2).readUInt16BE(0).toString(36).padStart(3, '0').slice(-3);
+  const r = Math.floor(Math.random() * 46656).toString(36).padStart(3, '0');
   return `${t}${s}${r}`;
 }
 
 /** @param {string | Buffer} data */
 export function sha256(data) {
-  return createHash('sha256').update(data).digest('hex');
+  return crypto().createHash('sha256').update(data).digest('hex');
 }
 
 const DUR_RE = /^(\d+(?:\.\d+)?)(ms|s|sec|secs|m|min|mins|h|hr|hrs|d|day|days|w|wk|wks)?$/;

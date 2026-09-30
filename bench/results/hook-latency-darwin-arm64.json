@@ -1,0 +1,33 @@
+{
+  "date": "2026-09-30T21:47:50.463Z",
+  "node": "v20.12.2",
+  "platform": "darwin-arm64",
+  "cpus": 8,
+  "files": 5000,
+  "runs": 40,
+  "cases": {
+    "query": {
+      "p50_ms": 79,
+      "p95_ms": 97.1,
+      "min_ms": 76.2
+    },
+    "check": {
+      "p50_ms": 118.7,
+      "p95_ms": 133.7,
+      "min_ms": 112.5
+    },
+    "blocked": {
+      "p50_ms": 91.2,
+      "p95_ms": 134.8,
+      "min_ms": 80.9
+    }
+  },
+  "node_startup": {
+    "p50_ms": 45.1,
+    "p95_ms": 53.7
+  },
+  "latency_gate": {
+    "target_p95_ms": 100,
+    "pass": false
+  }
+}
