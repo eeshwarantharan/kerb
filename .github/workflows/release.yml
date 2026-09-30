@@ -92,6 +92,9 @@ jobs:
         run: |
           gh release create "$GITHUB_REF_NAME" dist/bin/kerb-* dist/bin/SHA256SUMS dist/kerb.cdx.json \
             --title "$GITHUB_REF_NAME" --notes-file docs/release-notes.md
+      # Trusted publishing (OIDC, no stored token) needs npm 11.5.1+; Node 22 ships npm 10.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
       - name: npm publish with provenance
         run: npm publish --provenance --access public
         env:
