@@ -1,6 +1,7 @@
 // Output shaping (4.6): streaming, bounded memory. Raw log (redacted), binary detection,
 // ANSI/OSC stripping, carriage returns, repeat folding, head + tail budget.
 import fs from 'node:fs';
+import { StringDecoder } from 'node:string_decoder';
 import { StreamRedactor } from './redact.js';
 
 export const DEFAULT_BUDGET = 12_000;
@@ -10,9 +11,11 @@ const MAX_TAIL_LINES = 100_000;
 // CSI, OSC (BEL or ST terminated), DCS/PM/APC strings, two-byte escapes, other C0 controls except \t.
 const ANSI_RE = /\x1b\[[0-?]*[ -/]*[@-~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1b[P^_][^\x1b]*\x1b\\|\x1b[@-Z\\-_]|[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g;
 
+const HAS_CONTROL = /[\x00-\x08\x0b-\x1f\x7f]/;
+
 /** Remove ANSI escape sequences and stray control characters. */
 export function stripAnsi(s) {
-  return s.replace(ANSI_RE, '');
+  return HAS_CONTROL.test(s) ? s.replace(ANSI_RE, '') : s;
 }
 
 /** Keep only the text after the last carriage return (progress bars), ignoring a CRLF ending. */
@@ -48,11 +51,11 @@ export class Shaper {
     this.onLine = o.onLine || null;
     this.logFd = this.logPath ? fs.openSync(this.logPath, o.logFlags || 'a', 0o600) : null;
     this.redactor = new StreamRedactor();
+    this.decoder = new StringDecoder('utf8');
     this.rawBytes = 0;
     this.probed = 0;
     this.binary = false;
-    this.partial = [];
-    this.partialBytes = 0;
+    this.partial = '';
     this.partialOverflow = false;
     this.last = null;
     this.lastCount = 0;
@@ -60,6 +63,7 @@ export class Shaper {
     this.headBytes = 0;
     this.headClosed = false;
     this.tail = [];
+    this.tailStart = 0;
     this.tailBytes = 0;
     this.omitted = 0;
     this.truncatedLine = false;
@@ -83,41 +87,57 @@ export class Shaper {
         this.binary = true;
         this.head = [];
         this.tail = [];
-        this.partial = [];
+        this.tailStart = 0;
+        this.partial = '';
       }
     }
     if (this.binary) return;
+    const text = this.decoder.write(buf);
     let start = 0;
     for (;;) {
-      const nl = buf.indexOf(10, start);
+      const nl = text.indexOf('\n', start);
       if (nl === -1) {
-        this.addPartial(buf.subarray(start));
+        this.addPartial(start === 0 ? text : text.slice(start));
         break;
       }
-      this.addPartial(buf.subarray(start, nl));
-      this.flushLine();
+      const piece = text.slice(start, nl);
+      if (this.partial) {
+        this.addPartial(piece);
+        this.flushLine(this.takePartial());
+      } else if (piece.length > this.maxLine) {
+        this.addPartial(piece);
+        this.flushLine(this.takePartial());
+      } else {
+        this.flushLine(piece);
+      }
       start = nl + 1;
     }
   }
 
-  addPartial(b) {
-    if (!b.length) return;
-    if (this.partialBytes >= this.maxLine) { this.partialOverflow = true; return; }
-    const room = this.maxLine - this.partialBytes;
-    const piece = b.length > room ? b.subarray(0, room) : b;
-    if (b.length > room) this.partialOverflow = true;
-    this.partial.push(Buffer.from(piece));
-    this.partialBytes += piece.length;
+  addPartial(t) {
+    if (!t) return;
+    if (this.partial.length >= this.maxLine) { this.partialOverflow = true; return; }
+    const room = this.maxLine - this.partial.length;
+    if (t.length > room) {
+      this.partial += t.slice(0, room);
+      this.partialOverflow = true;
+    } else this.partial += t;
   }
 
-  flushLine() {
-    let buf = Buffer.concat(this.partial);
+  takePartial() {
+    let line = this.partial;
+    if (this.partialOverflow) line = utf8Prefix(Buffer.from(line), this.maxLine).toString('utf8');
     const overflow = this.partialOverflow;
-    this.partial = [];
-    this.partialBytes = 0;
+    this.partial = '';
     this.partialOverflow = false;
-    if (overflow) buf = utf8Prefix(buf, this.maxLine);
-    let line = stripAnsi(lastCr(buf.toString('utf8')));
+    return overflow ? { line, overflow } : line;
+  }
+
+  flushLine(input) {
+    let raw = input;
+    let overflow = false;
+    if (typeof input === 'object') { raw = input.line; overflow = input.overflow; }
+    let line = stripAnsi(raw.indexOf('\r') === -1 ? raw : lastCr(raw));
     if (overflow) {
       line += ' [kerb] line cut';
       this.truncatedLine = true;
@@ -161,10 +181,17 @@ export class Shaper {
     }
     this.tail.push(line);
     this.tailBytes += bytes;
-    while (this.tailBytes > this.tailBudget || this.tail.length > MAX_TAIL_LINES) {
-      const dropped = this.tail.shift();
+    while (this.tailBytes > this.tailBudget || this.tail.length - this.tailStart > MAX_TAIL_LINES) {
+      const dropped = this.tail[this.tailStart];
+      this.tail[this.tailStart] = undefined;
+      this.tailStart++;
       this.tailBytes -= Buffer.byteLength(dropped) + 1;
       this.omitted++;
+    }
+    // Compact the ring now and then so memory stays bounded.
+    if (this.tailStart > 4096) {
+      this.tail = this.tail.slice(this.tailStart);
+      this.tailStart = 0;
     }
   }
 
@@ -172,7 +199,8 @@ export class Shaper {
   end() {
     const rest = this.redactor.end();
     if (rest) this.consume(Buffer.from(rest, 'latin1'));
-    if (!this.binary && this.partial.length) this.flushLine();
+    if (!this.binary) this.addPartial(this.decoder.end());
+    if (!this.binary && this.partial.length) this.flushLine(this.takePartial());
     if (!this.binary) this.flushRepeat();
     if (this.logFd !== null) {
       fs.closeSync(this.logFd);
@@ -184,7 +212,7 @@ export class Shaper {
     } else {
       const parts = [...this.head];
       if (this.omitted > 0) parts.push(`[kerb] ${this.omitted} lines omitted${this.logPath ? ` · log ${this.logPath}` : ''}`);
-      parts.push(...this.tail);
+      for (let i = this.tailStart; i < this.tail.length; i++) parts.push(this.tail[i]);
       text = parts.length ? `${parts.join('\n')}\n` : '';
     }
     return {

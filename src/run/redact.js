@@ -23,8 +23,12 @@ const PATTERNS = [
   { re: /((?:password|passwd|secret|token|api[_-]?key)["']?\s*[=:]\s*)(?!\[REDACTED\])[^\s'"]+/gi, keep: true },
 ];
 
+// Cheap test for anything that could start a secret; most output has none.
+const TRIGGER = /AKIA|aws_secret|github_pat_|gh[pousr]_|xox[baprs]-|sk-|eyJ|bearer|:\/\/[^\s/@]*:|passw|secret|token|api[_-]?key|PRIVATE KEY/i;
+
 /** Redact a complete string. */
 export function redactText(s) {
+  if (!TRIGGER.test(s)) return s;
   let out = s;
   for (const p of PATTERNS) {
     p.re.lastIndex = 0;
@@ -84,6 +88,11 @@ export class StreamRedactor {
     }
     let cut = this.buf.length - CARRY;
     if (cut <= 0) return out;
+    if (!TRIGGER.test(this.buf)) {
+      out += this.buf.slice(0, cut);
+      this.buf = this.buf.slice(cut);
+      return out;
+    }
     for (const [s, e] of spans(this.buf)) {
       if (s < cut && e > cut && cut - s <= MAX_HOLD) cut = s;
     }
