@@ -61,7 +61,7 @@ test('B7 large output: memory stays bounded', { timeout: 300_000 }, () => {
   let peak = 0;
   let pushed = 0;
   let i = 0;
-  const t0 = Date.now();
+  const cpu0 = process.cpuUsage();
   while (pushed < total) {
     s.push(chunk);
     pushed += chunk.length;
@@ -71,7 +71,9 @@ test('B7 large output: memory stays bounded', { timeout: 300_000 }, () => {
     }
   }
   const r = s.end();
-  const secs = (Date.now() - t0) / 1000;
+  const cpu = process.cpuUsage(cpu0);
+  // CPU time, not wall time: the suite runs files in parallel.
+  const secs = (cpu.user + cpu.system) / 1e6;
   assert.ok(r.shownBytes <= 12_000 + 200);
   assert.ok(peak < 12_000 + 64 * 1024 + 30 * 1024 * 1024, `peak ${peak}`);
   // Z2 shaping throughput at least 50 MB/s.

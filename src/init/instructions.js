@@ -33,7 +33,7 @@ export function briefingLines(root) {
   let bytes = 0;
   for (const { b } of scored) {
     if (lines.length >= MAX_LINES) break;
-    const why = (b.why || (b.layer === 'learned' ? 'blocked here (learned from a policy denial)' : 'blocked here')).replace(/\s+/g, ' ').trim().replace(/\.$/, '');
+    const why = (b.layer === 'learned' ? 'blocked here (learned from a policy denial)' : b.why || 'blocked here').replace(/\s+/g, ' ').trim().replace(/\.$/, '');
     let line = `- ${describe(b)}: ${why}${b.alternative ? ` (use ${b.alternative})` : ''}`;
     if (line.length > 160) line = `${line.slice(0, 159)}…`;
     const size = Buffer.byteLength(line) + 1;
