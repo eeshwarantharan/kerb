@@ -2,7 +2,7 @@
 import { colorEnabled } from '../ui/format.js';
 
 /**
- * @param {{ stdout?: any, stderr?: any, env?: NodeJS.ProcessEnv, cwd?: string, json?: boolean, noColor?: boolean }} o
+ * @param {{ stdout?: any, stderr?: any, stdin?: string, env?: NodeJS.ProcessEnv, cwd?: string, json?: boolean, noColor?: boolean }} o
  */
 export function createContext(o) {
   const stdout = o.stdout || process.stdout;
@@ -14,6 +14,7 @@ export function createContext(o) {
     stderr,
     env,
     cwd: o.cwd || process.cwd(),
+    stdin: o.stdin,
     json: !!o.json,
     noColor: !!o.noColor,
     color: {

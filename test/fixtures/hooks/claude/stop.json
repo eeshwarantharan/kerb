@@ -1,0 +1,11 @@
+{
+  "session_id": "abc123",
+  "transcript_path": "/Users/me/.claude/projects/p/00893aaf-19fa-41d2-8238-13269b9b3ca0.jsonl",
+  "cwd": "/home/user/my-project",
+  "permission_mode": "default",
+  "hook_event_name": "Stop",
+  "stop_hook_active": false,
+  "last_assistant_message": "Done.",
+  "background_tasks": [],
+  "session_crons": []
+}

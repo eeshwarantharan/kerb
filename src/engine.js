@@ -20,6 +20,7 @@ import { Shaper } from './run/shape.js';
 import { redactText } from './run/redact.js';
 import { supervise, markActive, clearActive, activeRuns, reapOrphans, passthrough, SIGNUMS } from './run/supervisor.js';
 import { formatNote, formatRefusal, paint, refusalJson } from './ui/format.js';
+import { regenerateBriefing } from './init/instructions.js';
 
 const SESSION_GAP_MS = 30 * 60_000;
 export const DEFAULT_TIMEOUT_MS = 30 * 60_000;
@@ -350,6 +351,7 @@ export async function runSupervised(prep, o) {
   }
   store.append([endRec, ...extraRecs], summaryTweak(prep, learned && learned.becameConfirmed ? 1 : 0));
   clearActive(store, id);
+  if (learned && learned.becameConfirmed) regenerateBriefing(prep.root);
   evictLogs(store, prep.config.values.log_budget_mb);
 
   const hints = [...fixHits].map((i) => fixes[i].hint);

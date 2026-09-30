@@ -6,14 +6,8 @@ import { loadPolicy } from '../bound/load.js';
 import { LIFETIME_MS } from '../bound/learn.js';
 import { now } from '../util/core.js';
 import { parseOpts } from './args.js';
+import { boundaryHits } from '../bound/hits.js';
 import { refreshOrgIfDue } from '../engine.js';
-
-export function boundaryHits(recs) {
-  /** @type {Record<string, number>} */
-  const hits = {};
-  for (const r of recs) if (r.type === 'refusal' && r.boundary) hits[r.boundary] = (hits[r.boundary] || 0) + 1;
-  return hits;
-}
 
 export function mapEntries(root) {
   const nowTs = now();
