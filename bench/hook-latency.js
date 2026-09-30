@@ -9,7 +9,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const kerb = process.env.KERB_BENCH_BIN ? [process.env.KERB_BENCH_BIN] : [process.execPath, path.join(root, 'bin', 'kerb.js')];
+const kerb = process.env.KERB_BENCH_BIN ? [path.resolve(root, process.env.KERB_BENCH_BIN)] : [process.execPath, path.join(root, 'bin', 'kerb.js')];
 const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i === -1 ? d : args[i + 1]; };
 const runs = Number(opt('runs', 50));
@@ -28,8 +28,15 @@ const g = (...a) => execFileSync('git', a, { cwd: repo, stdio: 'ignore' });
 g('init', '-q'); g('add', '-A'); g('-c', 'user.name=b', '-c', 'user.email=b@e', 'commit', '-qm', 'bench');
 
 const env = { ...process.env, HOME: home };
-const cases = { query: 'ls src', check: 'npm test', blocked: 'npm install left-pad' };
-const result = { date: new Date().toISOString(), node: process.version, platform: `${process.platform}-${process.arch}`, cpus: os.cpus().length, files: 5000, runs, cases: {} };
+const cases = { query: 'ls src', check: 'npm test', 'check-after-failure': 'npm run lint', blocked: 'npm install left-pad' };
+// Give "npm run lint" a recorded failure, so its pre hook has to hash the workspace.
+{
+  const p = { session_id: 'bench', cwd: repo, tool_name: 'Bash', tool_input: { command: 'npm run lint' }, tool_use_id: 'seed' };
+  spawnSync(kerb[0], [...kerb.slice(1), 'hook', 'claude', 'pre'], { input: JSON.stringify(p), env: { ...process.env, HOME: home }, cwd: repo });
+  spawnSync(kerb[0], [...kerb.slice(1), 'hook', 'claude', 'post-failure'], { input: JSON.stringify({ ...p, error: 'Exit code 1\nlint failed' }), env: { ...process.env, HOME: home }, cwd: repo });
+  fs.writeFileSync(path.join(repo, 'src', 'd0', 'f0.js'), 'export const v = -1;\n');
+}
+const result = { date: new Date().toISOString(), kerb: process.env.KERB_BENCH_BIN ? path.basename(process.env.KERB_BENCH_BIN) : `bin/kerb.js on node ${process.version}`, harness_node: process.version, platform: `${process.platform}-${process.arch}`, cpus: os.cpus().length, files: 5000, runs, cases: {} };
 const pct = (a, p) => a[Math.min(a.length - 1, Math.floor(a.length * p))];
 for (const [name, command] of Object.entries(cases)) {
   const times = [];
@@ -48,7 +55,7 @@ base.sort((a, b) => a - b);
 result.node_startup = { p50_ms: +pct(base, 0.5).toFixed(1), p95_ms: +pct(base, 0.95).toFixed(1) };
 result.latency_gate = { target_p95_ms: 100, pass: Object.values(result.cases).every((c) => c.p95_ms < 100) };
 fs.mkdirSync(outDir, { recursive: true });
-const file = path.join(outDir, `hook-latency-${result.platform}.json`);
+const file = path.join(outDir, `hook-latency-${result.platform}-${process.env.KERB_BENCH_BIN ? 'binary' : 'npm'}.json`);
 fs.writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`);
 fs.rmSync(repo, { recursive: true, force: true });
 fs.rmSync(home, { recursive: true, force: true });

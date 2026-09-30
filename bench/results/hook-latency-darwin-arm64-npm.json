@@ -1,0 +1,39 @@
+{
+  "date": "2026-09-30T22:01:40.160Z",
+  "kerb": "bin/kerb.js on node v20.12.2",
+  "harness_node": "v20.12.2",
+  "platform": "darwin-arm64",
+  "cpus": 8,
+  "files": 5000,
+  "runs": 60,
+  "cases": {
+    "query": {
+      "p50_ms": 76.7,
+      "p95_ms": 81.9,
+      "min_ms": 75.1
+    },
+    "check": {
+      "p50_ms": 88.8,
+      "p95_ms": 446.3,
+      "min_ms": 82.5
+    },
+    "check-after-failure": {
+      "p50_ms": 120.7,
+      "p95_ms": 135.8,
+      "min_ms": 116.5
+    },
+    "blocked": {
+      "p50_ms": 85.4,
+      "p95_ms": 112.7,
+      "min_ms": 81.7
+    }
+  },
+  "node_startup": {
+    "p50_ms": 44,
+    "p95_ms": 49.1
+  },
+  "latency_gate": {
+    "target_p95_ms": 100,
+    "pass": false
+  }
+}

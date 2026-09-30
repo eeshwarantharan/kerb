@@ -33,7 +33,7 @@ test('Z5 the benchmark harness records warm p50 and p95 of kerb hook claude pre'
   assert.equal(r.status, 0, r.stderr);
   const file = fs.readdirSync(out).find((f) => f.startsWith('hook-latency-'));
   const j = JSON.parse(fs.readFileSync(path.join(out, file), 'utf8'));
-  for (const c of ['query', 'check', 'blocked']) {
+  for (const c of ['query', 'check', 'check-after-failure', 'blocked']) {
     assert.ok(j.cases[c].p50_ms > 0 && j.cases[c].p95_ms >= j.cases[c].p50_ms, c);
   }
   assert.ok('pass' in j.latency_gate);

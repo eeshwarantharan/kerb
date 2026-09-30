@@ -2,13 +2,15 @@
 // runner a post-hash callback.
 import { checkSegment } from '../parse/classify-cmd.js';
 import { hashWorkspace, scopeAndStamp, writeSnapshot } from './workspace.js';
-import { evaluateRules } from './rules.js';
+import { evaluateRules, keyHistory, isFailure } from './rules.js';
 import { loadRuns } from '../engine.js';
 import { now } from '../util/core.js';
 
 /**
  * @param {any} prep engine prep
- * @param {{ force?: boolean, hashBudgetMs?: number, dryRun?: boolean, runs?: any[] }} o
+ * @param {{ force?: boolean, hashBudgetMs?: number, dryRun?: boolean, runs?: any[], lazy?: boolean }} o
+ *   lazy: hash only when this key has a failure to compare against (hooks; the post hook
+ *   always records the post-hash, so later calls can still be judged).
  * @returns {{ refusal: any | null, matched: any | null, loop: any }}
  */
 export function loopGate(prep, o = {}) {
@@ -17,6 +19,14 @@ export function loopGate(prep, o = {}) {
   const segCwd = seg ? seg.cwd : prep.ctx.cwd;
   const { scope, envStamp } = scopeAndStamp(prep, segCwd);
   const hctx = { root: prep.root, git: prep.git, policy: prep.policy, env: prep.ctx.env };
+  let recs = null;
+  if (o.lazy && !o.force) {
+    recs = o.runs || loadRuns(prep.store).recs;
+    const { postAck } = keyHistory(recs, prep.key);
+    if (!postAck.some(isFailure)) {
+      return { refusal: null, matched: null, loop: { scope: scope.pkgRel, envStamp, preHash: null, skipped: null, lazy: true, postHash: null } };
+    }
+  }
   const pre = hashWorkspace(hctx, scope, budget);
   const loop = {
     scope: scope.pkgRel,
@@ -32,7 +42,7 @@ export function loopGate(prep, o = {}) {
     },
   };
   if (o.force || pre.skipped) return { refusal: null, matched: null, loop };
-  const runs = o.runs || loadRuns(prep.store).recs;
+  const runs = recs || o.runs || loadRuns(prep.store).recs;
   const verdict = evaluateRules({
     recs: runs,
     key: prep.key,
