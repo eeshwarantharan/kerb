@@ -1,0 +1,6 @@
+node_modules/
+.kerb/
+dist/
+*.tgz
+kerb-card.*
+bench/results/tmp/

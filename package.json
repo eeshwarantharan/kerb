@@ -1,0 +1,42 @@
+{
+  "name": "kerb",
+  "version": "0.1.0",
+  "description": "Stops AI coding agents from wasting turns on blocked actions and retries that can't help.",
+  "type": "module",
+  "bin": {
+    "kerb": "bin/kerb.js"
+  },
+  "main": "src/index.js",
+  "files": [
+    "bin/",
+    "src/",
+    "templates/",
+    "docs/KERB.md",
+    "README.md",
+    "LICENSE",
+    "SECURITY.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "bench": "node bench/run.js",
+    "build:binaries": "node scripts/build-binaries.js",
+    "sbom": "node scripts/sbom.js"
+  },
+  "keywords": [
+    "ai-agents",
+    "claude-code",
+    "github-copilot",
+    "developer-tools",
+    "llm",
+    "cli",
+    "devex"
+  ],
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kerb-dev/kerb.git"
+  }
+}
