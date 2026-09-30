@@ -52,9 +52,9 @@ export function sha256(data) {
   return createHash('sha256').update(data).digest('hex');
 }
 
-const DUR_RE = /^(\d+(?:\.\d+)?)(ms|s|sec|secs|m|min|mins|h|hr|hrs)?$/;
+const DUR_RE = /^(\d+(?:\.\d+)?)(ms|s|sec|secs|m|min|mins|h|hr|hrs|d|day|days|w|wk|wks)?$/;
 /**
- * Parse "500ms", "30s", "5m", "1.5h"; a bare number is seconds.
+ * Parse "500ms", "30s", "5m", "1.5h", "7d", "2w"; a bare number is seconds.
  * @param {string | number} v
  * @returns {number} milliseconds
  */
@@ -67,7 +67,9 @@ export function parseDuration(v) {
   if (unit === 'ms') return Math.round(n);
   if (unit.startsWith('s')) return Math.round(n * 1000);
   if (unit.startsWith('m')) return Math.round(n * 60_000);
-  return Math.round(n * 3_600_000);
+  if (unit.startsWith('h')) return Math.round(n * 3_600_000);
+  if (unit.startsWith('d')) return Math.round(n * 86_400_000);
+  return Math.round(n * 7 * 86_400_000);
 }
 
 /** @param {number} ms */

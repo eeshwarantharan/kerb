@@ -27,7 +27,7 @@ export function renderRecap(session, { title = 'this session' } = {}) {
   const rows = [];
   if (c.reruns_avoided) {
     const tokens = Math.round(c.avoided_bytes / 4);
-    rows.push(['re-runs avoided', `${c.reruns_avoided}  (saved ${formatDuration(c.avoided_ms)} of run time, ≈ ${formatCount(tokens)} tokens of output)`]);
+    rows.push(['re-runs avoided', `${c.reruns_avoided}  (saved ${formatDuration(c.avoided_ms)} of run time, ≈ ${formatCount(tokens)} token${tokens === 1 ? '' : 's'} of output)`]);
   }
   const policy = c.by_reason.policy_blocked || 0;
   const human = c.by_reason.human_only || 0;
@@ -57,16 +57,14 @@ export function renderStatusline(summary, session, o = {}) {
   const c = session.counters;
   const segs = [];
   if (c.reruns_avoided) segs.push(`${c.reruns_avoided} re-run${c.reruns_avoided === 1 ? '' : 's'} avoided`);
-  const blocked = c.by_reason.policy_blocked || 0;
-  if (blocked) segs.push(`${blocked} blocked early`);
-  if (c.polls_folded) segs.push(`${c.polls_folded} poll${c.polls_folded === 1 ? '' : 's'} folded`);
   if (c.trimmed_bytes) segs.push(`${formatBytes(c.trimmed_bytes)} noise trimmed`);
   if (summary.walls_known) segs.push(`${summary.walls_known} wall${summary.walls_known === 1 ? '' : 's'} known`);
-  const warn = [];
-  if (summary.org_cache_expired) warn.push('org policy cache expired');
-  if (summary.errors) warn.push('errors logged, run kerb doctor');
+  const problems = [];
+  if (summary.org_cache_expired) problems.push('org cache expired');
+  if (summary.errors) problems.push('errors logged');
   const checked = (c.loop_checked || 0) + (c.loop_skipped || 0);
-  if (c.loop_skipped >= 3 && c.loop_skipped / Math.max(1, checked) > 0.2) warn.push('hashing slow, run kerb doctor');
+  if (c.loop_skipped >= 3 && c.loop_skipped / Math.max(1, checked) > 0.2) problems.push('hashing slow');
+  const warn = problems.length ? [`${problems.join(', ')}, run kerb doctor`] : [];
   let parts = [...warn, ...segs];
   let line = o.segment ? parts.join(' · ') : ['kerb', ...parts].join(' · ');
   // Keep it under 80 characters: drop the least important segments first.
