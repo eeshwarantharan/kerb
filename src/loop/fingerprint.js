@@ -31,6 +31,8 @@ export function normalizeLine(line) {
   s = s.replace(/\([^()]*\)/g, (group) => group.replace(DUR_RE, '<DUR>'));
   s = s.replace(DUR_CONTEXT, (_, pre) => `${pre}<DUR>`);
   s = s.replace(DUR_LAST, (_, pre) => `${pre}<DUR>`);
+  // Unit-less timing fields such as Node's TAP `duration_ms: 1.68`.
+  s = s.replace(/\b(\w+_(?:ms|s|sec|secs|seconds|millis))(["']?\s*[:=]\s*)\d+(?:\.\d+)?/g, '$1$2<DUR>');
   s = s.replace(/0x[0-9a-fA-F]{6,}/g, '<ADDR>');
   s = s.replace(/\bpid[ :=]+\d+/gi, '<PID>');
   s = s.replace(/\bprocess \d+/g, '<PID>');

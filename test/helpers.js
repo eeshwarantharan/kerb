@@ -23,10 +23,14 @@ export function tmpDir(prefix = 'kerb-test-') {
   return fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
 }
 
-/** A temp repo with an isolated HOME. `git: true` initialises git with one commit. */
-export function makeRepo({ git = false, files = {} } = {}) {
+/** A temp repo with an isolated HOME. `git: true` initialises git with one commit. `config` seeds ~/.kerb/config.json. */
+export function makeRepo({ git = false, files = {}, config = null } = {}) {
   const dir = tmpDir('kerb-repo-');
   const home = tmpDir('kerb-home-');
+  if (config) {
+    fs.mkdirSync(path.join(home, '.kerb'), { recursive: true });
+    fs.writeFileSync(path.join(home, '.kerb', 'config.json'), JSON.stringify(config));
+  }
   for (const [p, content] of Object.entries(files)) {
     const full = path.join(dir, p);
     fs.mkdirSync(path.dirname(full), { recursive: true });

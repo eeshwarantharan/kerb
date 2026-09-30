@@ -11,6 +11,8 @@ import { Analyzer, compilePatterns } from '../loop/fingerprint.js';
 
 export const MAX_WAIT_MS = 30 * 60_000;
 const BACKOFF_CAP_MS = 60_000;
+// Don't start an attempt that the --max deadline would cut short before it can say anything.
+const MIN_ATTEMPT_MS = 1000;
 
 /**
  * Parse and validate wait-for options.
@@ -125,7 +127,7 @@ export async function waitFor(prep, w) {
       else met = matched;
       if (met) break;
       const jitter = interval * (0.9 + Math.random() * 0.2);
-      if (Date.now() + jitter >= deadline) break;
+      if (Date.now() + jitter + MIN_ATTEMPT_MS > deadline) break;
       await sleep(jitter, sleeper);
       if (w.backoff) interval = Math.min(interval * 2, BACKOFF_CAP_MS);
     }

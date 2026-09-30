@@ -58,6 +58,9 @@ test('F4 (38 ms) and in 1.2s are normalised', () => {
   assert.equal(normalizeLine('built in 1.2s'), 'built in <DUR>');
   assert.equal(normalizeLine('Time: 4.2s, Tests: 3'), 'Time: <DUR>, Tests: 3');
   assert.equal(normalizeLine('finished 12ms'), 'finished <DUR>');
+  assert.equal(normalizeLine('  duration_ms: 1.680041'), '  duration_ms: <DUR>');
+  assert.equal(normalizeLine('{"elapsed_ms": 45}'), '{"elapsed_ms": <DUR>}');
+  assert.equal(normalizeLine('retries: 3'), 'retries: 3');
 });
 
 test('F5 the Kerb footer does not affect the fingerprint', () => {

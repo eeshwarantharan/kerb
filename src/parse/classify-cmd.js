@@ -7,6 +7,7 @@ const CHECK_DEFAULTS = [
   `^(npm|pnpm|yarn|bun)( run)? (test|build|lint|typecheck|check)${B}`,
   `^(npx|pnpm dlx) (jest|vitest|mocha|tsc|eslint|prettier( \\S+)* --check)${B}`,
   `^(jest|vitest|mocha|tsc|eslint|pytest|mypy|rspec|phpunit)${B}`,
+  `^node( \\S+)* --test(?=$| )`,
   `^python[0-9.]* -m (pytest|unittest|mypy)${B}`,
   `^ruff check${B}`,
   `^go (test|build|vet)${B}`,

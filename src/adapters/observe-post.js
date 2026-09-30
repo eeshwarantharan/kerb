@@ -96,7 +96,7 @@ export function observePost(ctx, o) {
   if (cls === 'check' && pending && !loopSkipped) {
     const seg = checkSegment(prep.parsed, prep.checkCommands);
     const { scope } = scopeAndStamp(prep, seg ? seg.cwd : o.cwd);
-    const post = hashWorkspace({ root: prep.root, git: prep.git, policy: prep.policy, env: hctx.env }, scope, o.hashBudgetMs || HOOK_HASH_BUDGET_MS);
+    const post = hashWorkspace({ root: prep.root, git: prep.git, policy: prep.policy, env: hctx.env }, scope, o.hashBudgetMs || prep.config.values.hash_budget_ms || HOOK_HASH_BUDGET_MS);
     postHash = post.hash;
     if (post.skipped) loopSkipped = post.skipped;
     if (post.snapshot) writeSnapshot(store, id, post.snapshot);

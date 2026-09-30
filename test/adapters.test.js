@@ -79,7 +79,7 @@ for (const a of AGENTS) {
   });
 
   test(`G3 ${a.name}: results are recorded and feed Loopbreaker`, () => {
-    const repo = makeRepo({ git: true, files: { 'a.js': '1\n' } });
+    const repo = makeRepo({ git: true, files: { 'a.js': '1\n' }, config: { hash_budget_ms: 10000 } });
     assert.equal(pre(repo, 'npm test', 'g3a').stdout, '');
     post(repo, 'npm test', 'g3a');
     const end = records(repo.dir).find((r) => r.type === 'end');

@@ -27,6 +27,16 @@ test('WF2 never succeeds → exit 124 at --max, "gave up", last output shown', (
   assert.ok(Date.now() - t0 < 8000);
 });
 
+test('WF2 an attempt is never started too close to --max to show its output', () => {
+  const repo = makeRepo();
+  for (let i = 0; i < 3; i++) {
+    const r = repo.kerb(['wait-for', '--interval', '1s', '--max', '2.02s', '--', 'sleep 0.2; echo not yet; exit 1']);
+    assert.equal(r.code, 124);
+    assert.equal(r.stdout, 'not yet\n');
+  }
+  for (const w of records(repo.dir).filter((x) => x.type === 'wait')) assert.equal(w.class_result, 'failure');
+});
+
 test('WF3 --interval is respected within ±10% plus scheduling tolerance', () => {
   const repo = makeRepo();
   const f = path.join(repo.home, 'times');
@@ -42,7 +52,7 @@ test('WF3 --interval is respected within ±10% plus scheduling tolerance', () =>
 test('WF4 --backoff doubles the interval', () => {
   const repo = makeRepo();
   const f = path.join(repo.home, 'times');
-  repo.kerb(['wait-for', '--interval', '1s', '--backoff', '--max', '8s', '--', `${stamp(f)}; exit 1`]);
+  repo.kerb(['wait-for', '--interval', '1s', '--backoff', '--max', '9s', '--', `${stamp(f)}; exit 1`]);
   const t = fs.readFileSync(f, 'utf8').trim().split('\n').map(Number);
   assert.ok(t.length >= 4, `attempts ${t.length}`);
   const gaps = t.slice(1).map((x, i) => x - t[i]);

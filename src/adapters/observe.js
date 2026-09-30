@@ -77,7 +77,7 @@ export async function observePre(ctx, o) {
   // Kerb invocations record themselves; background calls get the pre-check only.
   if (!isKerb && prep.cls === 'check') {
     const { loopGate } = await import('../loop/gate.js');
-    const gate = loopGate(prep, { hashBudgetMs: o.hashBudgetMs || HOOK_HASH_BUDGET_MS, lazy: true });
+    const gate = loopGate(prep, { hashBudgetMs: o.hashBudgetMs || prep.config.values.hash_budget_ms || HOOK_HASH_BUDGET_MS, lazy: true });
     if (gate.refusal) return deny(gate.refusal, gate.matched);
     Object.assign(pending, { scope: gate.loop.scope, pre_hash: gate.loop.preHash, env_stamp: gate.loop.envStamp, loop_skipped: gate.loop.skipped });
   }

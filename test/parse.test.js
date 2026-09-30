@@ -72,6 +72,9 @@ test('P9 npm test → check; grep x → query; npm install → other', () => {
   assert.equal(cls('mvn -q verify'), 'check');
   assert.equal(cls('npx prettier . --check'), 'check');
   assert.equal(cls('npm test | tail -5'), 'check');
+  assert.equal(cls('node --test'), 'check');
+  assert.equal(cls('node --test-concurrency=1 --test test/a.test.js'), 'check');
+  assert.equal(cls('node --test-name-pattern x'), 'other');
 });
 
 test('P10 git diff --exit-code → query', () => {

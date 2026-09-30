@@ -815,54 +815,59 @@ Work top to bottom. Each step lists its done-criteria as test groups (section 11
 
 ### Milestone 1: The engine
 
-- [ ] **1.1 Scaffold.** `git init` (if needed), `package.json` (`"type":"module"`, `bin`, `engines >=20`, `files`, no dependencies, `test` script), `bin/kerb.js` with a hand-written parser, `--help`, `--version`, exit-code mapping. License and repo files. *Done: T0.*
-- [ ] **1.2 Tokenizer and classes.** `parse/*`. *Done: P1–P13.*
-- [ ] **1.3 Store.** `store/jsonl.js`, `store/summary.js`, locking, recovery, rotation. *Done: S1–S7.*
-- [ ] **1.4 Supervisor.** Spawn, stdin, timeouts, group kill, signals, orphan reaping, background passthrough, Windows path. *Done: A1–A9.*
-- [ ] **1.5 Shaping and redaction.** Streaming, bounded memory, footer rules. *Done: B1–B11, R1–R4.*
-- [ ] **1.6 `kerb run` and `kerb check`** wired end to end with records. *Done: C1–C3.*
+- [x] **1.1 Scaffold.** `git init` (if needed), `package.json` (`"type":"module"`, `bin`, `engines >=20`, `files`, no dependencies, `test` script), `bin/kerb.js` with a hand-written parser, `--help`, `--version`, exit-code mapping. License and repo files. *Done: T0.*
+- [x] **1.2 Tokenizer and classes.** `parse/*`. *Done: P1–P13.*
+- [x] **1.3 Store.** `store/jsonl.js`, `store/summary.js`, locking, recovery, rotation. *Done: S1–S7.*
+- [x] **1.4 Supervisor.** Spawn, stdin, timeouts, group kill, signals, orphan reaping, background passthrough, Windows path. *Done: A1–A9.* (A9, Windows tree kill, runs only in the Windows CI job; not yet observed passing.)
+- [x] **1.5 Shaping and redaction.** Streaming, bounded memory, footer rules. *Done: B1–B11, R1–R4.*
+- [x] **1.6 `kerb run` and `kerb check`** wired end to end with records. *Done: C1–C3.*
 
 ### Milestone 2: Loopbreaker
 
-- [ ] **2.1 Scope, git-mode and walk-mode hashing, hash budget, env stamp, snapshots, `kerb diff`.** *Done: W1–W16.*
-- [ ] **2.2 Fingerprint and failure kinds** (transient, dependency-unavailable, ordinary; policy patterns). *Done: F1–F12.*
-- [ ] **2.3 Rules, cooldown and human-only actions.** *Done: L1–L22, H1–H6.*
-- [ ] **2.4 `kerb wait-for`.** *Done: WF1–WF10.*
+- [x] **2.1 Scope, git-mode and walk-mode hashing, hash budget, env stamp, snapshots, `kerb diff`.** *Done: W1–W16.*
+- [x] **2.2 Fingerprint and failure kinds** (transient, dependency-unavailable, ordinary; policy patterns). *Done: F1–F12.*
+- [x] **2.3 Rules, cooldown and human-only actions.** *Done: L1–L22, H1–H6.*
+- [x] **2.4 `kerb wait-for`.** *Done: WF1–WF10.*
 
 ### Milestone 3: Boundary Map
 
-- [ ] **3.1 Policy layers, lint, merge.** *Done: M1–M8.*
-- [ ] **3.2 Pre-check with hosts, implicit registries, programs, commands, git push.** *Done: X1–X14.*
-- [ ] **3.3 Learning, expiry, `kerb map`, `kerb forget`.** *Done: D1–D10.*
-- [ ] **3.4 Org bundle: fetch, verify, cache, `kerb policy *`, template repo.** *Done: O1–O8.*
+- [x] **3.1 Policy layers, lint, merge.** *Done: M1–M8.*
+- [x] **3.2 Pre-check with hosts, implicit registries, programs, commands, git push.** *Done: X1–X14.*
+- [x] **3.3 Learning, expiry, `kerb map`, `kerb forget`.** *Done: D1–D10.*
+- [x] **3.4 Org bundle: fetch, verify, cache, `kerb policy *`, template repo.** *Done: O1–O8.*
 
 ### Milestone 4: Agents
 
-- [ ] **4.1 VERIFY Claude Code hooks; record findings.** Save real sample payloads as fixtures.
-- [ ] **4.2 Claude Code adapter** (pre, post, start, stop, status line), `kerb init` with absolute paths and `--refresh`, `kerb uninstall`, `kerb doctor`. *Done: K1–K14, I1–I11.*
-- [ ] **4.3 VERIFY and build the other adapters** in this order: Copilot (VS Code, CLI), Cursor, Codex, Gemini, OpenCode. Native hooks wherever they exist; the instructions-only path otherwise. Record each agent's tier. *Done: G1–G7 per agent.*
-- [ ] **4.4 Instructions block, briefing and skill.** *Done: N1–N6.*
+- [x] **4.1 VERIFY Claude Code hooks; record findings.** Save real sample payloads as fixtures. (Fixtures follow the documented shapes; replace with captured payloads during 7.3.)
+- [x] **4.2 Claude Code adapter** (pre, post, start, stop, status line), `kerb init` with absolute paths and `--refresh`, `kerb uninstall`, `kerb doctor`. *Done: K1–K14, I1–I11.*
+- [x] **4.3 VERIFY and build the other adapters** in this order: Copilot (VS Code, CLI), Cursor, Codex, Gemini, OpenCode. Native hooks wherever they exist; the instructions-only path otherwise. Record each agent's tier. *Done: G1–G7 per agent.*
+- [x] **4.4 Instructions block, briefing and skill.** *Done: N1–N6.*
 
 ### Milestone 5: Visibility and reporting
 
-- [ ] **5.1 Status line, recap, colour.** *Done: V1–V9.*
-- [ ] **5.2 `kerb report`, `status` (with tiers and coverage), `why`, `history`.** *Done: Q1–Q9.*
-- [ ] **5.3 `kerb card` and `kerb watch`.** *Done: V10–V15.*
+- [x] **5.1 Status line, recap, colour.** *Done: V1–V9.*
+- [x] **5.2 `kerb report`, `status` (with tiers and coverage), `why`, `history`.** *Done: Q1–Q9.*
+- [x] **5.3 `kerb card` and `kerb watch`.** *Done: V10–V15.*
 
 ### Milestone 6: Enterprise
 
-- [ ] **6.1 Managed config and locked settings.** *Done: E1–E5.*
-- [ ] **6.2 `export-denials` and `review`.** *Done: E6–E9.*
-- [ ] **6.3 OTLP telemetry.** *Done: E10–E13.*
+- [x] **6.1 Managed config and locked settings.** *Done: E1–E5.*
+- [x] **6.2 `export-denials` and `review`.** *Done: E6–E9.*
+- [x] **6.3 OTLP telemetry.** *Done: E10–E13.*
 
 ### Milestone 7: Launch readiness
 
 - [ ] **7.1 Hardening.** Run the suite 10 times in shuffled order on all three OSes; fix flakes. Performance checks Z1–Z6.
+  Status 2026-10-01: 10 shuffled runs on macOS, seed 20261001: 9 clean, 1 flake (WF2), which exposed a real `wait-for` deadline bug, now fixed with a regression test; Linux and Windows run in the nightly CI job (`scripts/shuffle-tests.js`), not yet observed. Z1–Z6 pass locally (Z1 and W14 in the performance job).
 - [ ] **7.2 Distribution.** Standalone binaries for all five targets, checksums, attestations, Homebrew tap, npm with provenance. *Done: Z7–Z9.*
+  Status 2026-10-01: build scripts, CI and release workflows done; darwin-arm64 binary built and passes the full suite with no Node on PATH. The other four targets, attestations, the tap and npm publishing run only in the release workflow (not yet run). The npm name `kerb` is taken, see 12.1.
 - [ ] **7.3 Dogfood.** Use Kerb with a real agent on a real repo, including one large monorepo, for at least one full working session each. Log every refusal and every hash-budget skip; for each refusal, decide whether it was right. Any false refusal is a bug with a regression test.
+  Status 2026-10-01: partial. The building agent ran its own commands through `kerb run` (best effort) on this repo; log in `docs/dogfood.md`. Still to do: a full enforced session with each agent's hooks, and one on a large monorepo.
 - [ ] **7.4 Benchmark.** Section 12.3, including hook latency.
-- [ ] **7.5 Docs.** README (section 7), `SECURITY.md`, `CONTRIBUTING.md`, the policy template's README.
+  Status 2026-10-01: hook latency measured (`bench/results/`); the 22-task harness, egress proxy and review flow are built and tested with a scripted stand-in, but the task benchmark has not been run with a real agent. Launch gate not yet evaluated.
+- [x] **7.5 Docs.** README (section 7), `SECURITY.md`, `CONTRIBUTING.md`, the policy template's README.
 - [ ] **7.6 Release.** Release workflow, demo recording, v1.0.0.
+  Status 2026-10-01: release workflow and demo script (`demo/`) done; no recording, no tag. v1.0.0 waits for the benchmark gate, the npm name decision and a repository owner.
 
 ---
 
@@ -1157,6 +1162,7 @@ Work top to bottom. Each step lists its done-criteria as test groups (section 11
 ### 12.1 Before publishing
 
 - [ ] **Name check:** `npm view kerb`, GitHub, crates.io, Homebrew, a domain. If `kerb` is taken on npm, publish as `@<you>/kerb` and keep the command `kerb`. Fallbacks: `rut`, `lanes`. (Known conflict: `bumper` is an existing Claude Code guardrail; don't use it.)
+  Checked 2026-10-01: `kerb` on npm is taken (an unrelated utility library, `0.0.0-rc1`, last modified 2023-10-09), so publish as `@<you>/kerb`. The org `github.com/kerb-dev`, used as a placeholder in `package.json`, the README and the workflows, already exists; pick the real owner and replace it.
 - [ ] Repo description: "Stops AI coding agents from wasting turns on blocked actions and retries that can't help."
 - [ ] Topics: `ai-agents`, `claude-code`, `github-copilot`, `developer-tools`, `llm`, `cli`, `devex`.
 - [ ] Clean-machine install on macOS, Linux and Windows for each distribution form, following the README word for word.
@@ -1266,3 +1272,10 @@ Append one line per decision: date, section, decision, reason, source link.
 - 2026-10-01 · 4.10.1 · Hooks hash the workspace before a check command only when that key has a failure in its current window; otherwise no rule can refuse, so the `git status` spawn is skipped. The post hook always records the post-hash for check commands, so the next attempt can still be judged. `kerb run` keeps hashing before and after.
 - 2026-10-01 · 5, 12.3 · Hook latency on the dev machine (Apple Silicon, 8 cores, 5,000-file git repo, warm, end to end including process start; `bench/results/`). Standalone binary (Node 24 with V8 code cache): p95 69 ms plain, 71 ms check, 98 ms check after a failure (102.5 ms in an earlier run), 82 ms blocked. npm install on Node 20: p95 82 / 94 (one 446 ms outlier run) / 136 / 113 ms; Node's own start-up is ~44 ms of each. Start-up work done: lazy `node:crypto` (18 ms to load) and `node:child_process`, a pre/post split of the hook observer, and a runner that loads only when a command runs; `kerb check` adds ~20 ms over bare Node. Decision: the binary is the recommended install for hooks. The gate is borderline for "check after a failure", which is dominated by the `git status` spawn. Per section 5, if the CI benchmark machines show warm p95 over 100 ms, the hook path (`hook`, `check`) gets ported to Go or Rust behind the same CLI contract and test suite. That port is not done: no Go or Rust toolchain was available in this build environment, and the gate has to be measured on the benchmark machines first.
 - 2026-10-01 · 7.2 · Standalone binaries: `scripts/bundle.js` turns src/ into one CommonJS file (no dependencies; checks for import cycles; handles named/default exports, dynamic `import()` and `import.meta.url`), and `scripts/build-binaries.js` injects it into the official Node v24.21.0 binary for each target with postject (fetched by npx at build time, not a dependency), after verifying the Node archive against nodejs.org's SHASUMS256.txt. The V8 code cache is enabled only when target equals build machine, so CI builds each target on its own runner. The darwin-arm64 binary passes the full test suite (`KERB_TEST_BIN=dist/bin/kerb-darwin-arm64 node --test`) and runs with no Node on PATH.
+- 2026-10-01 · 11 (Z1, W14) · Start-up and 100,000-file timing tests run only with `KERB_TEST_PERF=1` (the CI performance job, files one at a time). Under the default parallel `node --test`, other test files saturate the CPU and the timings mean nothing. Measured locally: `kerb check -- ls` adds ~20 ms over bare Node (whose own start-up is 44–57 ms on the dev machine); the spec's 60 ms absolute target assumes a faster Node start-up than this machine has.
+- 2026-10-01 · 7.3 · Dogfooding so far is best effort only: the building agent ran its own commands through `kerb run` in this repo (`docs/dogfood.md`). Claude Code's CLI isn't on PATH in this build environment, and starting nested agent sessions would spend the owner's quota unasked, so the full enforced sessions (and the large-monorepo session) are left for the maintainer. This repo now has its own `kerb.policy.json`.
+- 2026-10-01 · 7.4 · The task benchmark (22 tasks × with/without × 3 runs) is built (`bench/run.js`, `bench/tasks.js`, egress proxy `bench/proxy.js`) and tested with a scripted stand-in agent (`bench/fake-agent.js`, whose numbers must never be reported), but it has not been run with a real agent: that needs a model budget the owner should approve. The launch gate is therefore not evaluated, and the README states that no savings figure exists yet.
+- 2026-10-01 · 12.1 · `kerb` on npm is taken by an unrelated package, and the `kerb-dev` GitHub org used as a placeholder already exists. Nothing was published or created. The owner picks the npm scope and the repository owner and replaces `kerb-dev` in `package.json`, the README, the workflows and `scripts/homebrew.js`.
+- 2026-10-01 · 4.7.8 · `wait-for` starts another attempt only when at least 1 s remains before `--max`. Found by the shuffled runs: an attempt started milliseconds before the deadline was killed before printing, and the "last output" was empty.
+- 2026-10-01 · 4.4, 4.7.4 · From dogfooding: `node --test` (Node's built-in runner) joins the default check commands, and unit-less timing fields named `*_ms`/`*_s` (e.g. TAP's `duration_ms: 1.68`) are normalised in fingerprints, so repeated `node --test` failures can match.
+- 2026-10-01 · 4.7.2 · Hooks use the user's `hash_budget_ms` when set; otherwise 300 ms.

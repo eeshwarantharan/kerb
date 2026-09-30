@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "description": "Kerb's own repo: treat the test runner as a check command so Kerb dogfoods its Loopbreaker here.",
+  "check_commands": ["node --test", "node scripts/shuffle-tests.js"]
+}

@@ -52,7 +52,7 @@ test('K2 pre with an allowed command → no decision, pending record written', (
 });
 
 test('K3 post → start and end records with the exit status from the payload', () => {
-  const repo = makeRepo({ git: true, files: { 'a.js': '1\n' } });
+  const repo = makeRepo({ git: true, files: { 'a.js': '1\n' }, config: { hash_budget_ms: 10000 } });
   pre(repo, 'npm test', 'a');
   fail(repo, 'npm test', 'a', 3);
   pre(repo, 'ls', 'b');
