@@ -16,7 +16,7 @@ function time(args, cwd) {
   return median(out);
 }
 
-test('Z1 kerb check cold start stays close to bare Node start-up', () => {
+test('Z1 kerb check cold start stays close to bare Node start-up', { skip: !process.env.KERB_TEST_PERF && 'timing needs an idle machine: set KERB_TEST_PERF=1 (performance CI job)' }, () => {
   const dir = tmpDir();
   const node = time(['-e', '0'], dir);
   const check = time([KERB, 'check', '--', 'ls'], dir);
