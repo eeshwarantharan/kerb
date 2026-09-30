@@ -80,3 +80,70 @@ test('E5 the managed pinned key cannot be overridden by user config', async () =
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// 6.2 export-denials and review
+
+import { lintPolicy } from '../src/bound/policy.js';
+
+test('E6 export-denials contains no command text or output', () => {
+  const repo = makeRepo({ files: { curl: '#!/bin/sh\necho "OUTPUT-MARKER blocked by policy: a.example"\nexit 56\n' } });
+  fs.chmodSync(path.join(repo.dir, 'curl'), 0o755);
+  repo.kerb(['run', '--', './curl https://a.example/COMMAND-MARKER']);
+  const r = repo.kerb(['export-denials', '--since', '7d']);
+  const lines = r.stdout.trim().split('\n');
+  assert.equal(lines.length, 1);
+  const e = JSON.parse(lines[0]);
+  assert.equal(e.pattern, 'a.example');
+  assert.equal(e.status, 'confirmed');
+  assert.ok(e.machine);
+  assert.ok(!r.stdout.includes('COMMAND-MARKER'));
+  assert.ok(!r.stdout.includes('OUTPUT-MARKER'));
+  assert.ok(!('keys' in e) && !('evidence_run' in e));
+  assert.equal(repo.kerb(['export-denials', '--json']).json.entries.length, 1);
+});
+
+function exports(dir) {
+  const mk = (machine, patterns) => {
+    const f = path.join(dir, `${machine}.jsonl`);
+    fs.writeFileSync(f, patterns.map((p) => JSON.stringify({ kind: 'host', pattern: p, status: 'confirmed', hits: 2, machine, first_seen: 1, last_seen: Date.now() })).join('\n'));
+    return f;
+  };
+  return [
+    mk('m1', ['a.example', 'b.example', 'registry.npmjs.org']),
+    mk('m2', ['a.example', 'b.example', 'registry.npmjs.org']),
+    mk('m3', ['a.example', 'registry.npmjs.org']),
+  ];
+}
+
+test('E7 review keeps only entries seen from 3 or more machines', () => {
+  const repo = makeRepo();
+  const files = exports(tmpDir());
+  const r = repo.kerb(['review', '--json', '--denials', ...files, '--out', repo.home]);
+  assert.deepEqual(r.json.candidates.map((c) => c.pattern).sort(), ['a.example', 'registry.npmjs.org']);
+  assert.deepEqual(r.json.below_threshold.map((c) => c.pattern), ['b.example']);
+});
+
+test('E8 review writes a valid policy patch and a Markdown summary', () => {
+  const repo = makeRepo();
+  const out = tmpDir();
+  repo.kerb(['review', '--denials', ...exports(tmpDir()), '--out', out]);
+  const patch = JSON.parse(fs.readFileSync(path.join(out, 'policy.patch.json'), 'utf8'));
+  assert.deepEqual(lintPolicy(patch).filter((p) => p.level === 'error'), []);
+  assert.equal(patch.boundaries.length, 2);
+  const md = fs.readFileSync(path.join(out, 'review.md'), 'utf8');
+  assert.match(md, /^# Kerb denial review/);
+  assert.match(md, /## a\.example\n\nSeen on 3 machines/);
+  assert.match(md, /Open it in the firewall[\s\S]*Add an alternative[\s\S]*Confirm the block/);
+});
+
+test('E9 review never proposes loosening a higher-layer block', () => {
+  const repo = makeRepo({ files: { 'kerb.policy.json': JSON.stringify({ boundaries: [{ kind: 'host', pattern: 'registry.npmjs.org', alternative: 'https://npm.corp', why: 'mirror' }] }) } });
+  const out = tmpDir();
+  const r = repo.kerb(['review', '--json', '--denials', ...exports(tmpDir()), '--out', out]);
+  assert.ok(!r.json.candidates.some((c) => c.pattern === 'registry.npmjs.org'));
+  assert.equal(r.json.already_blocked[0].pattern, 'registry.npmjs.org');
+  const patch = JSON.parse(fs.readFileSync(path.join(out, 'policy.patch.json'), 'utf8'));
+  assert.ok(!patch.boundaries.some((b) => b.pattern === 'registry.npmjs.org'));
+  assert.match(fs.readFileSync(path.join(out, 'review.md'), 'utf8'), /## Already blocked by policy[\s\S]*registry\.npmjs\.org: covered by `registry\.npmjs\.org` \(repo policy/);
+});
