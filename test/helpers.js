@@ -121,3 +121,25 @@ export async function waitFor(fn, timeout = 5000, step = 50) {
   }
   return fn();
 }
+
+/**
+ * Run the CLI in-process (for tests that inject a clock or a slow hasher).
+ * Sets HOME to the repo's temp home for the duration.
+ */
+export async function inproc(repo, args, { cwd } = {}) {
+  const { main } = await import('../src/cli/main.js');
+  let stdout = '';
+  let stderr = '';
+  const out = { write(s) { stdout += s; return true; }, isTTY: false };
+  const err = { write(s) { stderr += s; return true; }, isTTY: false };
+  const oldHome = process.env.HOME;
+  process.env.HOME = repo.home;
+  try {
+    const code = await main(args, { stdout: out, stderr: err, cwd: cwd || repo.dir, env: repo.env });
+    let json = null;
+    try { json = JSON.parse(stdout); } catch { /* not JSON */ }
+    return { code, stdout, stderr, json };
+  } finally {
+    process.env.HOME = oldHome;
+  }
+}

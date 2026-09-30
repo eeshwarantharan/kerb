@@ -66,6 +66,10 @@ export function humanOnlyRefusal(parsed) {
   return null;
 }
 
+let humanOverride = null;
+/** Tests only (in-process): replace the terminal prompt. Not reachable from the CLI or environment. */
+export function setHumanOverrideForTests(fn) { humanOverride = fn; }
+
 /**
  * Ask the human to type a 4-character code on the terminal (/dev/tty, or CONIN$ on Windows).
  * No terminal, or a wrong code: exit 64 with the human_only message.
@@ -73,6 +77,7 @@ export function humanOnlyRefusal(parsed) {
  * @param {{ open?: (p: string, flags: string) => number }} [io] injectable for tests
  */
 export function requireHuman(action, io = {}) {
+  if (humanOverride) return humanOverride(action);
   const open = io.open || ((p, flags) => fs.openSync(p, flags));
   const fail = () => new KerbError(EXIT.USAGE, `human_only · ${action} needs a person at a terminal; ${NEXT}`);
   let inFd;

@@ -109,7 +109,7 @@ export async function main(argv, io = {}) {
     return EXIT.USAGE;
   }
   const [name, ...args] = g.rest;
-  const ctx = createContext({ ...io, json: g.json, noColor: g.noColor, cwd: g.cwd ? path.resolve(g.cwd) : undefined });
+  const ctx = createContext({ ...io, json: g.json, noColor: g.noColor, cwd: g.cwd ? path.resolve(io.cwd || process.cwd(), g.cwd) : io.cwd });
 
   if (!name || name === 'help' || name === '--help' || name === '-h') {
     if (ctx.json) ctx.emitJson({ version: VERSION, commands: Object.keys(COMMANDS) });
