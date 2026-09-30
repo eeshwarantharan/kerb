@@ -20,7 +20,9 @@ export function kerbArgv(args) {
 
 /** Make a fresh temp directory. */
 export function tmpDir(prefix = 'kerb-test-') {
-  return fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
+  const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
+  // Tests put these paths inside bash commands; on Windows, Git Bash reads backslashes as escapes.
+  return process.platform === 'win32' ? dir.replace(/\\/g, '/') : dir;
 }
 
 /** A temp repo with an isolated HOME. `git: true` initialises git with one commit. `config` seeds ~/.kerb/config.json. */

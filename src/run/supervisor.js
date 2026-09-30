@@ -1,5 +1,7 @@
 // Supervisor (4.5): spawn in its own process group with stdin at EOF, total and idle
 // timeouts that kill the whole tree, signal forwarding, orphan reaping.
+import fs from 'node:fs';
+import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { isWindows } from '../util/core.js';
 import { KILL_GRACE_MS, groupAlive } from './orphans.js';
@@ -23,14 +25,39 @@ const DRAIN_MS = 500;
  *   killGraceMs?: number }} o
  * @returns {{ done: Promise<SuperviseResult>, abort: (signal: string) => void }}
  */
+let windowsBash;
+/**
+ * On Windows, agents (Claude Code among them) send bash commands and run them with Git Bash,
+ * so Kerb uses Git Bash too when it can find it, and cmd.exe otherwise. The WSL launcher in
+ * System32 is skipped: it runs commands in a different filesystem.
+ */
+export function findWindowsBash(env = process.env) {
+  if (windowsBash !== undefined) return windowsBash;
+  const candidates = [
+    env.CLAUDE_CODE_GIT_BASH_PATH,
+    env.ProgramFiles && path.join(env.ProgramFiles, 'Git', 'bin', 'bash.exe'),
+    env['ProgramFiles(x86)'] && path.join(env['ProgramFiles(x86)'], 'Git', 'bin', 'bash.exe'),
+    env.LOCALAPPDATA && path.join(env.LOCALAPPDATA, 'Programs', 'Git', 'bin', 'bash.exe'),
+    ...(env.PATH || env.Path || '').split(path.delimiter).map((d) => d && path.join(d, 'bash.exe')),
+  ].filter(Boolean);
+  windowsBash = candidates.find((c) => !/\\system32\\/i.test(c) && fs.existsSync(c)) || null;
+  return windowsBash;
+}
+
 export function supervise(command, o) {
   const started = Date.now();
   const grace = o.killGraceMs ?? KILL_GRACE_MS;
-  const child = isWindows
-    ? spawn(command, { cwd: o.cwd, env: o.env, shell: true, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true })
-    : spawn('/bin/sh', ['-c', 'exec /bin/sh -c "$1" 2>&1', 'sh', command], {
+  const bash = isWindows ? findWindowsBash(o.env || process.env) : null;
+  let child;
+  if (!isWindows) {
+    child = spawn('/bin/sh', ['-c', 'exec /bin/sh -c "$1" 2>&1', 'sh', command], {
       cwd: o.cwd, env: o.env, detached: true, stdio: ['ignore', 'pipe', 'ignore'],
     });
+  } else if (bash) {
+    child = spawn(bash, ['-c', 'exec bash -c "$1" 2>&1', 'bash', command], { cwd: o.cwd, env: o.env, stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
+  } else {
+    child = spawn(command, { cwd: o.cwd, env: o.env, shell: true, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+  }
   const pid = child.pid;
   const pgid = pid;
   /** @type {SuperviseResult['reason']} */
@@ -145,7 +172,10 @@ export async function killTree(pgid, grace = KILL_GRACE_MS) {
  */
 export function passthrough(command, { cwd, env }) {
   return new Promise((resolve) => {
-    const child = spawn(command, { cwd, env, shell: isWindows ? true : '/bin/sh', stdio: 'inherit' });
+    const bash = isWindows ? findWindowsBash(env || process.env) : null;
+    const child = bash
+      ? spawn(bash, ['-c', command], { cwd, env, stdio: 'inherit', windowsHide: true })
+      : spawn(command, { cwd, env, shell: isWindows ? true : '/bin/sh', stdio: 'inherit' });
     child.on('error', () => resolve(127));
     child.on('exit', (code, signal) => resolve(code ?? (signal ? 128 + (SIGNUMS[signal] || 1) : 1)));
   });

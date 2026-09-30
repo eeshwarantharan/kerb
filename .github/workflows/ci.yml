@@ -87,7 +87,7 @@ jobs:
       matrix:
         include:
           - { target: darwin-arm64, os: macos-14 }
-          - { target: darwin-x64, os: macos-13 }
+          - { target: darwin-x64, os: macos-15-intel }
           - { target: linux-x64, os: ubuntu-latest }
           - { target: linux-arm64, os: ubuntu-24.04-arm }
           - { target: win-x64, os: windows-latest }

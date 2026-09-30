@@ -53,7 +53,9 @@ function nodeBinary(target) {
   verifyNodeArchive(file, archive);
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'kerb-node-'));
   const inner = target.startsWith('win') ? `${archive.replace(/\.zip$/, '')}/node.exe` : `${archive.replace(/\.tar\.(gz|xz)$/, '')}/bin/node`;
-  run('tar', ['-xf', file, '-C', tmp, inner]);
+  // On Windows use the system bsdtar: Git Bash's GNU tar reads 'D:\\…' as a remote host.
+  const tar = process.platform === 'win32' ? path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'tar.exe') : 'tar';
+  run(tar, ['-xf', file, '-C', tmp, inner]);
   fs.copyFileSync(path.join(tmp, inner), dest);
   fs.chmodSync(dest, 0o755);
   fs.rmSync(tmp, { recursive: true, force: true });
