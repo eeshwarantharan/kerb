@@ -41,7 +41,7 @@ export function makeRepo({ git = false, files = {} } = {}) {
     },
     read(p) { return fs.readFileSync(path.join(dir, p), 'utf8'); },
     exists(p) { return fs.existsSync(path.join(dir, p)); },
-    kerb(args, opts = {}) { return runKerb(args, { cwd: dir, env: { ...env, ...(opts.env || {}) }, ...opts, envMerged: true }); },
+    kerb(args, opts = {}) { return runKerb(args, { cwd: dir, ...opts, env: { ...env, ...(opts.env || {}) }, envMerged: true }); },
   };
 }
 
