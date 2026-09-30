@@ -116,6 +116,7 @@ export function recordRefusal(prep, refusal, matched = null) {
     class: prep.cls,
     cmd: redactText(prep.command),
     summary: refusal.summary,
+    boundary: refusal.boundary ? `${refusal.boundary.kind}:${refusal.boundary.pattern}` : null,
     agent: prep.agent,
     tier: prep.tier,
     session: ensureSession(prep),
