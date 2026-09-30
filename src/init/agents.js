@@ -85,7 +85,7 @@ function claudeStyleCommands(obj, agent, events) {
   return out;
 }
 
-const CLAUDE_EVENTS = { PreToolUse: 'pre', PostToolUse: 'post', PostToolUseFailure: 'post-failure', SessionStart: 'start', Stop: 'stop' };
+const CLAUDE_EVENTS = { PreToolUse: 'pre', PostToolUse: 'post', PostToolUseFailure: 'post-failure', SessionStart: 'start', Stop: 'stop', SessionEnd: 'end' };
 const CLAUDE_SETTINGS = '.claude/settings.local.json';
 
 const claude = {
@@ -99,7 +99,7 @@ const claude = {
     const { text, obj } = readJsonText(root, CLAUDE_SETTINGS);
     for (const [event, short] of Object.entries(CLAUDE_EVENTS)) {
       const matcher = ['PreToolUse', 'PostToolUse', 'PostToolUseFailure'].includes(event) ? 'Bash' : null;
-      mergeClaudeStyle(obj, event, matcher, `${inv.command} hook claude ${short}`, short === 'start' ? 10 : 5, KERB_HOOK('claude', short));
+      mergeClaudeStyle(obj, event, matcher, `${inv.command} hook claude ${short}`, short === 'start' || short === 'end' ? 10 : 5, KERB_HOOK('claude', short));
     }
     const notes = [];
     const isOurs = (sl) => sl && typeof sl.command === 'string' && /\bkerb(\.js)?\b/.test(sl.command) && /\bstatusline\b/.test(sl.command);
@@ -141,7 +141,7 @@ function trackedNote(root, rel, before) {
 // GitHub Copilot: one Copilot-format file read by Copilot CLI and the VS Code Local agent.
 
 const COPILOT_FILE = '.github/hooks/kerb.json';
-const COPILOT_EVENTS = { sessionStart: 'start', preToolUse: 'pre', postToolUse: 'post', postToolUseFailure: 'post-failure', agentStop: 'stop' };
+const COPILOT_EVENTS = { sessionStart: 'start', preToolUse: 'pre', postToolUse: 'post', postToolUseFailure: 'post-failure', agentStop: 'stop', sessionEnd: 'end' };
 
 const copilot = {
   id: 'copilot',
@@ -156,7 +156,7 @@ const copilot = {
     const hooks = {};
     for (const [event, short] of Object.entries(COPILOT_EVENTS)) {
       const cmd = `${inv.command} hook copilot ${short}`;
-      hooks[event] = [{ type: 'command', bash: cmd, powershell: `& ${cmd}`, timeoutSec: short === 'start' ? 10 : 5 }];
+      hooks[event] = [{ type: 'command', bash: cmd, powershell: `& ${cmd}`, timeoutSec: short === 'start' || short === 'end' ? 10 : 5 }];
     }
     const after = `${JSON.stringify({ version: 1, hooks }, null, 2)}\n`;
     return {
@@ -183,7 +183,7 @@ const copilot = {
 // Cursor: .cursor/hooks.json, flat entries per event.
 
 const CURSOR_FILE = '.cursor/hooks.json';
-const CURSOR_EVENTS = { sessionStart: ['start', null], preToolUse: ['pre', 'Shell'], postToolUse: ['post', 'Shell'], postToolUseFailure: ['post-failure', 'Shell'] };
+const CURSOR_EVENTS = { sessionStart: ['start', null], preToolUse: ['pre', 'Shell'], postToolUse: ['post', 'Shell'], postToolUseFailure: ['post-failure', 'Shell'], sessionEnd: ['end', null] };
 
 const cursor = {
   id: 'cursor',
@@ -245,7 +245,7 @@ function claudeStyleAgent({ id, name, file, events, detect, units = 1, how = 'na
     plan(root, home, inv) {
       const { text, obj } = readJsonText(root, file);
       for (const [event, [short, matcher]] of Object.entries(events)) {
-        mergeClaudeStyle(obj, event, matcher, `${inv.command} hook ${id} ${short}`, (short === 'start' ? 10 : 5) * units, KERB_HOOK(id, short));
+        mergeClaudeStyle(obj, event, matcher, `${inv.command} hook ${id} ${short}`, (short === 'start' || short === 'end' ? 10 : 5) * units, KERB_HOOK(id, short));
       }
       return {
         actions: [{ file, kind: 'json', before: text, after: `${JSON.stringify(obj, null, 2)}\n` }],
@@ -267,7 +267,7 @@ const codex = claudeStyleAgent({
   id: 'codex',
   name: 'Codex CLI',
   file: '.codex/hooks.json',
-  events: { SessionStart: ['start', null], PreToolUse: ['pre', 'Bash'], PostToolUse: ['post', 'Bash'], Stop: ['stop', null] },
+  events: { SessionStart: ['start', null], PreToolUse: ['pre', 'Bash'], PostToolUse: ['post', 'Bash'], Stop: ['stop', null], SessionEnd: ['end', null] },
   detect: (root, home) => exists(path.join(root, '.codex')) || exists(path.join(home, '.codex')) || onPath('codex'),
   note: 'Codex runs new hooks only after you trust them: open /hooks in Codex once and trust the Kerb entries.',
 });
@@ -276,7 +276,7 @@ const gemini = claudeStyleAgent({
   id: 'gemini',
   name: 'Gemini CLI',
   file: '.gemini/settings.json',
-  events: { SessionStart: ['start', null], BeforeTool: ['pre', 'run_shell_command'], AfterTool: ['post', 'run_shell_command'], AfterAgent: ['stop', null] },
+  events: { SessionStart: ['start', null], BeforeTool: ['pre', 'run_shell_command'], AfterTool: ['post', 'run_shell_command'], AfterAgent: ['stop', null], SessionEnd: ['end', null] },
   detect: (root, home) => exists(path.join(root, '.gemini')) || exists(path.join(home, '.gemini')) || exists(path.join(root, 'GEMINI.md')) || onPath('gemini'),
   units: 1000,
   note: 'Gemini CLI asks you to trust changed project hooks the first time they run.',

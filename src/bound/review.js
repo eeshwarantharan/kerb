@@ -2,7 +2,7 @@
 // into a proposed policy patch plus a Markdown summary for the admin.
 import fs from 'node:fs';
 import os from 'node:os';
-import { sha256 } from '../util/core.js';
+import { sha256, UsageError } from '../util/core.js';
 import { loadLearned } from './learn.js';
 import { hostMatches } from './precheck.js';
 
@@ -34,7 +34,8 @@ export function exportDenials(fromTs, nowTs) {
 export function readExports(files) {
   const out = [];
   for (const f of files) {
-    const text = fs.readFileSync(f, 'utf8').trim();
+    let text;
+    try { text = fs.readFileSync(f, 'utf8').trim(); } catch { throw new UsageError(`cannot read ${f}`); }
     if (!text) continue;
     if (text.startsWith('{') && text.includes('"entries"') && !text.includes('\n{')) {
       try { out.push(...(JSON.parse(text).entries || [])); continue; } catch { /* fall back to lines */ }

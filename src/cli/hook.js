@@ -71,7 +71,7 @@ export default async function hook(ctx, args) {
   if (!Object.hasOwn(ADAPTERS, agent)) throw new UsageError(`unknown agent: ${agent}`);
   let payload = {};
   let cwd = ctx.cwd;
-  const deadline = event === 'start' ? START_DEADLINE_MS : HOOK_DEADLINE_MS;
+  const deadline = event === 'start' || event === 'end' ? START_DEADLINE_MS : HOOK_DEADLINE_MS;
   const work = (async () => {
     const text = await readStdin(ctx);
     payload = text.trim() ? JSON.parse(text) : {};
@@ -109,6 +109,7 @@ async function handle(ctx, agent, event, payload) {
     case 'post-failure': return adapter.post(hctx, payload, { failure: true });
     case 'start': return sessionStart(hctx, adapter, payload);
     case 'stop': return sessionStop(hctx, adapter, payload);
+    case 'end': return sessionEnd(hctx, payload);
     default: throw new UsageError(`unknown hook event: ${event}`);
   }
 }
@@ -122,6 +123,14 @@ async function sessionStart(ctx, adapter, payload) {
   regenerateBriefing(root);
   const lines = briefingLines(root);
   if (adapter.startOutput) return adapter.startOutput(lines, payload);
+  return null;
+}
+
+/** Session end: send the telemetry batch (only when configured). No output. */
+async function sessionEnd(ctx, payload) {
+  const { sendSessionTelemetry } = await import('../telemetry/otlp.js');
+  const { root } = findRoot(ctx.cwd);
+  await sendSessionTelemetry(root, payload.session_id || payload.sessionId || payload.conversation_id || null);
   return null;
 }
 

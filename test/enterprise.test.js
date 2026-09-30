@@ -147,3 +147,101 @@ test('E9 review never proposes loosening a higher-layer block', () => {
   assert.ok(!patch.boundaries.some((b) => b.pattern === 'registry.npmjs.org'));
   assert.match(fs.readFileSync(path.join(out, 'review.md'), 'utf8'), /## Already blocked by policy[\s\S]*registry\.npmjs\.org: covered by `registry\.npmjs\.org` \(repo policy/);
 });
+
+// ---------------------------------------------------------------------------
+// 6.3 OTLP telemetry
+
+import http from 'node:http';
+
+async function collector(status = 200) {
+  const got = [];
+  const s = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (d) => { body += d; });
+    req.on('end', () => { got.push({ url: req.url, body }); res.statusCode = status; res.end('{}'); });
+  });
+  await new Promise((r) => s.listen(0, '127.0.0.1', r));
+  return { url: `http://127.0.0.1:${s.address().port}`, got, close: () => s.close() };
+}
+
+async function endHook(repo, sessionId) {
+  const { main } = await import('../src/cli/main.js');
+  return main(['hook', 'claude', 'end'], { stdin: JSON.stringify({ session_id: sessionId, cwd: repo.dir, hook_event_name: 'SessionEnd', reason: 'other' }), stdout: { write() {} }, stderr: { write() {} }, cwd: repo.dir });
+}
+
+function sessionActivity(repo) {
+  const p = (cmd, id) => ({ session_id: 'sess-t', cwd: repo.dir, tool_name: 'Bash', tool_input: { command: cmd }, tool_use_id: id });
+  repo.kerb(['hook', 'claude', 'pre'], { input: JSON.stringify(p('docker ps --secret-arg', 'x1')) });
+  repo.kerb(['hook', 'claude', 'pre'], { input: JSON.stringify(p('ls', 'x2')) });
+  repo.kerb(['hook', 'claude', 'post'], { input: JSON.stringify({ ...p('ls', 'x2'), tool_response: { stdout: 'a', stderr: '', interrupted: false } }) });
+}
+
+test('E10 telemetry is off by default: no request', async () => {
+  const repo = makeRepo({ files: { 'kerb.policy.json': JSON.stringify({ boundaries: [{ kind: 'program', pattern: 'docker' }] }) } });
+  sessionActivity(repo);
+  const orig = globalThis.fetch;
+  let calls = 0;
+  globalThis.fetch = (...a) => { calls++; return orig(...a); };
+  const oldHome = process.env.HOME;
+  process.env.HOME = repo.home;
+  try { await endHook(repo, 'sess-t'); } finally { globalThis.fetch = orig; process.env.HOME = oldHome; }
+  assert.equal(calls, 0);
+});
+
+test('E11 when on: one batch at session end, valid OTLP JSON; E12 no commands or paths', async () => {
+  const c = await collector();
+  const repo = makeRepo({ files: { 'kerb.policy.json': JSON.stringify({ boundaries: [{ kind: 'program', pattern: 'docker' }] }) } });
+  sessionActivity(repo);
+  try {
+    await withManaged({ telemetry: { otlp_endpoint: c.url }, defaults: { telemetry: 'on' } }, repo.home, async () => {
+      await endHook(repo, 'sess-t');
+      await endHook(repo, 'sess-t');
+    });
+  } finally { c.close(); }
+  assert.equal(c.got.length, 1, 'one batch per session');
+  assert.equal(c.got[0].url, '/v1/metrics');
+  const body = JSON.parse(c.got[0].body);
+  const rm = body.resourceMetrics[0];
+  assert.ok(rm.resource.attributes.some((a) => a.key === 'service.name' && a.value.stringValue === 'kerb'));
+  const metrics = rm.scopeMetrics[0].metrics;
+  const byName = Object.fromEntries(metrics.map((m) => [m.name, m]));
+  for (const n of ['kerb.runs', 'kerb.refusals', 'kerb.bytes_trimmed', 'kerb.polls_folded', 'kerb.walls_learned', 'kerb.hash_budget_skips']) assert.ok(byName[n], n);
+  for (const m of metrics) {
+    assert.equal(m.sum.aggregationTemporality, 1);
+    for (const p of m.sum.dataPoints) {
+      assert.match(p.asInt, /^\d+$/);
+      assert.match(p.timeUnixNano, /^\d+$/);
+    }
+  }
+  const refused = byName['kerb.refusals'].sum.dataPoints.find((p) => p.attributes.some((a) => a.key === 'kerb.reason' && a.value.stringValue === 'policy_blocked'));
+  assert.equal(refused.asInt, '1');
+  assert.ok(!c.got[0].body.includes('--secret-arg'), 'E12 no commands');
+  assert.ok(!c.got[0].body.includes(repo.dir), 'E12 no paths');
+  assert.ok(!c.got[0].body.includes(process.env.USER || 'no-user-set'), 'E12 no usernames');
+});
+
+test('E12 include_commands adds refused commands', async () => {
+  const c = await collector();
+  const repo = makeRepo({ files: { 'kerb.policy.json': JSON.stringify({ boundaries: [{ kind: 'program', pattern: 'docker' }] }) } });
+  sessionActivity(repo);
+  try {
+    await withManaged({ telemetry: { otlp_endpoint: `${c.url}/v1/metrics`, include_commands: true }, defaults: { telemetry: 'on' } }, repo.home, () => endHook(repo, 'sess-t'));
+  } finally { c.close(); }
+  assert.match(c.got[0].body, /docker ps --secret-arg/);
+});
+
+test('E13 a telemetry failure is silent and counted', async () => {
+  const c = await collector(503);
+  const repo = makeRepo({ files: { 'kerb.policy.json': JSON.stringify({ boundaries: [{ kind: 'program', pattern: 'docker' }] }) } });
+  sessionActivity(repo);
+  let code;
+  try {
+    await withManaged({ telemetry: { otlp_endpoint: c.url }, defaults: { telemetry: 'on' } }, repo.home, async () => { code = await endHook(repo, 'sess-t'); });
+  } finally { c.close(); }
+  assert.equal(code, 0);
+  const summary = JSON.parse(fs.readFileSync(path.join(repo.dir, '.kerb/summary.json'), 'utf8'));
+  assert.equal(summary.telemetry_failures, 1);
+  const down = makeRepo();
+  down.kerb(['run', '--', 'true']);
+  await withManaged({ telemetry: { otlp_endpoint: 'http://127.0.0.1:9/' }, defaults: { telemetry: 'on' } }, down.home, async () => { assert.equal(await endHook(down, null), 0); });
+});

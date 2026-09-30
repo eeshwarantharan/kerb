@@ -17,6 +17,7 @@ export const CONFIG_KEYS = {
   'price.input_per_mtok': { type: 'number', default: null, min: 0 },
   'claude.rewrite': { type: 'bool', default: false },
   telemetry: { values: ['off', 'on'], default: 'off' },
+  'telemetry.otlp_endpoint': { type: 'url', default: null },
   log_budget_mb: { type: 'int', default: 200, min: 1 },
 };
 
@@ -72,6 +73,10 @@ export function coerce(key, raw) {
     if (raw === 'true' || raw === true) return true;
     if (raw === 'false' || raw === false) return false;
     throw new UsageError(`${key} must be true or false`);
+  }
+  if (spec.type === 'url') {
+    if (!/^https?:\/\/\S+$/.test(String(raw))) throw new UsageError(`${key} must be an http(s) URL`);
+    return String(raw);
   }
   if (spec.type === 'duration') {
     parseDuration(raw);
