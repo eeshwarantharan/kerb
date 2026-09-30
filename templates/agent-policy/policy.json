@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "breaker_threshold": 3,
+  "retry_cooldown": "60s",
+  "check_commands": [],
+  "transient_patterns": [],
+  "dependency_patterns": [],
+  "boundaries": [
+    { "kind": "host", "pattern": "registry.npmjs.org", "alternative": "https://npm.example.internal", "why": "Public registries are blocked; use the internal mirror." },
+    { "kind": "host", "pattern": "pypi.org", "alternative": "https://pypi.example.internal/simple", "why": "Use the internal PyPI mirror." },
+    { "kind": "host", "pattern": "*.pypi.org", "alternative": "https://pypi.example.internal/simple", "why": "Use the internal PyPI mirror." },
+    { "kind": "git_push", "pattern": "main", "why": "main is protected; open a pull request." }
+  ],
+  "fixes": []
+}

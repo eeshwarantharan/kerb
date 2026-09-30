@@ -6,6 +6,7 @@ import { loadPolicy } from '../bound/load.js';
 import { LIFETIME_MS } from '../bound/learn.js';
 import { now } from '../util/core.js';
 import { parseOpts } from './args.js';
+import { refreshOrgIfDue } from '../engine.js';
 
 export function boundaryHits(recs) {
   /** @type {Record<string, number>} */
@@ -40,6 +41,7 @@ export function mapEntries(root) {
 
 export default async function map(ctx, args) {
   parseOpts(args, {});
+  await refreshOrgIfDue();
   const { root } = findRoot(ctx.cwd);
   const { rows, policy } = mapEntries(root);
   if (ctx.json) {

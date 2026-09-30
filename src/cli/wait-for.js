@@ -1,6 +1,6 @@
 // kerb wait-for [--until success|exit:<n>|output:<regex>] [--interval 5s] [--max 3m] [--backoff] -- <command>
 import { parseOpts, commandFromRest } from './args.js';
-import { prepare, preRefusal, recordRefusal, emitRefusal, limits } from '../engine.js';
+import { prepare, preRefusal, recordRefusal, emitRefusal, limits, refreshOrgIfDue, resolveSession } from '../engine.js';
 import { waitFor, waitOptions } from '../run/wait.js';
 import { hookContextFor } from '../adapters/pending.js';
 import { checkSegment } from '../parse/classify-cmd.js';
@@ -15,6 +15,7 @@ export default async function waitForCmd(ctx, args) {
   const command = commandFromRest(rest, 'wait-for');
   const hook = hookContextFor(ctx.cwd, command);
   const w = waitOptions(opts, hook ? hook.agentTimeoutMs : null);
+  await refreshOrgIfDue();
   const prep = prepare(ctx, {
     command,
     key: opts.key,
@@ -28,7 +29,7 @@ export default async function waitForCmd(ctx, args) {
     emitRefusal(ctx, pre.refusal, prep.key);
     return pre.refusal.exit;
   }
-  if (!prep.session) prep.session = (await import('../engine.js')).resolveSession(prep.store);
+  if (!prep.session) prep.session = resolveSession(prep.store);
   // Loop state is recorded for check commands so a successful wait clears the key.
   let loop = null;
   if (prep.cls === 'check') {

@@ -2,7 +2,7 @@
 import { EXIT, UsageError } from '../util/core.js';
 import { parseOpts, commandFromRest } from './args.js';
 import { requireHuman } from '../bound/human.js';
-import { prepare, preRefusal, recordRefusal, emitRefusal, runBackground, runSupervised, printRun, limits } from '../engine.js';
+import { prepare, preRefusal, recordRefusal, emitRefusal, runBackground, runSupervised, printRun, limits, refreshOrgIfDue } from '../engine.js';
 import { loopGate } from '../loop/gate.js';
 import { hookContextFor } from '../adapters/pending.js';
 import { formatNote } from '../ui/format.js';
@@ -19,6 +19,7 @@ export default async function run(ctx, args) {
   if (opts.force) requireHuman('kerb run --force');
 
   const hook = hookContextFor(ctx.cwd, command);
+  await refreshOrgIfDue();
   const prep = prepare(ctx, {
     command,
     key: opts.key,

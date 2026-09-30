@@ -51,14 +51,14 @@ export function resolveSession(store, explicit) {
  * Build the per-command context.
  * @param {ReturnType<import('./cli/context.js').createContext>} ctx
  * @param {{ command: string, key?: string, cls?: string, background?: boolean, agent?: string | null,
- *   tier?: string, session?: string | null, refreshOrg?: boolean, reap?: boolean }} o
+ *   tier?: string, session?: string | null, reap?: boolean }} o
  */
 export function prepare(ctx, o) {
   const nowTs = now();
   const { root, git } = findRoot(ctx.cwd);
   const store = new Store(root);
   const config = loadConfig();
-  const policy = loadPolicy(root, config, nowTs, { refreshOrg: o.refreshOrg });
+  const policy = loadPolicy(root, config, nowTs);
   const parsed = parseCommand(o.command, { cwd: ctx.cwd });
   const checkCommands = compileCheckCommands(policy.check_commands);
   const cls = o.cls || classifyCommand(parsed, { checkCommands, background: !!o.background });
@@ -121,7 +121,7 @@ export function recordRefusal(prep, refusal, matched = null) {
     tier: prep.tier,
     session: ensureSession(prep),
   };
-  prep.store.ensure().append([rec], (s) => { s.walls_known = wallsKnown(prep.policy); });
+  prep.store.ensure().append([rec], summaryTweak(prep));
   return rec;
 }
 
@@ -132,6 +132,22 @@ function ensureSession(prep) {
 
 export function wallsKnown(policy) {
   return (policy.boundaries || []).length;
+}
+
+/** Summary fields derived from the policy, refreshed with every record. */
+export function summaryTweak(prep, extraWalls = 0) {
+  return (s) => {
+    s.walls_known = wallsKnown(prep.policy) + extraWalls;
+    s.org_cache_expired = !!(prep.policy.org && prep.policy.org.stale);
+  };
+}
+
+/** Fetch the org bundle when a managed config sets one and a refresh is due (or forced). */
+export async function refreshOrgIfDue(force = false) {
+  const { managed } = loadConfig();
+  if (!managed || !managed.org || !managed.org.bundle_url) return null;
+  const { refreshOrg } = await import('./bound/org.js');
+  return refreshOrg(managed, { force });
 }
 
 /** Print a refusal to the right stream in the right form. */
@@ -332,7 +348,7 @@ export async function runSupervised(prep, o) {
     startRec = startRecord(prep, id, {});
     store.append([startRec]);
   }
-  store.append([endRec, ...extraRecs], (s) => { s.walls_known = wallsKnown(prep.policy) + (learned && learned.becameConfirmed ? 1 : 0); });
+  store.append([endRec, ...extraRecs], summaryTweak(prep, learned && learned.becameConfirmed ? 1 : 0));
   clearActive(store, id);
   evictLogs(store, prep.config.values.log_budget_mb);
 

@@ -1,7 +1,7 @@
 // kerb check [--json] -- <command>: pre-check only. Never runs anything. Exit 0 if it would run.
 import { UsageError } from '../util/core.js';
 import { parseOpts, commandFromRest } from './args.js';
-import { prepare, preRefusal, emitRefusal } from '../engine.js';
+import { prepare, preRefusal, emitRefusal, refreshOrgIfDue } from '../engine.js';
 import { loopGate } from '../loop/gate.js';
 import { formatNote } from '../ui/format.js';
 
@@ -9,6 +9,7 @@ export default async function check(ctx, args) {
   const { opts, rest } = parseOpts(args, { key: 'string', class: 'string' });
   const command = commandFromRest(rest, 'check');
   if (opts.class && !['check', 'query', 'other'].includes(opts.class)) throw new UsageError('--class must be check, query or other');
+  await refreshOrgIfDue();
   const prep = prepare(ctx, { command, key: opts.key, cls: opts.class });
   const pre = preRefusal(prep);
   let refusal = pre.refusal;

@@ -1,0 +1,38 @@
+# Lint and sign the org policy on every pull request (dry run) and publish it from main.
+name: publish-agent-policy
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  sign:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Kerb
+        run: npm install -g kerb
+      - name: Lint (every change)
+        run: kerb policy lint policy.json
+      - name: Sign and verify
+        if: github.event_name == 'push'
+        env:
+          SIGNING_KEY: ${{ secrets.ORG_POLICY_SIGNING_KEY }}
+          PUBLIC_KEY: ${{ vars.ORG_POLICY_PUBLIC_KEY }}
+          BUNDLE_VERSION: ${{ github.run_number }}
+        run: |
+          umask 077
+          printf '%s\n' "$SIGNING_KEY" > "$RUNNER_TEMP/signing.key"
+          SIGNING_KEY_FILE="$RUNNER_TEMP/signing.key" sh scripts/sign.sh
+          rm -f "$RUNNER_TEMP/signing.key"
+      - name: Publish
+        if: github.event_name == 'push'
+        # Replace with your own hosting (an internal static host, S3 with ETags, GitHub Pages, …).
+        # The URL you publish to goes in the managed config as org.bundle_url.
+        run: echo "upload dist/kerb-bundle.json to your bundle host here"

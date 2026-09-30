@@ -7,11 +7,10 @@ import { orgLayer } from './org.js';
  * @param {string} root repo root
  * @param {{ managed: any }} config from loadConfig()
  * @param {number} nowTs
- * @param {{ refreshOrg?: boolean }} [o]
  */
-export function loadPolicy(root, config, nowTs, o = {}) {
+export function loadPolicy(root, config, nowTs) {
   const layers = [];
-  const org = orgLayer(config.managed, nowTs, { refresh: !!o.refreshOrg });
+  const org = orgLayer(config.managed, nowTs);
   if (org && org.layer) layers.push(org.layer);
   const repo = readRepoPolicy(root);
   if (repo) layers.push({ name: 'repo', policy: repo.policy, source: layerSource('repo') });
