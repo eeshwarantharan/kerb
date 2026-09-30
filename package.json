@@ -1,12 +1,11 @@
 {
-  "name": "kerb",
+  "name": "kerb-cli",
   "version": "0.1.0",
   "description": "Stops AI coding agents from wasting turns on blocked actions and retries that can't help.",
   "type": "module",
   "bin": {
     "kerb": "bin/kerb.js"
   },
-  "main": "src/index.js",
   "files": [
     "bin/",
     "src/",
@@ -37,6 +36,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/kerb-dev/kerb.git"
-  }
+    "url": "git+https://github.com/eeshwarantharan/kerb.git"
+  },
+  "homepage": "https://github.com/eeshwarantharan/kerb#readme",
+  "bugs": {
+    "url": "https://github.com/eeshwarantharan/kerb/issues"
+  },
+  "author": "Tharaneeshwaran V U"
 }

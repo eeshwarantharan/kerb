@@ -5,7 +5,7 @@ Thanks for helping. Kerb's first rule is that **false refusals are the enemy**: 
 ## Getting started
 
 ```bash
-git clone https://github.com/kerb-dev/kerb && cd kerb
+git clone https://github.com/eeshwarantharan/kerb && cd kerb
 node --test                       # Node 20+; no install step, there are no dependencies
 node bin/kerb.js --help
 ```

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Generate the Homebrew formula for the tap from the release's SHA256SUMS.
-//   node scripts/homebrew.js --version 1.0.0 --sums dist/bin/SHA256SUMS [--repo kerb-dev/kerb] [--out Formula/kerb.rb]
+//   node scripts/homebrew.js --version 1.0.0 --sums dist/bin/SHA256SUMS [--repo eeshwarantharan/kerb] [--out Formula/kerb.rb]
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -8,7 +8,7 @@ const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i === -1 ? d : args[i + 1]; };
 const version = opt('version');
 const sumsFile = opt('sums');
-const repo = opt('repo', 'kerb-dev/kerb');
+const repo = opt('repo', 'eeshwarantharan/kerb');
 if (!version || !sumsFile) { console.error('usage: node scripts/homebrew.js --version X --sums SHA256SUMS'); process.exit(64); }
 
 const sums = Object.fromEntries(fs.readFileSync(sumsFile, 'utf8').trim().split('\n').map((l) => l.trim().split(/\s+/).reverse()));

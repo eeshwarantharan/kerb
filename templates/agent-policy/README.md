@@ -41,7 +41,7 @@ kerb policy keygen --out keys          # writes keys/kerb-org.key (secret) and k
 
 ## Writing the policy
 
-See section 4.8.2 of [KERB.md](https://github.com/kerb-dev/kerb/blob/main/docs/KERB.md) for every field. In short:
+See section 4.8.2 of [KERB.md](https://github.com/eeshwarantharan/kerb/blob/main/docs/KERB.md) for every field. In short:
 
 - `host`: a hostname glob; `*` matches one or more labels (`*.pypi.org` matches `files.pypi.org`, not `pypi.org`).
 - `program`: blocks any command whose program is this (`docker` blocks `sudo docker run …`).

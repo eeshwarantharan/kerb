@@ -52,7 +52,7 @@ test('the SBOM is CycloneDX 1.5 with no dependencies', () => {
   const s = JSON.parse(fs.readFileSync(out, 'utf8'));
   assert.equal(s.bomFormat, 'CycloneDX');
   assert.equal(s.specVersion, '1.5');
-  assert.equal(s.metadata.component.name, 'kerb');
+  assert.equal(s.metadata.component.name, 'kerb-cli');
   assert.deepEqual(s.dependencies[0].dependsOn, []);
 });
 

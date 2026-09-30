@@ -17,7 +17,7 @@ jobs:
         with:
           node-version: 22
       - name: Install Kerb
-        run: npm install -g kerb
+        run: npm install -g kerb-cli
       - name: Lint (every change)
         run: kerb policy lint policy.json
       - name: Sign and verify

@@ -2,6 +2,8 @@
 
 **Kerb keeps your coding agent on the road.** It stops AI coding agents from wasting turns on actions your environment forbids and on retries that cannot help, and it shows you every save.
 
+> **0.1 is a preview.** Everything in the spec is built and tested on macOS; Linux and Windows CI, a full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](.github/ISSUE_TEMPLATE/false-refusal.md).
+
 Two refusals, as the agent sees them:
 
 ```
@@ -25,9 +27,9 @@ Agents burn paid turns hitting walls (blocked registries, hosts and protected br
 ## Install
 
 ```bash
-brew install kerb-dev/tap/kerb        # macOS and Linux
+brew install eeshwarantharan/tap/kerb   # macOS and Linux
 # or download a binary from Releases (checksums and build provenance attached)
-# or: npm install -g kerb             # Node 20+
+# or: npm install -g kerb-cli           # Node 20+; the command is still `kerb`
 
 cd my-repo
 kerb init                             # detects agents, installs hooks, status line, skill, AGENTS.md block

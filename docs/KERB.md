@@ -90,7 +90,7 @@ Adoption starts with individual developers. The org features pay off once a plat
 ### 2.1 First five minutes
 
 ```bash
-brew install kerb          # or download a binary, or: npm install -g kerb
+brew install eeshwarantharan/tap/kerb   # or download a binary, or: npm install -g kerb-cli
 cd my-repo
 kerb init                  # detects agents, installs hooks, status line, skill, AGENTS.md block
 kerb doctor                # everything green, or exact fixes
@@ -1162,7 +1162,7 @@ Work top to bottom. Each step lists its done-criteria as test groups (section 11
 ### 12.1 Before publishing
 
 - [ ] **Name check:** `npm view kerb`, GitHub, crates.io, Homebrew, a domain. If `kerb` is taken on npm, publish as `@<you>/kerb` and keep the command `kerb`. Fallbacks: `rut`, `lanes`. (Known conflict: `bumper` is an existing Claude Code guardrail; don't use it.)
-  Checked 2026-10-01: `kerb` on npm is taken (an unrelated utility library, `0.0.0-rc1`, last modified 2023-10-09), so publish as `@<you>/kerb`. The org `github.com/kerb-dev`, used as a placeholder in `package.json`, the README and the workflows, already exists; pick the real owner and replace it.
+  Checked 2026-10-01: `kerb` on npm is taken (an unrelated utility library, `0.0.0-rc1`, last modified 2023-10-09), so the npm package is `kerb-cli` (free on 2026-10-01; the command stays `kerb`). Repository: `github.com/eeshwarantharan/kerb`; Homebrew tap: `eeshwarantharan/homebrew-tap`.
 - [ ] Repo description: "Stops AI coding agents from wasting turns on blocked actions and retries that can't help."
 - [ ] Topics: `ai-agents`, `claude-code`, `github-copilot`, `developer-tools`, `llm`, `cli`, `devex`.
 - [ ] Clean-machine install on macOS, Linux and Windows for each distribution form, following the README word for word.
@@ -1279,3 +1279,4 @@ Append one line per decision: date, section, decision, reason, source link.
 - 2026-10-01 · 4.7.8 · `wait-for` starts another attempt only when at least 1 s remains before `--max`. Found by the shuffled runs: an attempt started milliseconds before the deadline was killed before printing, and the "last output" was empty.
 - 2026-10-01 · 4.4, 4.7.4 · From dogfooding: `node --test` (Node's built-in runner) joins the default check commands, and unit-less timing fields named `*_ms`/`*_s` (e.g. TAP's `duration_ms: 1.68`) are normalised in fingerprints, so repeated `node --test` failures can match.
 - 2026-10-01 · 4.7.2 · Hooks use the user's `hash_budget_ms` when set; otherwise 300 ms.
+- 2026-10-01 · 12.1 · Names settled with the owner: npm package `kerb-cli` (installs the `kerb` command), repository `eeshwarantharan/kerb`, Homebrew tap `eeshwarantharan/homebrew-tap`. The first public release is 0.1.0, a preview: 1.0 waits for the benchmark gate, an enforced dogfood session and green Linux/Windows CI.
