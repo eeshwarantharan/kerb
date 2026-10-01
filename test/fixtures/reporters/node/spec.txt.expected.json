@@ -1,0 +1,40 @@
+{
+  "framework": "node",
+  "results": [
+    {
+      "test_id": "node:::cart > adds items",
+      "status": "pass",
+      "location": null,
+      "message": null,
+      "duration_ms": 0.155
+    },
+    {
+      "test_id": "node:::cart > applies discount",
+      "status": "fail",
+      "location": "cart.test.js:5",
+      "message": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:",
+      "duration_ms": 1.02
+    },
+    {
+      "test_id": "node:::cart > handles currency",
+      "status": "skip",
+      "location": null,
+      "message": null,
+      "duration_ms": 0.065
+    },
+    {
+      "test_id": "node:::top level passes",
+      "status": "pass",
+      "location": null,
+      "message": null,
+      "duration_ms": 0.17
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 1,
+    "skipped": 1,
+    "errors": 0,
+    "total": 4
+  }
+}

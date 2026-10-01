@@ -1,0 +1,54 @@
+{
+  "framework": "vitest",
+  "results": [
+    {
+      "test_id": "vitest:src/cart.test.js::cart > adds items",
+      "status": "pass",
+      "location": null,
+      "message": null,
+      "duration_ms": 1
+    },
+    {
+      "test_id": "vitest:src/cart.test.js::cart > applies discount",
+      "status": "fail",
+      "location": "src/cart.test.js:5",
+      "message": "expected 100 to be 90 // Object.is equality",
+      "duration_ms": 8
+    },
+    {
+      "test_id": "vitest:src/cart.test.js::cart > rounding > rounds totals",
+      "status": "pass",
+      "location": null,
+      "message": null,
+      "duration_ms": 0
+    },
+    {
+      "test_id": "vitest:src/cart.test.js::cart > rounding > handles currency",
+      "status": "skip",
+      "location": null,
+      "message": null,
+      "duration_ms": null
+    },
+    {
+      "test_id": "vitest:src/user.test.js::logout clears session",
+      "status": "fail",
+      "location": "src/user.test.js:2",
+      "message": "expected { s: 1 } to deeply equal { s: null }",
+      "duration_ms": 10
+    },
+    {
+      "test_id": "vitest:src/user.test.js::login works",
+      "status": "pass",
+      "location": null,
+      "message": null,
+      "duration_ms": 0
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "skipped": 1,
+    "errors": 0,
+    "total": 6
+  }
+}

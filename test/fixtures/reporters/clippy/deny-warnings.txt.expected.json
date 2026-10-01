@@ -1,0 +1,33 @@
+{
+  "framework": "clippy",
+  "results": [
+    {
+      "test_id": "clippy:src/lib.rs::clippy::needless_return",
+      "status": "fail",
+      "location": "src/lib.rs:2",
+      "message": "unneeded `return` statement",
+      "duration_ms": null
+    },
+    {
+      "test_id": "clippy:src/lib.rs::clippy::absurd_extreme_comparisons",
+      "status": "fail",
+      "location": "src/lib.rs:6",
+      "message": "this comparison involving the minimum or maximum element for this type contains a case that is always true or always false",
+      "duration_ms": null
+    },
+    {
+      "test_id": "clippy:src/lib.rs::unused_comparisons",
+      "status": "fail",
+      "location": "src/lib.rs:6",
+      "message": "comparison is useless due to type limits",
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 3,
+    "skipped": 0,
+    "errors": 0,
+    "total": 3
+  }
+}

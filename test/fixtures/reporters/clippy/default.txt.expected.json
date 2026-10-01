@@ -1,0 +1,19 @@
+{
+  "framework": "clippy",
+  "results": [
+    {
+      "test_id": "clippy:src/lib.rs::clippy::absurd_extreme_comparisons",
+      "status": "fail",
+      "location": "src/lib.rs:6",
+      "message": "this comparison involving the minimum or maximum element for this type contains a case that is always true or always false",
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "errors": 0,
+    "total": 1
+  }
+}

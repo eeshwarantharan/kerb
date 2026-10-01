@@ -352,6 +352,18 @@ export const SCHEMAS = {
           "string",
           "null"
         ]
+      },
+      "framework": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "tests_summary": {
+        "type": [
+          "object",
+          "null"
+        ]
       }
     }
   },

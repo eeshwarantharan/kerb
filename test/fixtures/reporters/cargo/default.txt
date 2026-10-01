@@ -1,0 +1,36 @@
+warning: comparison is useless due to type limits
+ --> src/lib.rs:6:5
+  |
+6 |     x <= 255
+  |     ^^^^^^^^
+  |
+  = note: `#[warn(unused_comparisons)]` on by default
+
+warning: `shop` (lib) generated 1 warning
+   Compiling shop v0.1.0 (/work/shop-rs)
+warning: `shop` (lib test) generated 1 warning (1 duplicate)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.70s
+     Running unittests src/lib.rs (target/debug/deps/shop-d2bb84bc74e9c3da)
+
+running 3 tests
+test tests::later ... ignored
+test tests::adds ... ok
+test tests::discount ... FAILED
+
+failures:
+
+---- tests::discount stdout ----
+
+thread 'tests::discount' (12622256) panicked at src/lib.rs:20:9:
+assertion `left == right` failed
+  left: 100
+ right: 90
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tests::discount
+
+test result: FAILED. 1 passed; 1 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

@@ -1,0 +1,1 @@
+/work/js/node_modules/.bin/eslint .

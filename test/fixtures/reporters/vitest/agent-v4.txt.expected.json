@@ -1,0 +1,26 @@
+{
+  "framework": "vitest",
+  "results": [
+    {
+      "test_id": "vitest:src/user.test.js::logout clears session",
+      "status": "fail",
+      "location": "src/user.test.js:2",
+      "message": "AssertionError: expected { s: 1 } to deeply equal { s: null }",
+      "duration_ms": 6
+    },
+    {
+      "test_id": "vitest:src/cart.test.js::cart > applies discount",
+      "status": "fail",
+      "location": "src/cart.test.js:5",
+      "message": "AssertionError: expected 100 to be 90 // Object.is equality",
+      "duration_ms": 5
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "skipped": 1,
+    "errors": 0,
+    "total": 6
+  }
+}

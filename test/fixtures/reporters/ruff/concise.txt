@@ -1,0 +1,5 @@
+lint_me.py:1:8: F401 [*] `os` imported but unused
+lint_me.py:2:8: F401 [*] `sys` imported but unused
+lint_me.py:6:5: F841 Local variable `y` is assigned to but never used
+Found 3 errors.
+[*] 2 fixable with the `--fix` option (1 hidden fix can be enabled with the `--unsafe-fixes` option).

@@ -1,0 +1,7 @@
+
+/work/js/es/src/a.js
+  1:7   error  'unused' is assigned a value but never used  no-unused-vars
+  2:30  error  'undefinedThing' is not defined              no-undef
+
+✖ 2 problems (2 errors, 0 warnings)
+

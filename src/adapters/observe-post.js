@@ -16,6 +16,7 @@ import { takePending, markDone, recentlyDone } from './pending.js';
 import { regenerateBriefing } from '../init/instructions.js';
 import { hookCounter, HOOK_HASH_BUDGET_MS } from './observe.js';
 import { envFixFor } from '../insight/envclass.js';
+import { testResults } from '../reporters/record.js';
 
 /**
  * @param {any} ctx
@@ -103,6 +104,7 @@ export function observePost(ctx, o) {
     if (post.snapshot) writeSnapshot(store, id, post.snapshot);
   }
   const failureKind = classResult === 'failure' || classResult === 'timeout' ? (o.timedOut ? 'transient' : analysis.kind) : null;
+  const tests = cls === 'check' && !o.interrupted ? testResults({ ...prep, cls }, { runId: id, postState: postHash, text: o.output || '', cwd: o.cwd, startedAt: pending ? pending.wall_ts : Date.now() - (o.durationMs || 0) }) : null;
   store.append([
     startRecord(prep, id, startTs, pending, cls),
     endRecord(prep, id, cls, {
@@ -119,8 +121,10 @@ export function observePost(ctx, o) {
       loop_skipped: loopSkipped,
       loop_checked: cls === 'check' && !!pending && !loopSkipped,
       log: relPath(prep.root, logPath),
+      ...(tests ? tests.fields : {}),
     }),
     ...extra,
+    ...(tests ? tests.recs : []),
   ], summaryTweak(prep, learnedNew ? 1 : 0));
   if (learnedNew) regenerateBriefing(prep.root);
   // Insight injections stay on in shadow mode; the user can turn them off (KERB-V2 10.2).
@@ -143,5 +147,6 @@ function endRecord(prep, id, cls, f) {
     fingerprint: f.fingerprint ?? null, failure_kind: f.failure_kind ?? null, env_subtype: f.env_subtype ?? null, class_result: f.class_result,
     raw_bytes: f.raw_bytes, shown_bytes: f.shown_bytes, first_fail_line: f.first_fail_line ?? null,
     loop_skipped: f.loop_skipped ?? null, loop_checked: !!f.loop_checked, key: prep.key, class: cls, session: prep.session, log: f.log ?? null,
+    ...(f.framework ? { framework: f.framework, tests_summary: f.tests_summary ?? null } : {}),
   };
 }

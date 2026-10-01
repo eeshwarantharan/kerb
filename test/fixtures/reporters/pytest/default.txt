@@ -1,0 +1,54 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.2, pytest-9.1.1, pluggy-1.6.0
+rootdir: /work/py
+collected 7 items
+
+tests/test_cart.py .F.FsFE                                               [100%]
+
+==================================== ERRORS ====================================
+_________________________ ERROR at setup of test_error _________________________
+file /work/py/tests/test_cart.py, line 24
+  def test_error(missing_fixture):
+E       fixture 'missing_fixture' not found
+>       available fixtures: cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+>       use 'pytest --fixtures [testpath]' for help on them.
+
+/work/py/tests/test_cart.py:24
+=================================== FAILURES ===================================
+________________________________ test_discount _________________________________
+
+    def test_discount():
+>       assert total(100, 0) == 90
+E       assert 100 == 90
+E        +  where 100 = total(100, 0)
+
+tests/test_cart.py:10: AssertionError
+_______________________________ test_param[2-3] ________________________________
+
+v = 2, want = 3
+
+    @pytest.mark.parametrize("v,want", [(1, 1), (2, 3)])
+    def test_param(v, want):
+>       assert v == want
+E       assert 2 == 3
+
+tests/test_cart.py:14: AssertionError
+_____________________________ TestUser.test_logout _____________________________
+
+self = <test_cart.TestUser object at 0x1023d1310>
+
+    def test_logout(self):
+>       assert {"s": 1} == {"s": None}
+E       AssertionError: assert {'s': 1} == {'s': None}
+E         
+E         Differing items:
+E         {'s': 1} != {'s': None}
+E         Use -v to get more diff
+
+tests/test_cart.py:22: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cart.py::test_discount - assert 100 == 90
+FAILED tests/test_cart.py::test_param[2-3] - assert 2 == 3
+FAILED tests/test_cart.py::TestUser::test_logout - AssertionError: assert {'s...
+ERROR tests/test_cart.py::test_error
+=============== 3 failed, 2 passed, 1 skipped, 1 error in 0.03s ================

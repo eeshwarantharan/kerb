@@ -1,0 +1,26 @@
+{
+  "framework": "jest",
+  "results": [
+    {
+      "test_id": "jest:src/cart.test.js::cart > applies discount",
+      "status": "fail",
+      "location": "src/cart.test.js:5",
+      "message": "expect(received).toBe(expected) // Object.is equality",
+      "duration_ms": null
+    },
+    {
+      "test_id": "jest:src/user.test.js::logout clears session",
+      "status": "fail",
+      "location": "src/user.test.js:2",
+      "message": "expect(received).toEqual(expected) // deep equality",
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 3,
+    "failed": 2,
+    "skipped": 1,
+    "errors": 0,
+    "total": 6
+  }
+}

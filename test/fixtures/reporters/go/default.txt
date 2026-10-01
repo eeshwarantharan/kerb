@@ -1,0 +1,9 @@
+--- FAIL: TestDiscount (0.00s)
+    cart_test.go:13: got 100, want 90
+--- FAIL: TestRounding (0.00s)
+    --- FAIL: TestRounding/half_up (0.00s)
+        cart_test.go:19: half up is wrong
+FAIL
+FAIL	example.com/shop/cart	4.481s
+ok  	example.com/shop/user	2.690s
+FAIL

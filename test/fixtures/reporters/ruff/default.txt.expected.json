@@ -1,0 +1,26 @@
+{
+  "framework": "ruff",
+  "results": [
+    {
+      "test_id": "ruff:lint_me.py::F401",
+      "status": "fail",
+      "location": "lint_me.py:1",
+      "message": "`os` imported but unused",
+      "duration_ms": null
+    },
+    {
+      "test_id": "ruff:lint_me.py::F841",
+      "status": "fail",
+      "location": "lint_me.py:6",
+      "message": "Local variable `y` is assigned to but never used",
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 2,
+    "skipped": 0,
+    "errors": 0,
+    "total": 2
+  }
+}

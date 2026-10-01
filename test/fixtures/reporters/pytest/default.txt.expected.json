@@ -1,0 +1,40 @@
+{
+  "framework": "pytest",
+  "results": [
+    {
+      "test_id": "pytest:tests/test_cart.py::test_discount",
+      "status": "fail",
+      "location": "tests/test_cart.py:10",
+      "message": "assert 100 == 90",
+      "duration_ms": null
+    },
+    {
+      "test_id": "pytest:tests/test_cart.py::test_param[2-3]",
+      "status": "fail",
+      "location": "tests/test_cart.py:14",
+      "message": "assert 2 == 3",
+      "duration_ms": null
+    },
+    {
+      "test_id": "pytest:tests/test_cart.py::TestUser > test_logout",
+      "status": "fail",
+      "location": "tests/test_cart.py:22",
+      "message": "AssertionError: assert {'s': 1} == {'s': None}",
+      "duration_ms": null
+    },
+    {
+      "test_id": "pytest:tests/test_cart.py::test_error",
+      "status": "error",
+      "location": null,
+      "message": null,
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 3,
+    "skipped": 1,
+    "errors": 1,
+    "total": 7
+  }
+}

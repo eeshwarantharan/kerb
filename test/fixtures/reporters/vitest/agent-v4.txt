@@ -1,0 +1,55 @@
+
+ RUN  v4.1.11 /work/v4b
+
+ ❯ src/user.test.js (2 tests | 1 failed) 7ms
+   × logout clears session 6ms
+ ❯ src/cart.test.js (4 tests | 1 failed | 1 skipped) 7ms
+     × applies discount 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/cart.test.js > cart > applies discount
+AssertionError: expected 100 to be 90 // Object.is equality
+
+- Expected
++ Received
+
+- 90
++ 100
+
+ ❯ src/cart.test.js:5:56
+      3| describe('cart', () => {
+      4|   it('adds items', () => { expect(1 + 1).toBe(2); });
+      5|   it('applies discount', () => { expect(total(100, 0)).toBe(90); });
+       |                                                        ^
+      6|   describe('rounding', () => {
+      7|     it('rounds totals', () => { expect(Math.round(2.5)).toBe(3); });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/user.test.js > logout clears session
+AssertionError: expected { s: 1 } to deeply equal { s: null }
+
+- Expected
++ Received
+
+  {
+-   "s": null,
++   "s": 1,
+  }
+
+ ❯ src/user.test.js:2:54
+      1| import { it, expect } from 'vitest';
+      2| it('logout clears session', () => { expect({ s: 1 }).toEqual({ s: null…
+       |                                                      ^
+      3| it('login works', () => { expect(true).toBe(true); });
+      4|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 3 passed | 1 skipped (6)
+   Start at  23:26:21
+   Duration  179ms (transform 44ms, setup 0ms, import 63ms, tests 14ms, environment 0ms)
+

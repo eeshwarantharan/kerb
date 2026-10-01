@@ -1,0 +1,59 @@
+▶ cart
+  ✔ adds items (0.154875ms)
+  ✖ applies discount (1.020208ms)
+    AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+    
+    100 !== 90
+    
+        at TestContext.<anonymous> (/work/js/nt/cart.test.js:5:41)
+        at Test.runInAsyncScope (node:async_hooks:206:9)
+        at Test.run (node:internal/test_runner/test:639:25)
+        at Suite.processPendingSubtests (node:internal/test_runner/test:382:18)
+        at Test.postRun (node:internal/test_runner/test:730:19)
+        at Test.run (node:internal/test_runner/test:688:12)
+        at async Promise.all (index 0)
+        at async Suite.run (node:internal/test_runner/test:964:7)
+        at async startSubtest (node:internal/test_runner/harness:218:3) {
+      generatedMessage: true,
+      code: 'ERR_ASSERTION',
+      actual: 100,
+      expected: 90,
+      operator: 'strictEqual'
+    }
+
+  ﹣ handles currency (0.064666ms) # SKIP
+▶ cart (2.826834ms)
+
+✔ top level passes (0.169916ms)
+ℹ tests 4
+ℹ suites 1
+ℹ pass 2
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 71.656375
+
+✖ failing tests:
+
+test at cart.test.js:5:3
+✖ applies discount (1.020208ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  100 !== 90
+  
+      at TestContext.<anonymous> (/work/js/nt/cart.test.js:5:41)
+      at Test.runInAsyncScope (node:async_hooks:206:9)
+      at Test.run (node:internal/test_runner/test:639:25)
+      at Suite.processPendingSubtests (node:internal/test_runner/test:382:18)
+      at Test.postRun (node:internal/test_runner/test:730:19)
+      at Test.run (node:internal/test_runner/test:688:12)
+      at async Promise.all (index 0)
+      at async Suite.run (node:internal/test_runner/test:964:7)
+      at async startSubtest (node:internal/test_runner/harness:218:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 100,
+    expected: 90,
+    operator: 'strictEqual'
+  }

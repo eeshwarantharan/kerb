@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.shop.CartTest" time="0.021" tests="3" errors="0" skipped="1" failures="1">
+  <properties>
+    <property name="java.version" value="17.0.18"/>
+  </properties>
+  <testcase name="addsItems" classname="com.shop.CartTest" time="0.001"/>
+  <testcase name="appliesDiscount" classname="com.shop.CartTest" time="0.004">
+    <failure message="expected: &lt;90&gt; but was: &lt;100&gt;" type="org.opentest4j.AssertionFailedError"><![CDATA[org.opentest4j.AssertionFailedError: expected: <90> but was: <100>
+	at com.shop.CartTest.appliesDiscount(CartTest.java:14)
+]]></failure>
+  </testcase>
+  <testcase name="handlesCurrency" classname="com.shop.CartTest" time="0">
+    <skipped message="later"/>
+  </testcase>
+</testsuite>

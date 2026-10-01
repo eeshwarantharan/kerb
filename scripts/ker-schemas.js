@@ -34,7 +34,7 @@ export const TYPES = [
   ['start', 'A run began (v1 4.9). Joined with its `end` into a `run`.', 'event log',
     ['type', 'id', 'ts', 'key', 'class'], { type: { const: 'start' }, id: str, ts, key: str, class: cls, cmd: str, cwd: str, scope: strN, pre_hash: hashN, env_stamp: strN, kerb_pid: intN, pgid: intN, agent: strN, tier: strN, session: strN, mode }],
   ['end', 'A run finished (v1 4.9).', 'event log',
-    ['type', 'id', 'ts'], { type: { const: 'end' }, id: str, ts, exit: intN, signal: strN, duration_ms: numN, post_hash: hashN, fingerprint: strN, failure_kind: failureKind, env_subtype: strN, class_result: classResult, raw_bytes: intN, shown_bytes: intN, first_fail_line: strN, loop_skipped: strN, key: str, class: cls, session: strN }],
+    ['type', 'id', 'ts'], { type: { const: 'end' }, id: str, ts, exit: intN, signal: strN, duration_ms: numN, post_hash: hashN, fingerprint: strN, failure_kind: failureKind, env_subtype: strN, class_result: classResult, raw_bytes: intN, shown_bytes: intN, first_fail_line: strN, loop_skipped: strN, key: str, class: cls, session: strN, framework: strN, tests_summary: { type: ['object', 'null'] } }],
   ['wait', 'A `kerb wait-for` call: many attempts, counted as one run (v1 4.7.8).', 'event log',
     ['type', 'id', 'ts', 'key', 'attempts', 'result'], { type: { const: 'wait' }, id: str, ts, key: str, attempts: int, duration_ms: numN, result: { type: 'string', enum: ['met', 'gave_up', 'aborted'] }, final_exit: intN, pre_hash: hashN, post_hash: hashN, session: strN }],
   ['run', 'A finished command: a `start` and its `end` (or a `wait`), as `kerb query` and `kerb export` return it.', 'derived',

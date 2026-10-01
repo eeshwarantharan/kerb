@@ -404,6 +404,18 @@ A run finished (v1 4.9).
         "string",
         "null"
       ]
+    },
+    "framework": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tests_summary": {
+      "type": [
+        "object",
+        "null"
+      ]
     }
   }
 }

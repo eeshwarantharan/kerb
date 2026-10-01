@@ -15,6 +15,7 @@ import { formatNote, paint } from '../ui/format.js';
 import { regenerateBriefing } from '../init/instructions.js';
 import { summaryTweak, startRecord } from '../engine.js';
 import { envFixFor } from '../insight/envclass.js';
+import { testResults } from '../reporters/record.js';
 
 /**
  * Background commands: pre-check only, then run with the agent's normal behaviour.
@@ -158,12 +159,15 @@ export async function runSupervised(prep, o) {
     session: prep.session,
     log: logRel,
   };
+  // Test-level results from the output (and any report file the command wrote).
+  const tests = res.reason === 'aborted' ? null : testResults(prep, { runId: id, postState: postHash, logFile: logPath, cwd: ctx.cwd, startedAt: startRec ? startRec.ts : now() - res.durationMs });
+  if (tests) Object.assign(endRec, tests.fields);
   if (!startRec) {
     // Spawn failed before onSpawn: still write a start record so the pair is complete.
     startRec = startRecord(prep, id, {});
     store.append([startRec]);
   }
-  store.append([endRec, ...extraRecs], summaryTweak(prep, learned && learned.becameConfirmed ? 1 : 0));
+  store.append([endRec, ...extraRecs, ...(tests ? tests.recs : [])], summaryTweak(prep, learned && learned.becameConfirmed ? 1 : 0));
   clearActive(store, id);
   if (learned && learned.becameConfirmed) regenerateBriefing(prep.root);
   evictLogs(store, prep.config.values.log_budget_mb);

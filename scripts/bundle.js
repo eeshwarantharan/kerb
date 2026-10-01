@@ -79,7 +79,7 @@ export function transform(code, file) {
     return '';
   });
   s = s.replace(/^export\s+default\s+(async\s+)?function\s+(\w+)/gm, (m, a, name) => { exported.push(['default', name]); return `${a || ''}function ${name}`; });
-  s = s.replace(/^export\s+(async\s+function|function|class|const|let)\s+(\w+)/gm, (m, kind, name) => { exported.push([name, name]); return `${kind} ${name}`; });
+  s = s.replace(/^export\s+(async\s+function\*?|function\*?|class|const|let)\s+(\w+)/gm, (m, kind, name) => { exported.push([name, name]); return `${kind} ${name}`; });
   if (/^export\s/m.test(s)) throw new Error(`${id}: an export statement was not transformed`);
 
   const tail = exported.map(([as, local]) => `exports.${as} = ${local};`).join('\n');

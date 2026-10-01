@@ -1,0 +1,26 @@
+{
+  "framework": "eslint",
+  "results": [
+    {
+      "test_id": "eslint:src/a.js::no-unused-vars",
+      "status": "fail",
+      "location": "src/a.js:1",
+      "message": "'unused' is assigned a value but never used",
+      "duration_ms": null
+    },
+    {
+      "test_id": "eslint:src/a.js::no-undef",
+      "status": "fail",
+      "location": "src/a.js:2",
+      "message": "'undefinedThing' is not defined",
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 2,
+    "skipped": 0,
+    "errors": 0,
+    "total": 2
+  }
+}

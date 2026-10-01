@@ -1,0 +1,59 @@
+
+ RUN  v3.2.7 /work/js/vt
+
+ ✓ src/cart.test.js > cart > adds items 1ms
+ × src/cart.test.js > cart > applies discount 6ms
+   → expected 100 to be 90 // Object.is equality
+ ✓ src/cart.test.js > cart > rounding > rounds totals 0ms
+ ↓ src/cart.test.js > cart > rounding > handles currency
+ × src/user.test.js > logout clears session 8ms
+   → expected { s: 1 } to deeply equal { s: null }
+ ✓ src/user.test.js > login works 0ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/cart.test.js > cart > applies discount
+AssertionError: expected 100 to be 90 // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 90[39m
+[31m+ 100[39m
+
+ ❯ src/cart.test.js:5:56
+      3| describe('cart', () => {
+      4|   it('adds items', () => { expect(1 + 1).toBe(2); });
+      5|   it('applies discount', () => { expect(total(100, 0)).toBe(90); });
+       |                                                        ^
+      6|   describe('rounding', () => {
+      7|     it('rounds totals', () => { expect(Math.round(2.5)).toBe(3); });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯
+
+ FAIL  src/user.test.js > logout clears session
+AssertionError: expected { s: 1 } to deeply equal { s: null }
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[2m  {[22m
+[32m-   "s": null,[39m
+[31m+   "s": 1,[39m
+[2m  }[22m
+
+ ❯ src/user.test.js:2:54
+      1| import { it, expect } from 'vitest';
+      2| it('logout clears session', () => { expect({ s: 1 }).toEqual({ s: null…
+       |                                                      ^
+      3| it('login works', () => { expect(true).toBe(true); });
+      4| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/2]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  2 failed | 3 passed | 1 skipped (6)
+   Start at  23:19:17
+   Duration  301ms (transform 32ms, setup 0ms, collect 27ms, tests 18ms, environment 0ms, prepare 157ms)
+

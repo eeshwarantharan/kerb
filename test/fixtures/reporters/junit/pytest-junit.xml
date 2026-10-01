@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="1" failures="3" skipped="1" tests="7" time="0.025" timestamp="2026-10-01T23:19:23.290511+05:30" hostname="dev-host"><testcase classname="tests.test_cart" name="test_adds" time="0.000" /><testcase classname="tests.test_cart" name="test_discount" time="0.000"><failure message="assert 100 == 90&#10; +  where 100 = total(100, 0)">def test_discount():
+&gt;       assert total(100, 0) == 90
+E       assert 100 == 90
+E        +  where 100 = total(100, 0)
+
+tests/test_cart.py:10: AssertionError</failure></testcase><testcase classname="tests.test_cart" name="test_param[1-1]" time="0.000" /><testcase classname="tests.test_cart" name="test_param[2-3]" time="0.000"><failure message="assert 2 == 3">v = 2, want = 3
+
+    @pytest.mark.parametrize("v,want", [(1, 1), (2, 3)])
+    def test_param(v, want):
+&gt;       assert v == want
+E       assert 2 == 3
+
+tests/test_cart.py:14: AssertionError</failure></testcase><testcase classname="tests.test_cart" name="test_skipped" time="0.000"><skipped type="pytest.skip" message="later">/work/py/tests/test_cart.py:16: later</skipped></testcase><testcase classname="tests.test_cart.TestUser" name="test_logout" time="0.000"><failure message="AssertionError: assert {'s': 1} == {'s': None}&#10;  &#10;  Differing items:&#10;  {'s': 1} != {'s': None}&#10;  Use -v to get more diff">self = &lt;test_cart.TestUser object at 0x10594d450&gt;
+
+    def test_logout(self):
+&gt;       assert {"s": 1} == {"s": None}
+E       AssertionError: assert {'s': 1} == {'s': None}
+E         
+E         Differing items:
+E         {'s': 1} != {'s': None}
+E         Use -v to get more diff
+
+tests/test_cart.py:22: AssertionError</failure></testcase><testcase classname="tests.test_cart" name="test_error" time="0.000"><error message="failed on setup with &quot;file /work/py/tests/test_cart.py, line 24&#10;  def test_error(missing_fixture):&#10;E       fixture 'missing_fixture' not found&#10;&gt;       available fixtures: cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory&#10;&gt;       use 'pytest --fixtures [testpath]' for help on them.&#10;&#10;/work/py/tests/test_cart.py:24&quot;">file /work/py/tests/test_cart.py, line 24
+  def test_error(missing_fixture):
+E       fixture 'missing_fixture' not found
+&gt;       available fixtures: cache, capfd, capfdbinary, caplog, capsys, capsysbinary, capteesys, doctest_namespace, monkeypatch, pytestconfig, record_property, record_testsuite_property, record_xml_attribute, recwarn, subtests, tmp_path, tmp_path_factory, tmpdir, tmpdir_factory
+&gt;       use 'pytest --fixtures [testpath]' for help on them.
+
+/work/py/tests/test_cart.py:24</error></testcase></testsuite></testsuites>

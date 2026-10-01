@@ -1,0 +1,36 @@
+    Checking shop v0.1.0 (/work/shop-rs)
+error: unneeded `return` statement
+ --> src/lib.rs:2:5
+  |
+2 |     return price - discount;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#needless_return
+  = note: `-D clippy::needless-return` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(clippy::needless_return)]`
+help: remove `return`
+  |
+2 -     return price - discount;
+2 +     price - discount
+  |
+
+error: this comparison involving the minimum or maximum element for this type contains a case that is always true or always false
+ --> src/lib.rs:6:5
+  |
+6 |     x <= 255
+  |     ^^^^^^^^
+  |
+  = help: because `255` is the maximum value for this type, this comparison is always true
+  = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.99.0/index.html#absurd_extreme_comparisons
+  = note: `#[deny(clippy::absurd_extreme_comparisons)]` on by default
+
+error: comparison is useless due to type limits
+ --> src/lib.rs:6:5
+  |
+6 |     x <= 255
+  |     ^^^^^^^^
+  |
+  = note: `-D unused-comparisons` implied by `-D warnings`
+  = help: to override `-D warnings` add `#[allow(unused_comparisons)]`
+
+error: could not compile `shop` (lib) due to 3 previous errors

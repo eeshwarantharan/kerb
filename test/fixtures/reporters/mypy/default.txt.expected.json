@@ -1,0 +1,19 @@
+{
+  "framework": "mypy",
+  "results": [
+    {
+      "test_id": "mypy:lint_me.py::assignment",
+      "status": "fail",
+      "location": "lint_me.py:6",
+      "message": "Incompatible types in assignment (expression has type \"str\", variable has type \"int\")",
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 0,
+    "failed": 1,
+    "skipped": 0,
+    "errors": 0,
+    "total": 1
+  }
+}

@@ -1,0 +1,54 @@
+FAIL src/user.test.js
+  ✕ logout clears session (4 ms)
+  ✓ login works
+
+  ● logout clears session
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "s": null,
+    +   "s": 1,
+      }
+
+      1 |
+    > 2 | it('logout clears session', () => { expect({ s: 1 }).toEqual({ s: null }); });
+        |                                                      ^
+      3 | it('login works', () => { expect(true).toBe(true); });
+      4 |
+
+      at Object.toEqual (src/user.test.js:2:54)
+
+FAIL src/cart.test.js
+  cart
+    ✓ adds items
+    ✕ applies discount (1 ms)
+    rounding
+      ✓ rounds totals
+      ○ skipped handles currency
+
+  ● cart › applies discount
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 90
+    Received: 100
+
+      3 | describe('cart', () => {
+      4 |   it('adds items', () => { expect(1 + 1).toBe(2); });
+    > 5 |   it('applies discount', () => { expect(total(100, 0)).toBe(90); });
+        |                                                        ^
+      6 |   describe('rounding', () => {
+      7 |     it('rounds totals', () => { expect(Math.round(2.5)).toBe(3); });
+      8 |     it.skip('handles currency', () => {});
+
+      at Object.toBe (src/cart.test.js:5:56)
+
+Test Suites: 2 failed, 2 total
+Tests:       2 failed, 1 skipped, 3 passed, 6 total
+Snapshots:   0 total
+Time:        0.207 s, estimated 1 s
+Ran all test suites.

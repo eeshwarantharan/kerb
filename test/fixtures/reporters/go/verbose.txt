@@ -1,0 +1,22 @@
+=== RUN   TestAdds
+--- PASS: TestAdds (0.00s)
+=== RUN   TestDiscount
+    cart_test.go:13: got 100, want 90
+--- FAIL: TestDiscount (0.00s)
+=== RUN   TestRounding
+=== RUN   TestRounding/rounds_totals
+=== RUN   TestRounding/half_up
+    cart_test.go:19: half up is wrong
+--- FAIL: TestRounding (0.00s)
+    --- PASS: TestRounding/rounds_totals (0.00s)
+    --- FAIL: TestRounding/half_up (0.00s)
+=== RUN   TestLater
+    cart_test.go:22: later
+--- SKIP: TestLater (0.00s)
+FAIL
+FAIL	example.com/shop/cart	2.082s
+=== RUN   TestLogin
+--- PASS: TestLogin (0.00s)
+PASS
+ok  	example.com/shop/user	1.476s
+FAIL

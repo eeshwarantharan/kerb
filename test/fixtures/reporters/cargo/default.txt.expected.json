@@ -1,0 +1,33 @@
+{
+  "framework": "cargo",
+  "results": [
+    {
+      "test_id": "cargo:src/lib.rs::tests::later",
+      "status": "skip",
+      "location": null,
+      "message": null,
+      "duration_ms": null
+    },
+    {
+      "test_id": "cargo:src/lib.rs::tests::adds",
+      "status": "pass",
+      "location": null,
+      "message": null,
+      "duration_ms": null
+    },
+    {
+      "test_id": "cargo:src/lib.rs::tests::discount",
+      "status": "fail",
+      "location": "src/lib.rs:20",
+      "message": "assertion `left == right` failed",
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 1,
+    "failed": 1,
+    "skipped": 1,
+    "errors": 0,
+    "total": 3
+  }
+}
