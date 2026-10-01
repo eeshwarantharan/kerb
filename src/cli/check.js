@@ -2,7 +2,7 @@
 import { UsageError } from '../util/core.js';
 import { parseOpts, commandFromRest } from './args.js';
 import { prepare, preRefusal, emitRefusal, refreshOrgIfDue } from '../engine.js';
-import { formatNote } from '../ui/format.js';
+import { formatNote, refusalJson } from '../ui/format.js';
 
 export default async function check(ctx, args) {
   const { opts, rest } = parseOpts(args, { key: 'string', class: 'string' });
@@ -16,6 +16,12 @@ export default async function check(ctx, args) {
     const { loopGate } = await import('../loop/gate.js');
     const gate = loopGate(prep, { force: false, hashBudgetMs: prep.config.values.hash_budget_ms || 2000, dryRun: true });
     refusal = gate.refusal;
+  }
+  // Shadow mode: the command would run, so exit 0, but say what enforce mode would do.
+  if (refusal && prep.shadow) {
+    if (ctx.json) ctx.emitJson({ refused: false, mode: 'shadow', would_refuse: refusalJson({ ...refusal, key: prep.key }), class: prep.cls, key: prep.key, notes: pre.notes });
+    else ctx.err(formatNote(`shadow mode: this would run; in enforce mode Kerb would refuse it (${refusal.reason} · ${refusal.summary})`, ctx.color.err));
+    return 0;
   }
   if (refusal) {
     emitRefusal(ctx, refusal, prep.key);

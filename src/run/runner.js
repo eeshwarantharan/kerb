@@ -166,7 +166,7 @@ export async function runSupervised(prep, o) {
   if (learned && learned.becameConfirmed) regenerateBriefing(prep.root);
   evictLogs(store, prep.config.values.log_budget_mb);
 
-  const hints = [...fixHits].map((i) => fixes[i].hint);
+  const hints = prep.config.values.insights === 'off' ? [] : [...fixHits].map((i) => fixes[i].hint);
   if (res.reason === 'timeout') notes.push(`killed the process tree after the ${formatDuration(o.timeoutMs)} total timeout`);
   if (res.reason === 'idle') notes.push(`killed the process tree after ${formatDuration(o.idleMs)} without output`);
   const footerNeeded = shaped.cut || exit !== 0 || timedOut || notes.length > 0 || hints.length > 0;

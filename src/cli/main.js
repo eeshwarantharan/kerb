@@ -31,6 +31,9 @@ export const COMMANDS = {
   review: () => import('./review.js'),
   hook: () => import('./hook.js'),
   config: () => import('./config.js'),
+  mode: () => import('./mode.js'),
+  enforce: () => import('./enforce.js'),
+  'review-shadow': () => import('./review-shadow.js'),
 };
 
 export const HELP = `kerb ${VERSION} · keeps your coding agent on the road

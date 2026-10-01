@@ -32,8 +32,11 @@ export default async function run(ctx, args) {
   const pre = preRefusal(prep);
   if (pre.refusal) {
     recordRefusal(prep, pre.refusal);
-    emitRefusal(ctx, pre.refusal, prep.key);
-    return pre.refusal.exit;
+    // Shadow mode: recorded as would_refuse; the command runs (KERB-V2 10.2).
+    if (!prep.shadow) {
+      emitRefusal(ctx, pre.refusal, prep.key);
+      return pre.refusal.exit;
+    }
   }
   const { runBackground, runSupervised, printRun } = await import('../run/runner.js');
   if (prep.cls === 'background') {
@@ -43,11 +46,13 @@ export default async function run(ctx, args) {
     return code;
   }
 
-  const gate = prep.cls === 'check' ? loopGate(prep, { force: !!opts.force, hashBudgetMs: prep.config.values.hash_budget_ms || 2000 }) : null;
+  const gate = prep.cls === 'check' ? loopGate(prep, { force: !!opts.force || !!pre.refusal, hashBudgetMs: prep.config.values.hash_budget_ms || 2000 }) : null;
   if (gate && gate.refusal) {
     recordRefusal(prep, gate.refusal, gate.matched);
-    emitRefusal(ctx, gate.refusal, prep.key);
-    return EXIT.LOOP;
+    if (!prep.shadow) {
+      emitRefusal(ctx, gate.refusal, prep.key);
+      return EXIT.LOOP;
+    }
   }
   const lim = limits(prep, { ...opts, agentTimeoutMs: hook ? hook.agentTimeoutMs : null });
   const r = await runSupervised(prep, { ...lim, loop: gate ? gate.loop : null, notes: pre.notes });

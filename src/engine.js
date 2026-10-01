@@ -7,6 +7,7 @@ import { findRoot, relPath } from './util/repo.js';
 import { Store, buildRuns } from './store/jsonl.js';
 import { loadSummary } from './store/summary.js';
 import { loadConfig } from './config.js';
+import { effectiveMode } from './mode.js';
 import { loadPolicy } from './bound/load.js';
 import { humanOnlyRefusal } from './bound/human.js';
 import { boundaryCheck } from './bound/precheck.js';
@@ -59,6 +60,7 @@ export function prepare(ctx, o) {
   const cls = o.cls || classifyCommand(parsed, { checkCommands, background: !!o.background });
   if (o.reap !== false && fs.existsSync(store.dir)) reapOrphans(store, (info) => orphanEnd(info));
   const agent = o.agent !== undefined ? o.agent : detectAgent(ctx.env);
+  const mode = effectiveMode(root, config, nowTs);
   return {
     ctx,
     nowTs,
@@ -76,6 +78,8 @@ export function prepare(ctx, o) {
     agent,
     tier: o.tier || (agent ? 'best effort' : null),
     session: o.session === undefined ? null : o.session,
+    mode,
+    shadow: mode.mode === 'shadow',
   };
 }
 
@@ -97,10 +101,13 @@ export function preRefusal(prep) {
   return boundaryCheck(prep.parsed, prep.policy, { env: prep.ctx.env });
 }
 
-/** Append a refusal record. */
+/**
+ * Append a refusal record. In shadow mode (KERB-V2 10.2) the same record is written as
+ * `would_refuse`, and the caller lets the command run.
+ */
 export function recordRefusal(prep, refusal, matched = null) {
   const rec = {
-    type: 'refusal',
+    type: prep.shadow ? 'would_refuse' : 'refusal',
     id: newId(),
     ts: now(),
     key: prep.key,
@@ -136,6 +143,7 @@ export function summaryTweak(prep, extraWalls = 0) {
   return (s) => {
     s.walls_known = wallsKnown(prep.policy) + extraWalls;
     s.org_cache_expired = !!(prep.policy.org && prep.policy.org.stale);
+    s.mode = prep.mode ? prep.mode.mode : null;
   };
 }
 

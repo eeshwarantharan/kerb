@@ -51,7 +51,12 @@ function runOnce(task, withKerb, n) {
     const src = path.join(os.homedir(), f);
     if (fs.existsSync(src)) try { fs.symlinkSync(src, path.join(home, f)); } catch { /* */ }
   }
-  if (withKerb) spawnSync(kerb[0], [...kerb.slice(1), 'init'], { cwd: dir, env, stdio: 'ignore' });
+  if (withKerb) {
+    // The Kerb arm measures enforce mode, so skip init's shadow period (the user config's choice).
+    fs.mkdirSync(path.join(home, '.kerb'), { recursive: true });
+    fs.writeFileSync(path.join(home, '.kerb', 'config.json'), JSON.stringify({ mode: 'enforce' }));
+    spawnSync(kerb[0], [...kerb.slice(1), 'init'], { cwd: dir, env, stdio: 'ignore' });
+  }
   const t0 = Date.now();
   const r = spawnSync('/bin/sh', ['-c', agentCmd.replace('{prompt}', q(task.prompt))], { cwd: dir, env, encoding: 'utf8', timeout: 20 * 60_000, maxBuffer: 1 << 28 });
   const wall = Date.now() - t0;

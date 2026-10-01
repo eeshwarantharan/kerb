@@ -9,7 +9,7 @@ export function historyEntries(recs, { n = 20, key = null } = {}) {
     kind: r.is_wait ? 'wait' : 'run', id: r.id, ts: r.finished ? r.end_ts : r.ts, key: r.key, class: r.class, exit: r.exit ?? null,
     result: r.is_wait ? r.result : r.finished ? r.class_result : 'running', duration_ms: r.duration_ms ?? null, attempts: r.attempts, cmd: r.cmd,
   }));
-  const refusals = recs.filter((r) => r.type === 'refusal').map((r) => ({ kind: 'refusal', id: r.id, ts: r.ts, key: r.key, reason: r.reason, matched_run: r.matched_run, cmd: r.cmd }));
+  const refusals = recs.filter((r) => r.type === 'refusal' || r.type === 'would_refuse').map((r) => ({ kind: r.type, id: r.id, ts: r.ts, key: r.key, reason: r.reason, matched_run: r.matched_run, cmd: r.cmd }));
   return [...runs, ...refusals].filter((e) => !key || e.key === key || (e.key && e.key.endsWith(`::${key}`))).sort((a, b) => b.ts - a.ts).slice(0, n);
 }
 
@@ -23,8 +23,8 @@ export default async function history(ctx, args) {
   if (!entries.length) { ctx.out('kerb history · nothing recorded yet\n'); return 0; }
   for (const e of entries) {
     const t = new Date(e.ts).toISOString().replace('T', ' ').slice(0, 19);
-    const what = e.kind === 'refusal'
-      ? `refused ${e.reason}`
+    const what = e.kind === 'refusal' || e.kind === 'would_refuse'
+      ? `${e.kind === 'refusal' ? 'refused' : 'would refuse (shadow)'} ${e.reason}`
       : e.kind === 'wait'
         ? `wait ${e.result} after ${e.attempts} attempts, exit ${e.exit}`
         : `${e.class} ${e.result === 'running' ? 'running' : `exit ${e.exit ?? '?'} ${e.result}`} ${e.duration_ms != null ? formatDuration(e.duration_ms) : ''}`;

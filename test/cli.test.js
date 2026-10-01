@@ -71,6 +71,9 @@ test('T0 every command supports --json and prints exactly one JSON object', () =
     'export-denials': ['export-denials'],
     review: ['review', '--denials', '/nonexistent/file.jsonl'],
     config: ['config', 'get'],
+    mode: ['mode'],
+    enforce: ['enforce'],
+    'review-shadow': ['review-shadow'],
   };
   const skipped = new Set(['watch', 'hook']); // watch streams events; hook speaks each agent's protocol
   for (const name of Object.keys(COMMANDS)) {

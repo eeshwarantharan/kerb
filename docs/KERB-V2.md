@@ -589,7 +589,7 @@ Each milestone is a release. Ship early; adoption features come first.
 
 ### Milestone A · v0.2 "Try it safely" (adoption first)
 
-- [ ] **A1** Shadow mode, `would_refuse` events, `kerb review-shadow`, `kerb enforce`, `kerb mode`. *Tests: SH1–SH8.*
+- [x] **A1** Shadow mode, `would_refuse` events, `kerb review-shadow`, `kerb enforce`, `kerb mode`. *Tests: SH1–SH8.*
 - [ ] **A2** `kerb scan` for Claude Code (VERIFY transcripts), then Codex and Gemini CLI. *Tests: SC1–SC10.*
 - [ ] **A3** Environment classifier, TLS fixes, `kerb doctor tls`. *Tests: EN1–EN9.*
 - [ ] **A4** Progressive CLI help. *Tests: CL1–CL2.*
@@ -751,3 +751,9 @@ Publish the harness, tasks and raw results in `bench/`. If arm 2 matches arm 4, 
 - 2026-10-01 · 10.2 · Shadow mode by default for 7 days. Reason: trust before enforcement is the main adoption barrier for a tool that refuses commands.
 - 2026-10-01 · 11.2 · MCP is a read-only pull channel; hooks remain the push and enforcement channel. Reason: agents in debugging spirals don't choose to call tools.
 - 2026-10-01 · 15 · The benchmark includes a skill-only arm. Reason: if a skill gets the same results, Kerb should be simpler.
+- 2026-10-01 · 10.2 · Mode is per repo, in `.kerb/mode.json`, written by `kerb init` (shadow, 7 days) and by `kerb enforce` (human-only). Effective mode, first match wins: managed config (`mode` or `defaults.mode`), the repo file, the user config `mode`, then `enforce`. A repo where init never ran stays in enforce, so v1 behaviour and v1 installs don't change on upgrade; init doesn't start shadow when the user config already says `enforce`. Re-running init never resets the shadow clock.
+- 2026-10-01 · 10.2 · Shadow covers every path that could refuse: hooks, `kerb run` and `kerb wait-for` record `would_refuse` (same fields as `refusal`) and run the command with no extra output. `kerb check` never runs anything, so in shadow it exits 0 and says what enforce mode would refuse. Human-only refusals become would-refusals too; the human-only commands themselves still need the typed code, so nothing is unlocked.
+- 2026-10-01 · 10.2 · The end-of-shadow prompt goes out from the Stop hook once (recorded as `prompted_at` in the mode file), and only counts as shown when the agent can display Stop output (not Cursor or OpenCode). `kerb mode` always shows it while it applies. Counts since shadow started come from the summary's day buckets.
+- 2026-10-01 · 10.2 · `kerb review-shadow` also shows what happened when each command ran anyway: for a loop would-refusal, whether the next run of the key failed the same way, or passed (labelled "this refusal would have been wrong"). Reason: that is the evidence a human needs before `kerb enforce`.
+- 2026-10-01 · 11a · `insights off` drops `fixes` hints from hook context and `kerb run` output; v1 notes about walls (suspected and newly learned hosts) stay, since they are about boundaries, not insight.
+- 2026-10-01 · 15 · The benchmark's Kerb arm seeds the user config with `mode: enforce`, so it measures enforcement, not shadow.

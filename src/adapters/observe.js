@@ -43,15 +43,18 @@ export async function observePre(ctx, o) {
     return { refusal: seen.refusal || null, notes: seen.notes || [] };
   }
   hookCounter(prep.store, o.agent, 'pre');
+  // In shadow mode the refusal is recorded as `would_refuse` and the call goes ahead (KERB-V2 10.2).
   const deny = (refusal, matched) => {
     recordRefusal(prep, refusal, matched);
+    if (prep.shadow) return null;
     const r = { ...refusal, key: prep.key };
     delete r.boundary;
     writePending(prep.store.dir, o.toolUseId, { command: o.command, wall_ts: Date.now(), refusal: r, denied: true });
     return { refusal: r, notes: [] };
   };
   const pre = preRefusal(prep);
-  if (pre.refusal) return deny(pre.refusal, null);
+  const preDenied = pre.refusal ? deny(pre.refusal, null) : null;
+  if (preDenied) return preDenied;
   const isKerb = prep.parsed.segments.some((s) => kerbArgv(s));
   const pending = {
     id: newId(),
@@ -75,10 +78,11 @@ export async function observePre(ctx, o) {
     notes: pre.notes,
   };
   // Kerb invocations record themselves; background calls get the pre-check only.
-  if (!isKerb && prep.cls === 'check') {
+  if (!isKerb && prep.cls === 'check' && !pre.refusal) {
     const { loopGate } = await import('../loop/gate.js');
     const gate = loopGate(prep, { hashBudgetMs: o.hashBudgetMs || prep.config.values.hash_budget_ms || HOOK_HASH_BUDGET_MS, lazy: true });
-    if (gate.refusal) return deny(gate.refusal, gate.matched);
+    const loopDenied = gate.refusal ? deny(gate.refusal, gate.matched) : null;
+    if (loopDenied) return loopDenied;
     Object.assign(pending, { scope: gate.loop.scope, pre_hash: gate.loop.preHash, env_stamp: gate.loop.envStamp, loop_skipped: gate.loop.skipped });
   }
   writePending(prep.store.dir, o.toolUseId, pending);

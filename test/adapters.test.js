@@ -151,7 +151,7 @@ test('G7 payload fixtures are in the repo for every agent', () => {
 });
 
 test('the generated OpenCode plugin denies by throwing and records results', async () => {
-  const repo = makeRepo({ git: true, files: { ...POLICY, 'a.js': '1\n' } });
+  const repo = makeRepo({ git: true, files: { ...POLICY, 'a.js': '1\n' }, config: { mode: 'enforce' } });
   repo.kerb(['init', '--agent', 'opencode']);
   const oldHome = process.env.HOME;
   process.env.HOME = repo.home;

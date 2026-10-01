@@ -53,7 +53,7 @@ This repo uses Kerb. When your agent has no Kerb hook, run shell commands as \`k
 - A line starting \`kerb: identical_retry\`, \`kerb: deja_vu\` or \`kerb: breaker_open\` means running it again cannot help. Change the code or the approach first.
 - To wait for a service or poll until something passes, use one call: \`kerb wait-for --max 3m -- <command>\`. Don't re-run a command turn after turn.
 - Trust the \`kerb:\` line, not the exit code alone.
-- Never run \`kerb ack\`, \`kerb reset\`, \`kerb forget\`, \`kerb config\` or \`kerb run --force\`, and never set \`KERB_*\` variables. Those are for the user.
+- Never run \`kerb ack\`, \`kerb reset\`, \`kerb forget\`, \`kerb config\`, \`kerb enforce\` or \`kerb run --force\`, and never set \`KERB_*\` variables. Those are for the user.
 Known boundaries here:
 ${known}
 ${END_MARKER}`;
@@ -81,7 +81,7 @@ If no Kerb hook is active, run shell commands as \`kerb run -- <command>\`.
 
 ## Rules
 - Trust the \`kerb:\` line, not the exit code alone.
-- Never run \`kerb ack\`, \`kerb reset\`, \`kerb forget\`, \`kerb config\` or \`kerb run --force\`, and never set \`KERB_*\` variables.
+- Never run \`kerb ack\`, \`kerb reset\`, \`kerb forget\`, \`kerb config\`, \`kerb enforce\` or \`kerb run --force\`, and never set \`KERB_*\` variables.
 - Run \`kerb map\` at the start of a task to see known boundaries.
 - The footer shows the full log path. Read the log only when the shaped output isn't enough.
 `;

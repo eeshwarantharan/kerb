@@ -42,9 +42,25 @@ export function renderRecap(session, { title = 'this session' } = {}) {
     rows.push(['walls', parts.join(', ')]);
   }
   if (c.hangs_killed) rows.push(['hangs killed', String(c.hangs_killed)]);
+  if (c.would_refuse) rows.push(['would have stopped', `${wouldStopped(c)} (shadow mode; nothing was blocked)`]);
   const width = Math.max(...rows.map((r) => r[0].length));
-  const tier = session.tier ? ` (${tierLabel(session.tier, session.agent)})` : '';
+  const tier = session.tier ? ` (${tierLabel(session.tier, session.agent)}${c.would_refuse ? ' · shadow mode' : ''})` : '';
   return [`kerb recap · ${title}${tier}`, ...rows.map(([k, v]) => `  ${k.padEnd(width)}   ${v}`)].join('\n');
+}
+
+/** "4 re-runs and 1 blocked retry": what shadow mode would have stopped, by kind. */
+export function wouldStopped(c) {
+  const by = c.would_by_reason || {};
+  const loops = (by.identical_retry || 0) + (by.deja_vu || 0) + (by.breaker_open || 0);
+  const parts = [];
+  const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+  if (loops) parts.push(plural(loops, 're-run', 're-runs'));
+  if (by.policy_blocked) parts.push(plural(by.policy_blocked, 'blocked retry', 'blocked retries'));
+  if (by.human_only) parts.push(plural(by.human_only, 'human-only command', 'human-only commands'));
+  const other = (c.would_refuse || 0) - loops - (by.policy_blocked || 0) - (by.human_only || 0);
+  if (other > 0) parts.push(plural(other, 'other command', 'other commands'));
+  if (parts.length <= 1) return parts[0] || '0 commands';
+  return `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
 }
 
 /**
@@ -65,6 +81,7 @@ export function renderStatusline(summary, session, o = {}) {
   const checked = (c.loop_checked || 0) + (c.loop_skipped || 0);
   if (c.loop_skipped >= 3 && c.loop_skipped / Math.max(1, checked) > 0.2) problems.push('hashing slow');
   const warn = problems.length ? [`${problems.join(', ')}, run kerb doctor`] : [];
+  if (summary.mode === 'shadow') segs.unshift(c.would_refuse ? `shadow: would have stopped ${c.would_refuse}` : 'shadow mode');
   let parts = [...warn, ...segs];
   let line = o.segment ? parts.join(' · ') : ['kerb', ...parts].join(' · ');
   // Keep it under 80 characters: drop the least important segments first.

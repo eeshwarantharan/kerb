@@ -16,7 +16,7 @@ export default async function why(ctx, args) {
   const { positionals } = parseOpts(args, {});
   const { root } = findRoot(ctx.cwd);
   const recs = new Store(root).read();
-  const refusals = recs.filter((r) => r.type === 'refusal');
+  const refusals = recs.filter((r) => r.type === 'refusal' || r.type === 'would_refuse');
   const want = positionals[0];
   let ref;
   if (want) {
@@ -36,7 +36,7 @@ export default async function why(ctx, args) {
     ctx.emitJson({ refusal: ref, matched_run: matched || null, explanation: EXPLAIN[ref.reason] || null });
     return 0;
   }
-  ctx.out(`kerb why · ${ref.reason} at ${new Date(ref.ts).toISOString().replace('T', ' ').slice(0, 19)} (refusal ${ref.id})\n`);
+  ctx.out(`kerb why · ${ref.type === 'would_refuse' ? 'would refuse (shadow mode; it ran anyway) · ' : ''}${ref.reason} at ${new Date(ref.ts).toISOString().replace('T', ' ').slice(0, 19)} (refusal ${ref.id})\n`);
   ctx.out(`  command   ${ref.cmd}\n  key       ${ref.key}\n  summary   ${ref.summary}\n`);
   if (ref.evidence) ctx.out(`  evidence  ${ref.evidence}\n`);
   if (matched) {

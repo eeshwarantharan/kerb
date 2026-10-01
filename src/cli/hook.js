@@ -1,7 +1,7 @@
 // kerb hook <agent> <event>: hook handler entry point (4.10). Always exits 0. Fails open:
 // any internal error allows the call, is logged to ~/.kerb/errors.log and counted.
 import path from 'node:path';
-import { UsageError } from '../util/core.js';
+import { UsageError, now } from '../util/core.js';
 import { logError } from '../util/fsx.js';
 import { findRoot } from '../util/repo.js';
 import { Store } from '../store/jsonl.js';
@@ -134,21 +134,34 @@ async function sessionEnd(ctx, payload) {
   return null;
 }
 
-/** Stop: the recap, only when this session has saves not yet shown. */
-function sessionStop(ctx, adapter, payload) {
-  const { values } = loadConfig();
-  if (values.recap === 'off') return null;
+/**
+ * Stop: the recap, only when this session has saves not yet shown; and, once, the prompt to
+ * review shadow mode when it has run its course (KERB-V2 10.2).
+ */
+async function sessionStop(ctx, adapter, payload) {
+  const config = loadConfig();
   const { root } = findRoot(ctx.cwd);
   const store = new Store(root);
   const summary = loadSummary(path.join(root, '.kerb'));
+  const parts = [];
   const id = payload.session_id || payload.sessionId || summary.current_session;
   const session = id && summary.sessions[id];
-  if (!session) return null;
-  const saves = saveCount(session.counters);
-  const shown = (summary.recap_shown || {})[id] || 0;
-  if (!saves || saves <= shown) return null;
-  const text = renderRecap(session);
-  if (!text) return null;
-  store.updateSummary((s) => { s.recap_shown = { ...(s.recap_shown || {}), [id]: saves }; });
-  return adapter.stopOutput ? adapter.stopOutput(text, payload) : { systemMessage: text };
+  if (config.values.recap !== 'off' && session) {
+    const saves = saveCount(session.counters);
+    const shown = (summary.recap_shown || {})[id] || 0;
+    const text = saves > shown ? renderRecap(session) : '';
+    if (text) {
+      parts.push(text);
+      store.updateSummary((s) => { s.recap_shown = { ...(s.recap_shown || {}), [id]: saves }; });
+    }
+  }
+  const { shadowPrompt, markPrompted } = await import('../mode.js');
+  const prompt = shadowPrompt(root, config, summary, now());
+  if (prompt) parts.push(prompt);
+  if (!parts.length) return null;
+  const text = parts.join('\n');
+  const out = adapter.stopOutput ? adapter.stopOutput(text, payload) : { systemMessage: text };
+  // Only count the prompt as shown when this agent can show it (Cursor and OpenCode can't).
+  if (prompt && out) markPrompted(root, now());
+  return out;
 }

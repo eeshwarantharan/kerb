@@ -31,6 +31,8 @@ export function computeReport(recs, { fromTs, price = null }) {
     walls_suspected: 0,
     loop_checks: 0,
     hash_budget_skips: 0,
+    would_refuse: 0,
+    would_refuse_by_reason: {},
   };
   for (const r of runs) {
     m.by_class[r.class || 'unknown'] = (m.by_class[r.class || 'unknown'] || 0) + 1;
@@ -56,6 +58,9 @@ export function computeReport(recs, { fromTs, price = null }) {
         m.run_time_avoided_ms += matched.duration_ms || 0;
         m.output_avoided_bytes += matched.shown_bytes || 0;
       }
+    } else if (r.type === 'would_refuse') {
+      m.would_refuse++;
+      m.would_refuse_by_reason[r.reason] = (m.would_refuse_by_reason[r.reason] || 0) + 1;
     } else if (r.type === 'learn') {
       if (r.status === 'confirmed') m.walls_confirmed++;
       else m.walls_suspected++;
@@ -111,6 +116,7 @@ export default async function report(ctx, args) {
     ['walls learned', `${m.walls_confirmed} confirmed, ${m.walls_suspected} suspected`],
     ['hash-budget skips', `${m.hash_budget_skips} of ${m.loop_checks + m.hash_budget_skips} loop checks`],
   ];
+  if (m.would_refuse) rows.push(['would have refused', `${m.would_refuse} in shadow mode (${list(m.would_refuse_by_reason)}); these ran anyway`]);
   const w = Math.max(...rows.map((x) => x[0].length));
   ctx.out(`kerb report · last ${since}\n\nMeasured\n`);
   for (const [k, v] of rows) ctx.out(`  ${k.padEnd(w)}  ${v}\n`);

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import { crypto } from '../util/lazy.js';
 import { EXIT, KerbError, isWindows } from '../util/core.js';
 
-export const HUMAN_ONLY_SUBCOMMANDS = new Set(['ack', 'reset', 'forget', 'config', 'uninstall']);
+export const HUMAN_ONLY_SUBCOMMANDS = new Set(['ack', 'reset', 'forget', 'config', 'uninstall', 'enforce']);
 const WRAPPING_TOOLS = new Set(['script', 'expect', 'unbuffer']);
 const EXPORTERS = new Set(['export', 'declare', 'typeset', 'readonly', 'setenv', 'set']);
 const NEXT = 'ask the user to run this in their own terminal';
@@ -39,7 +39,7 @@ export function humanOnlyRefusal(parsed) {
   const refuse = (summary) => ({
     reason: 'human_only',
     summary,
-    evidence: 'human-only: kerb ack, reset, forget, config, uninstall, run --force, and KERB_* variables',
+    evidence: 'human-only: kerb ack, reset, forget, config, uninstall, enforce, run --force, and KERB_* variables',
     next: NEXT,
     exit: EXIT.POLICY,
   });

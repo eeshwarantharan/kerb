@@ -9,6 +9,7 @@ import { loadSummary, currentSession } from '../store/summary.js';
 import { loadConfig } from '../config.js';
 import { loadPolicy } from '../bound/load.js';
 import { MANIFEST } from '../init/install.js';
+import { effectiveMode } from '../mode.js';
 import { AGENT_DESCRIPTORS } from '../init/agents.js';
 import { keyHistory, isSuccess } from '../loop/rules.js';
 import { parseOpts } from './args.js';
@@ -50,16 +51,18 @@ export default async function status(ctx, args) {
   for (const b of policy.boundaries) bySource[b.source] = (bySource[b.source] || 0) + 1;
   const skips = runs.filter((r) => r.loop_skipped === 'hash_budget').length;
   const enforced = agents.some((a) => a.tier === 'enforced');
+  const mode = effectiveMode(root, loadConfig(), now());
 
   if (ctx.json) {
     ctx.emitJson({
       root, agents, best_effort_note: enforced ? null : 'Kerb only sees commands run through kerb run.',
       boundaries: { total: policy.boundaries.length, by_source: bySource, suspected: (policy.suspected || []).length },
-      org: policy.org, open_breakers: breakers, last_runs: last, session, hash_budget_skips: skips, errors: summary.errors || 0,
+      mode: { mode: mode.mode, source: mode.source, until: mode.until }, org: policy.org, open_breakers: breakers, last_runs: last, session, hash_budget_skips: skips, errors: summary.errors || 0,
     });
     return 0;
   }
   ctx.out(`kerb status · ${root}\n`);
+  ctx.out(`mode  ${mode.mode}${mode.mode === 'shadow' ? ': Kerb records what it would stop and blocks nothing (kerb mode)' : ''}\n`);
   ctx.out('agents\n');
   if (!agents.length) ctx.out('  none wired in (run kerb init)\n');
   const w = Math.max(10, ...agents.map((a) => a.name.length));
@@ -80,11 +83,11 @@ export default async function status(ctx, args) {
   ctx.out('last runs\n');
   if (!last.length) ctx.out('  none yet\n');
   for (const e of last) {
-    const what = e.kind === 'refusal' ? `refused ${e.reason}` : `${e.class} exit ${e.exit ?? '?'}${e.duration_ms != null ? ` ${formatDuration(e.duration_ms)}` : ''}`;
+    const what = e.kind === 'refusal' ? `refused ${e.reason}` : e.kind === 'would_refuse' ? `would refuse (shadow) ${e.reason}` : `${e.class} exit ${e.exit ?? '?'}${e.duration_ms != null ? ` ${formatDuration(e.duration_ms)}` : ''}`;
     ctx.out(`  ${new Date(e.ts).toISOString().slice(11, 19)}  ${what}  ${e.key}\n`);
   }
   const c = session.counters;
-  ctx.out(`session  ${c.runs} runs · ${c.refusals} refusals · ${c.reruns_avoided} re-runs avoided · ${c.polls_folded} polls folded · ${c.hangs_killed} hangs killed${session.tier ? ` · ${session.tier}` : ''}\n`);
+  ctx.out(`session  ${c.runs} runs · ${c.refusals} refusals${c.would_refuse ? ` · ${c.would_refuse} would-refuse (shadow)` : ''} · ${c.reruns_avoided} re-runs avoided · ${c.polls_folded} polls folded · ${c.hangs_killed} hangs killed${session.tier ? ` · ${session.tier}` : ''}\n`);
   if (summary.errors) ctx.out(`errors  ${summary.errors} internal errors logged (hooks failed open); run kerb doctor\n`);
   return 0;
 }

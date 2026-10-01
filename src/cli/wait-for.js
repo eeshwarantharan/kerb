@@ -26,8 +26,11 @@ export default async function waitForCmd(ctx, args) {
   const pre = preRefusal(prep);
   if (pre.refusal) {
     recordRefusal(prep, pre.refusal);
-    emitRefusal(ctx, pre.refusal, prep.key);
-    return pre.refusal.exit;
+    // Shadow mode: recorded as would_refuse; the wait goes ahead (KERB-V2 10.2).
+    if (!prep.shadow) {
+      emitRefusal(ctx, pre.refusal, prep.key);
+      return pre.refusal.exit;
+    }
   }
   if (!prep.session) prep.session = resolveSession(prep.store);
   // Loop state is recorded for check commands so a successful wait clears the key.

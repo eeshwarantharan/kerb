@@ -121,7 +121,9 @@ export function observePost(ctx, o) {
     ...extra,
   ], summaryTweak(prep, learnedNew ? 1 : 0));
   if (learnedNew) regenerateBriefing(prep.root);
-  return { notes, hints: [...hints] };
+  // Insight injections stay on in shadow mode; the user can turn them off (KERB-V2 10.2).
+  const insights = prep.config.values.insights !== 'off';
+  return { notes, hints: insights ? [...hints] : [] };
 }
 
 function startRecord(prep, id, ts, pending, cls) {

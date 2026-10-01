@@ -19,6 +19,9 @@ export const CONFIG_KEYS = {
   telemetry: { values: ['off', 'on'], default: 'off' },
   'telemetry.otlp_endpoint': { type: 'url', default: null },
   log_budget_mb: { type: 'int', default: 200, min: 1 },
+  // KERB-V2 11a. `mode` is per user; `kerb init` records shadow mode per repo (src/mode.js).
+  mode: { values: ['shadow', 'enforce'], default: null },
+  insights: { values: ['on', 'off'], default: 'on' },
 };
 
 /** Managed config locations per OS. */
@@ -77,6 +80,11 @@ export function coerce(key, raw) {
   if (spec.type === 'url') {
     if (!/^https?:\/\/\S+$/.test(String(raw))) throw new UsageError(`${key} must be an http(s) URL`);
     return String(raw);
+  }
+  if (spec.type === 'path') {
+    const p = String(raw);
+    if (!path.isAbsolute(p)) throw new UsageError(`${key} must be an absolute path`);
+    return p;
   }
   if (spec.type === 'duration') {
     parseDuration(raw);

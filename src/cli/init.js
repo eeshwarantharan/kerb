@@ -1,6 +1,8 @@
 // kerb init [--agent <name>] [--dry-run] [--refresh]: wire Kerb into detected agents. Idempotent.
 import { findRoot } from '../util/repo.js';
-import { UsageError } from '../util/core.js';
+import { UsageError, now } from '../util/core.js';
+import { loadConfig } from '../config.js';
+import { startShadowIfNew } from '../mode.js';
 import { parseOpts } from './args.js';
 import { planInit, applyInit } from '../init/install.js';
 import { AGENT_DESCRIPTORS } from '../init/agents.js';
@@ -15,9 +17,11 @@ export default async function init(ctx, args) {
   const plan = planInit(root, { agents, refresh: !!opts.refresh });
   const dry = !!opts['dry-run'];
   if (!dry) applyInit(root, plan);
+  // Shadow mode for the first 7 days (KERB-V2 10.2), unless a mode is already set.
+  const shadow = startShadowIfNew(root, loadConfig(), now(), { dryRun: dry });
   const files = plan.actions.map((a) => ({ file: a.file, change: a.before === null ? 'create' : 'update', agent: a.agent || null }));
   if (ctx.json) {
-    ctx.emitJson({ root, dry_run: dry, files, unchanged: plan.unchanged.map((a) => a.file), agents: plan.agents, notes: plan.notes, hook_command: plan.inv.command });
+    ctx.emitJson({ root, dry_run: dry, files, unchanged: plan.unchanged.map((a) => a.file), agents: plan.agents, notes: plan.notes, hook_command: plan.inv.command, mode: { ...shadow.mode, started: shadow.started } });
     return 0;
   }
   ctx.out(`kerb init${dry ? ' --dry-run' : ''} · ${root}\n`);
@@ -31,6 +35,11 @@ export default async function init(ctx, args) {
   const w = Math.max(...rows.map((r) => r[0].length));
   for (const [n, t] of rows) ctx.out(`  ${n.padEnd(w)}  ${t}\n`);
   for (const n of plan.notes) ctx.out(`note: ${n}\n`);
+  const m = shadow.mode;
+  if (m.mode === 'shadow') {
+    const until = m.until ? ` until ${new Date(m.until).toISOString().slice(0, 10)}` : '';
+    ctx.out(`mode: shadow${until}: Kerb records what it would stop and blocks nothing. Review with kerb review-shadow; turn blocking on with kerb enforce\n`);
+  } else ctx.out(`mode: enforce${m.source === 'managed' ? " (set by your organisation's managed config)" : ''}\n`);
   ctx.out(dry ? 'dry run: nothing was changed\n' : 'check it: kerb doctor · undo: kerb uninstall\n');
   return 0;
 }

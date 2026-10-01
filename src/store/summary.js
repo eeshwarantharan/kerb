@@ -23,6 +23,10 @@ export function emptyCounters() {
     walls_suspected: 0,
     loop_skipped: 0,
     loop_checked: 0,
+    // Shadow mode (KERB-V2 10.2): refusals Kerb recorded instead of making.
+    would_refuse: 0,
+    would_by_reason: {},
+    would_reruns: 0,
   };
 }
 
@@ -101,6 +105,12 @@ function bump(c, r) {
         c.avoided_bytes += r.avoided_output_bytes || 0;
       }
       break;
+    case 'would_refuse':
+      c.would_refuse = (c.would_refuse || 0) + 1;
+      c.would_by_reason = c.would_by_reason || {};
+      c.would_by_reason[r.reason] = (c.would_by_reason[r.reason] || 0) + 1;
+      if (r.matched_run && LOOP.has(r.reason)) c.would_reruns = (c.would_reruns || 0) + 1;
+      break;
     case 'wait':
       c.runs++;
       c.waits++;
@@ -118,6 +128,14 @@ function bump(c, r) {
   }
 }
 
+/** Sum the day buckets from a timestamp's day onwards (shadow-mode totals since it started). */
+export function totalsSince(summary, fromTs) {
+  const total = emptyCounters();
+  const from = dayKey(fromTs);
+  for (const [d, c] of Object.entries(summary.days || {})) if (d >= from) addCounters(total, c);
+  return total;
+}
+
 /** Sum the day buckets of the last `days` days (including today). */
 export function rangeTotals(summary, nowTs, days = 7) {
   const total = emptyCounters();
@@ -130,8 +148,9 @@ export function rangeTotals(summary, nowTs, days = 7) {
 
 export function addCounters(into, c) {
   for (const [k, v] of Object.entries(c)) {
-    if (k === 'by_reason') {
-      for (const [r, n] of Object.entries(v)) into.by_reason[r] = (into.by_reason[r] || 0) + n;
+    if (v && typeof v === 'object') {
+      into[k] = into[k] || {};
+      for (const [r, n] of Object.entries(v)) into[k][r] = (into[k][r] || 0) + n;
     } else if (typeof v === 'number') into[k] = (into[k] || 0) + v;
   }
   return into;
@@ -146,7 +165,7 @@ export function currentSession(summary) {
 
 /** Save counts are what the recap reports; a session with none prints nothing. */
 export function saveCount(c) {
-  return c.refusals + c.polls_folded + (c.trimmed_bytes > 0 ? 1 : 0) + c.hangs_killed + c.walls_new;
+  return c.refusals + c.polls_folded + (c.trimmed_bytes > 0 ? 1 : 0) + c.hangs_killed + c.walls_new + (c.would_refuse || 0);
 }
 
 function prune(summary) {
