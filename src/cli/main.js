@@ -34,6 +34,7 @@ export const COMMANDS = {
   mode: () => import('./mode.js'),
   enforce: () => import('./enforce.js'),
   'review-shadow': () => import('./review-shadow.js'),
+  scan: () => import('./scan.js'),
 };
 
 export const HELP = `kerb ${VERSION} · keeps your coding agent on the road

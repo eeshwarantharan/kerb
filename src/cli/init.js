@@ -41,5 +41,6 @@ export default async function init(ctx, args) {
     ctx.out(`mode: shadow${until}: Kerb records what it would stop and blocks nothing. Review with kerb review-shadow; turn blocking on with kerb enforce\n`);
   } else ctx.out(`mode: enforce${m.source === 'managed' ? " (set by your organisation's managed config)" : ''}\n`);
   ctx.out(dry ? 'dry run: nothing was changed\n' : 'check it: kerb doctor · undo: kerb uninstall\n');
+  ctx.out('see what Kerb would have caught in your past agent sessions here: kerb scan\n');
   return 0;
 }

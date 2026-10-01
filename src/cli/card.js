@@ -4,10 +4,10 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { findRoot } from '../util/repo.js';
-import { now, UsageError } from '../util/core.js';
+import { now, parseDuration, UsageError } from '../util/core.js';
 import { loadSummary, currentSession, rangeTotals } from '../store/summary.js';
 import { loadConfig } from '../config.js';
-import { renderCardSvg, renderCardHtml } from '../ui/card.js';
+import { renderCardSvg, renderCardHtml, scanStats } from '../ui/card.js';
 import { onPath } from '../init/agents.js';
 import { parseOpts } from './args.js';
 
@@ -32,20 +32,42 @@ function toPng(svgPath, pngPath) {
 }
 
 export default async function card(ctx, args) {
-  const { opts } = parseOpts(args, { week: 'bool', session: 'bool', out: 'string', anonymous: 'bool' });
-  if (opts.week && opts.session) throw new UsageError('choose --week or --session');
+  const { opts } = parseOpts(args, { week: 'bool', session: 'bool', scan: 'bool', since: 'string', out: 'string', anonymous: 'bool' });
+  if ([opts.week, opts.session, opts.scan].filter(Boolean).length > 1) throw new UsageError('choose one of --week, --session or --scan');
+  if (opts.since && !opts.scan) throw new UsageError('--since goes with --scan');
   const { root } = findRoot(ctx.cwd);
   const summary = loadSummary(path.join(root, '.kerb'));
   const session = !!opts.session;
-  const counters = session ? currentSession(summary).counters : rangeTotals(summary, now(), 7);
+  let counters = session ? currentSession(summary).counters : rangeTotals(summary, now(), 7);
   const priceSetting = loadConfig().values['price.input_per_mtok'];
-  const svg = renderCardSvg({
-    title: 'Kerb kept my coding agent on the road',
-    period: session ? 'this session' : 'the last 7 days',
-    repo: opts.anonymous ? null : path.basename(root),
-    counters,
-    price: priceSetting != null ? Number(priceSetting) : null,
-  });
+  let svg;
+  if (opts.scan) {
+    // What Kerb would have caught in past sessions (KERB-V2 10.1): replayed, never priced.
+    const since = opts.since || '30d';
+    let sinceMs;
+    try { sinceMs = parseDuration(since); } catch { throw new UsageError(`--since takes a duration like 30d (got ${since})`); }
+    const { runScan } = await import('./scan.js');
+    const r = await runScan(root, { sinceMs, env: ctx.env });
+    const sessions = Object.values(r.agents).reduce((n, a) => n + a.sessions, 0);
+    counters = r.metrics;
+    svg = renderCardSvg({
+      title: 'What Kerb would have caught',
+      period: `the last ${/^\d+d$/.test(since) ? `${parseInt(since, 10)} days` : since} · ${sessions} agent session${sessions === 1 ? '' : 's'} (replayed)`,
+      repo: opts.anonymous ? null : path.basename(root),
+      counters: {},
+      stats: scanStats(r.metrics),
+      price: null,
+      footer: 'replayed by kerb from local transcripts · nothing left the machine',
+    });
+  } else {
+    svg = renderCardSvg({
+      title: 'Kerb kept my coding agent on the road',
+      period: session ? 'this session' : 'the last 7 days',
+      repo: opts.anonymous ? null : path.basename(root),
+      counters,
+      price: priceSetting != null ? Number(priceSetting) : null,
+    });
+  }
   const outDir = path.resolve(ctx.cwd, opts.out || '.');
   fs.mkdirSync(outDir, { recursive: true });
   const svgPath = path.join(outDir, 'kerb-card.svg');

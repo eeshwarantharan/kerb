@@ -1,0 +1,37 @@
+{
+  "sessionId": "gm-0",
+  "projectHash": "x",
+  "startTime": "2026-09-20T10:00:00.000Z",
+  "lastUpdated": "2026-09-20T10:00:00.000Z",
+  "messages": [
+    {
+      "id": "l1",
+      "timestamp": "2026-09-20T10:00:01.000Z",
+      "type": "gemini",
+      "content": "",
+      "toolCalls": [
+        {
+          "id": "l1t",
+          "name": "run_shell_command",
+          "args": {
+            "command": "go mod download",
+            "description": "run"
+          },
+          "status": "success",
+          "timestamp": "2026-09-20T10:00:00.000Z",
+          "result": [
+            {
+              "functionResponse": {
+                "id": "l1t",
+                "name": "run_shell_command",
+                "response": {
+                  "output": "Command: go mod download\nDirectory: (root)\nOutput: go: github.com/pkg/errors@v0.9.1: Get \"https://proxy.golang.org/github.com/pkg/errors/@v/v0.9.1.mod\": x509: certificate signed by unknown authority\nError: (none)\nExit Code: 1\nSignal: (none)\nBackground PIDs: (none)\nProcess Group PGID: 4242"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

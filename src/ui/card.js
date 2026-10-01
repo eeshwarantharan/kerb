@@ -13,7 +13,7 @@ const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, 
  */
 export function renderCardSvg(o) {
   const c = o.counters;
-  const stats = [
+  const stats = o.stats || [
     ['re-runs avoided', String(c.reruns_avoided || 0)],
     ['polls folded', String(c.polls_folded || 0)],
     ['noise trimmed', formatBytes(c.trimmed_bytes || 0)],
@@ -44,9 +44,21 @@ export function renderCardSvg(o) {
   <text x="80" y="160" font-size="28" fill="#9AA5B1">${xmlEscape(sub)}</text>
 ${cells}
   ${est ? `<text x="80" y="560" font-size="26" fill="#F5B301">${xmlEscape(est)}</text>` : ''}
-  <text x="1120" y="600" font-size="22" fill="#6B7280" text-anchor="end">measured by kerb · keeps coding agents on the road</text>
+  <text x="1120" y="600" font-size="22" fill="#6B7280" text-anchor="end">${xmlEscape(o.footer || 'measured by kerb · keeps coding agents on the road')}</text>
 </svg>
 `;
+}
+
+/** The six numbers of a scan card (replayed, not measured savings). */
+export function scanStats(m) {
+  return [
+    ['re-runs with nothing changed', String(m.identical_retries.count)],
+    ['retries against blocked hosts', String(m.blocked_host_retries.count + m.policy_blocked.count)],
+    ['certificate errors', String(m.environment.tls_interception)],
+    ['output beyond budget', formatBytes(m.noise.bytes_beyond_budget)],
+    ['hung or interrupted', String(m.hangs.count)],
+    ['polls to fold', String(m.polling.attempts_folded)],
+  ];
 }
 
 export function renderCardHtml(svg, title) {
