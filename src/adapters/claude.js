@@ -113,10 +113,18 @@ export async function post(ctx, payload, { failure = false } = {}) {
   return contextOutput(failure ? 'PostToolUseFailure' : 'PostToolUse', lines);
 }
 
-/** SessionStart: tell Claude the known boundaries up front. */
-export function startOutput(lines) {
-  if (!lines.length) return null;
-  return { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `Kerb is active in this repo. Known boundaries:\n${lines.join('\n')}` } };
+/** SessionStart: the briefing and ledger (KERB-V2 9); additionalContext reaches Claude. */
+export function startOutput(text) {
+  return text ? { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } } : null;
+}
+
+/**
+ * Stop gate (KERB-V2 7.2): `decision: "block"` keeps Claude working with the reason as context.
+ * Never while Claude is already continuing because of a Stop hook (stop_hook_active).
+ */
+export function stopBlock(reason, payload, text) {
+  if (payload && payload.stop_hook_active) return text ? stopOutput(text) : null;
+  return { decision: 'block', reason, ...(text ? { systemMessage: text } : {}) };
 }
 
 /** Stop: a top-level systemMessage is shown to the user. */

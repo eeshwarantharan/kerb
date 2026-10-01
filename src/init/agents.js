@@ -276,7 +276,7 @@ const gemini = claudeStyleAgent({
   id: 'gemini',
   name: 'Gemini CLI',
   file: '.gemini/settings.json',
-  events: { SessionStart: ['start', null], BeforeTool: ['pre', 'run_shell_command'], AfterTool: ['post', 'run_shell_command'], AfterAgent: ['stop', null], SessionEnd: ['end', null] },
+  events: { SessionStart: ['start', null], BeforeTool: ['pre', 'run_shell_command'], AfterTool: ['post', 'run_shell_command'], AfterAgent: ['stop', null], SessionEnd: ['end', null], PreCompress: ['compact', null], BeforeAgent: ['turn', null] },
   detect: (root, home) => exists(path.join(root, '.gemini')) || exists(path.join(home, '.gemini')) || exists(path.join(root, 'GEMINI.md')) || onPath('gemini'),
   units: 1000,
   note: 'Gemini CLI asks you to trust changed project hooks the first time they run.',

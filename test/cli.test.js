@@ -94,6 +94,8 @@ test('T0 every command supports --json and prints exactly one JSON object', () =
     scan: ['scan'],
     gc: ['gc', '--dry-run'],
     reindex: ['reindex'],
+    progress: ['progress'],
+    ledger: ['ledger'],
   };
   const skipped = new Set(['watch', 'hook']); // watch streams events; hook speaks each agent's protocol
   for (const name of Object.keys(COMMANDS)) {

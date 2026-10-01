@@ -3,7 +3,9 @@
 //   "tool.execute.before"(input: { tool, sessionID, callID }, output: { args }) — throwing blocks the call
 //   "tool.execute.after"(input: { tool, sessionID, callID, args }, output: { title, output, metadata })
 // kerb init writes a small plugin that pipes these to `kerb hook opencode pre|post` and throws
-// Kerb's refusal text on a deny.
+// Kerb's refusal text on a deny. Verified again 2026-10-02: tool.execute.after may change the output
+// the model sees (Kerb appends its context there), and experimental.session.compacting can add
+// context to the compaction prompt (the ledger).
 import { observePre, callId } from './observe.js';
 import { SHELL_TOOLS, exitFromText, exitField, argsObject, commandOf, resolveCwd, refusalText, noteLines } from './shared.js';
 
@@ -36,6 +38,11 @@ export async function post(ctx, p) {
 }
 
 export function startOutput() { return null; }
+
+/** experimental.session.compacting: the ledger goes into the compaction prompt. */
+export function compactOutput(text) {
+  return text ? { context: text } : null;
+}
 export function stopOutput() { return null; }
 
 /** The plugin file kerb init writes to .opencode/plugins/kerb.js. */
@@ -68,7 +75,12 @@ ${'export'} const Kerb = async ({ directory }) => ({
   },
   "tool.execute.after": async (input, output) => {
     if (input.tool !== "bash") return;
-    call("post", { tool: input.tool, sessionID: input.sessionID, callID: input.callID, args: input.args, cwd: directory, output: output.output, metadata: output.metadata });
+    const r = call("post", { tool: input.tool, sessionID: input.sessionID, callID: input.callID, args: input.args, cwd: directory, output: output.output, metadata: output.metadata });
+    if (r && r.context && typeof output.output === "string") output.output = \`\${output.output}\\n\${r.context}\`;
+  },
+  "experimental.session.compacting": async (input, output) => {
+    const r = call("compact", { sessionID: input && input.sessionID, cwd: directory });
+    if (r && r.context && output && Array.isArray(output.context)) output.context.push(r.context);
   },
 });
 `;

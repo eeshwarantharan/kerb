@@ -3,6 +3,8 @@
 // tool_input.command, tool_response; deny via hookSpecificOutput.permissionDecision "deny";
 // PostToolUse also runs after non-zero exits; Stop and SessionStart accept systemMessage /
 // additionalContext. Hooks are on by default but must be trusted once in /hooks.
+// Verified again 2026-10-02 (https://learn.chatgpt.com/docs/hooks): SessionStart `source` is
+// startup, resume, clear or compact; Stop can return decision "block" (a continuation prompt).
 import { observePre, callId } from './observe.js';
 import { SHELL_TOOLS, toText, exitFromText, exitField, commandOf, refusalText, noteLines } from './shared.js';
 
@@ -34,8 +36,14 @@ export async function post(ctx, p) {
   return lines.length ? { hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: lines.join('\n') } } : null;
 }
 
-export function startOutput(lines) {
-  return lines.length ? { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: `Kerb is active in this repo. Known boundaries:\n${lines.join('\n')}` } } : null;
+export function startOutput(text) {
+  return text ? { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } } : null;
+}
+
+/** Stop gate: Codex turns a blocking reason into a continuation prompt. */
+export function stopBlock(reason, payload, text) {
+  if (payload && payload.stop_hook_active) return text ? stopOutput(text) : null;
+  return { decision: 'block', reason };
 }
 
 export function stopOutput(text) {

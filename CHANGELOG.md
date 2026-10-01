@@ -2,6 +2,18 @@
 
 All notable changes to Kerb. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-10-02
+
+Milestone C of [docs/KERB-V2.md](docs/KERB-V2.md), "Insight". Still a preview.
+
+### Added
+
+- **Deltas:** after a test run, one block says what changed since the last run of the same command: tests fixed, still failing, newly failing and flaky (passed and failed on the same files). Flaky tests no longer count toward `breaker_open`. In `kerb run` the delta replaces the generic footer; `kerb why <run>` lists every failing test.
+- **Verification status:** green, red, stale (with the files changed since) or never, per check command, in `kerb status`, the status line and at Stop. Policy `stop_gate` (`warn` by default, `block`, `off`); `block` keeps the agent working once per state, then yields. Policy `verify_keys` tracks commands that haven't run yet.
+- **Convergence:** `kerb progress` shows the failing count per command since its last success and the trend (converging, stalled, oscillating, diverging, green); the status line shows the series. A new refusal, `oscillating`, names the states an agent keeps cycling between and the files that differ.
+- **Attempt ledger:** `kerb ledger`, and the ledger injected at session start and after compaction or resume, for every enforced agent that has a channel for it; `.kerb/ledger.md` for the others.
+- **Delivery:** one block of context per moment, within size limits, verified per agent: Claude Code, Codex, Gemini CLI (PreCompress and BeforeAgent hooks, installed by `kerb init --refresh`), Copilot, Cursor and OpenCode (context now appended to the tool output, and the ledger added to the compaction prompt).
+
 ## [0.3.0] - 2026-10-02
 
 Milestone B of [docs/KERB-V2.md](docs/KERB-V2.md), "Truth". Still a preview.
@@ -54,6 +66,7 @@ First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented 
 - The task benchmark has not been run yet, so there are no savings figures.
 - Hook latency is borderline against the 100 ms target for check commands after a failure (see `bench/results/`).
 
+[0.4.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.1.0

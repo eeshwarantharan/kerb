@@ -50,7 +50,9 @@ export function instructionsBlock(lines) {
 ## Running commands with Kerb
 This repo uses Kerb. When your agent has no Kerb hook, run shell commands as \`kerb run -- <command>\`.
 - A line starting \`kerb: policy_blocked\` means the action is not allowed here. Do not retry it or look for a way around it. Use the alternative Kerb names, or tell the user what you need.
-- A line starting \`kerb: identical_retry\`, \`kerb: deja_vu\` or \`kerb: breaker_open\` means running it again cannot help. Change the code or the approach first.
+- A line starting \`kerb: identical_retry\`, \`kerb: deja_vu\`, \`kerb: oscillating\` or \`kerb: breaker_open\` means running it again cannot help. Change the code or the approach first.
+- After a test run, \`kerb: <command> · N failing (was M)\` lists tests fixed (+), still failing (!), newly failing (-) and flaky (~, passed and failed on the same files). Don't chase flaky tests.
+- \`.kerb/ledger.md\` summarises recent attempts (what failed, which files changed, the last green state). Read it after a long session or a context reset.
 - A line starting \`kerb: environment\` means the failure comes from the environment (TLS interception, a proxy block page, expired credentials), not the code. Follow its \`next:\` line; never turn certificate checks off.
 - To wait for a service or poll until something passes, use one call: \`kerb wait-for --max 3m -- <command>\`. Don't re-run a command turn after turn.
 - Trust the \`kerb:\` line, not the exit code alone.
@@ -73,7 +75,10 @@ If no Kerb hook is active, run shell commands as \`kerb run -- <command>\`.
 - \`kerb: policy_blocked\`: not allowed here. Don't retry or work around it. Use the named alternative, or tell the user what you need and why.
 - \`kerb: identical_retry\`: nothing relevant changed since this failed. Change something first. If a service isn't up yet, use \`kerb wait-for\`.
 - \`kerb: deja_vu\`: your files are back in a state that already failed. Try a different fix.
+- \`kerb: oscillating\`: your edits are going back and forth between states that all fail. Stop, explain what you tried, and try something different.
 - \`kerb: breaker_open\`: the same failure keeps happening despite edits. Stop, summarise what you tried, and propose a different approach.
+- \`kerb: <command> · N failing (was M)\`: what changed since the last run: + fixed, ! still failing, - new failure, ~ flaky.
+- \`kerb ledger\` / \`kerb: verification\`: what was tried, and whether the last test result still matches the files. Don't say tests pass unless verification is green.
 - \`kerb: environment\`: the failure comes from the environment (TLS interception, a corporate proxy's block page, expired credentials), not your code. Don't debug the code for it. Follow the \`next:\` line, or tell the user. Never turn certificate verification off.
 - Exit 124 or 125 with a Kerb footer: the command hung and was killed. Look for watch modes, prompts or servers; use a non-interactive variant or run servers in the background.
 

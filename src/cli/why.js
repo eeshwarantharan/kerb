@@ -21,7 +21,11 @@ export default async function why(ctx, args) {
   let ref;
   if (want) {
     ref = refusals.find((r) => r.id === want || r.id.startsWith(want) || r.matched_run === want);
-    if (!ref) throw new UsageError(`no refusal ${want} in this repo (see kerb history)`);
+    if (!ref) {
+      const run = buildRuns(recs).find((r) => r.finished && (r.id === want || r.id.startsWith(want)));
+      if (run) return explainRun(ctx, recs, run);
+      throw new UsageError(`no refusal or run ${want} in this repo (see kerb history)`);
+    }
   } else {
     ref = refusals[refusals.length - 1];
     if (!ref) {
@@ -47,5 +51,17 @@ export default async function why(ctx, args) {
   if (ref.boundary) ctx.out(`  boundary  ${ref.boundary}\n`);
   if (EXPLAIN[ref.reason]) ctx.out(`  why       ${EXPLAIN[ref.reason]}\n`);
   if (ref.next) ctx.out(`  next      ${ref.next}\n`);
+  return 0;
+}
+
+/** A run's test results (the delta's "… and N more"). */
+function explainRun(ctx, recs, run) {
+  const tests = recs.filter((r) => r.type === 'test_result' && r.run === run.id);
+  const failing = tests.filter((t) => t.status === 'fail' || t.status === 'error');
+  if (ctx.json) { ctx.emitJson({ run, tests }); return 0; }
+  ctx.out(`kerb why · run ${run.id} · ${run.cmd || run.key} · exit ${run.exit ?? '?'}${run.framework ? ` · ${run.framework}` : ''}\n`);
+  if (run.tests_summary) ctx.out(`  tests     ${run.tests_summary.failed} failed, ${run.tests_summary.passed} passed, ${run.tests_summary.skipped} skipped of ${run.tests_summary.total}\n`);
+  for (const t of failing) ctx.out(`  ${t.status.padEnd(5)} ${t.test_id}${t.location ? ` · ${t.location}` : ''}${t.message ? ` · ${t.message}` : ''}\n`);
+  if (run.log) ctx.out(`  log       ${run.log}\n`);
   return 0;
 }

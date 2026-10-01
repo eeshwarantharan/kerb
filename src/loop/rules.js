@@ -1,19 +1,14 @@
 // Loopbreaker rules (4.7.6): identical_retry, deja_vu, breaker_open; cooldowns; ack/reset windows.
 import { EXIT } from '../util/core.js';
+import { isFailure, isSuccess } from './outcome.js';
+
+export { isFailure, isSuccess } from './outcome.js';
 import { buildRuns } from '../store/jsonl.js';
 import { diffSnapshots, readSnapshot } from './workspace.js';
+import { failPrinter } from '../insight/history.js';
+import { findCycle } from '../insight/converge.js';
 
 const SETUP_CLASSES = new Set(['check', 'other', 'background']);
-
-/** A finished run that counts as a failure (4.7.5). */
-export function isFailure(r) {
-  return r.finished && r.exit != null && r.exit !== 0 && r.class === 'check'
-    && r.class_result !== 'policy_denial' && r.class_result !== 'aborted' && r.failure_kind !== 'environment';
-}
-
-export function isSuccess(r) {
-  return r.finished && r.exit === 0 && (r.class_result === 'ok' || r.class_result == null);
-}
 
 const endTs = (r) => r.end_ts ?? r.ts;
 const startTs = (r) => (r.is_wait ? r.start_ts ?? r.ts : r.ts);
@@ -101,23 +96,28 @@ export function evaluateRules(input) {
     }
   }
 
-  // 2. deja_vu
+  // 2. deja_vu, reported as oscillating (6.1) when the return is part of a cycle of 2–4 states.
   for (let i = postAck.length - 2; i >= 0; i--) {
     const f = postAck[i];
     if (isFailure(f) && (f.failure_kind || 'ordinary') === 'ordinary' && f.post_hash === hash && f.env_stamp === envStamp
       && latest.post_hash !== f.post_hash) {
+      const cycle = findCycle(postAck);
+      if (cycle && cycle.next === hash) return oscillating(input, postAck, cycle);
       const ago = postAck.length - i;
       return refuse('deja_vu', 'your files are back in a state that already failed', `matches run ${f.id}, ${ago} attempts ago${f.first_fail_line ? ` · ${f.first_fail_line}` : ''}`,
         'your files match a state that already failed; try a different fix', f, { attempts_ago: ago });
     }
   }
 
-  // 3. breaker_open. After an ack, a same-fingerprint failure reopens it immediately.
+  // 3. breaker_open. After an ack, a same-fingerprint failure reopens it immediately. With test
+  // results, the fingerprint is the set of failing tests, flaky ones excluded (7.1); a run that
+  // failed only on flaky tests doesn't count, like a transient failure.
+  const print = failPrinter(recs);
   let seq = postAck;
   if (ack && postAck.length && isFailure(postAck[0]) && postAck[0].fingerprint === ack.fingerprint) seq = window;
-  const counted = seq.filter((r) => !(isFailure(r) && (r.failure_kind === 'transient' || r.failure_kind === 'dependency')));
+  const counted = seq.filter((r) => !(isFailure(r) && (r.failure_kind === 'transient' || r.failure_kind === 'dependency' || print(r) === '')));
   const lastK = counted.slice(-K);
-  if (lastK.length === K && lastK.every((r) => isFailure(r) && (r.failure_kind || 'ordinary') === 'ordinary' && r.fingerprint === lastK[0].fingerprint)
+  if (lastK.length === K && lastK.every((r) => isFailure(r) && (r.failure_kind || 'ordinary') === 'ordinary' && print(r) === print(lastK[0]))
     && new Set(lastK.map((r) => r.post_hash)).size >= 2) {
     const files = changedFiles(input, lastK);
     const evidence = files.length ? `changed across those runs: ${files.join(', ')}` : `runs ${lastK.map((r) => r.id).join(', ')}`;
@@ -126,6 +126,25 @@ export function evaluateRules(input) {
       lastK[lastK.length - 1], { files, runs: lastK.map((r) => r.id), fingerprint: lastK[0].fingerprint });
   }
   return null;
+}
+
+function oscillating(input, postAck, cycle) {
+  const attempt = new Map(postAck.map((r, i) => [r.id, i + 1]));
+  const byState = new Map();
+  for (const r of cycle.runs) {
+    if (!byState.has(r.post_hash)) byState.set(r.post_hash, []);
+    byState.get(r.post_hash).push(attempt.get(r.id));
+  }
+  const parts = [...byState].map(([s, a]) => `${s.slice(0, 7)} (attempts ${a.join(', ')})`);
+  const statesText = parts.length === 2 ? parts.join(' and ') : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`;
+  const files = changedFiles(input, cycle.runs.slice(0, cycle.length + 1));
+  const n = cycle.runs.length;
+  const L = cycle.length;
+  const latest = cycle.runs[n - 1];
+  return refuse('oscillating', `your last ${n} attempts cycle between ${L} file states, ${L === 2 ? 'both' : 'all'} failing`,
+    `states: ${statesText}${files.length ? ` · changed: ${files.join(', ')}` : ''}`,
+    "stop editing this back and forth; explain what you've tried to the user, or try a different approach",
+    latest, { states: cycle.states, files, cycle_length: L });
 }
 
 /** Union of files changed between consecutive runs (max 10). */

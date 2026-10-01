@@ -81,6 +81,14 @@ export function renderStatusline(summary, session, o = {}) {
   const checked = (c.loop_checked || 0) + (c.loop_skipped || 0);
   if (c.loop_skipped >= 3 && c.loop_skipped / Math.max(1, checked) > 0.2) problems.push('hashing slow');
   const warn = problems.length ? [`${problems.join(', ')}, run kerb doctor`] : [];
+  // Verification and the failing series for the latest check key (KERB-V2 7.2, 7.3), as recorded
+  // by the last check run or Stop, for this session; at most 12 hours old.
+  const v = summary.verification;
+  if (v && v.status && Date.now() - (v.ts || 0) < 12 * 3600_000 && (!v.session || !session.id || v.session === session.id)) {
+    const files = v.files && v.files.length ? ` (${v.files.slice(0, 2).map((f) => f.split('/').pop()).join(', ')})` : '';
+    const nums = Array.isArray(v.series) && v.series.length > 1 && v.series.some((c) => c != null) ? `failing ${v.series.map((c) => (c == null ? '✗' : c)).join('→')}` : null;
+    segs.unshift(...[`tests: ${v.status}${files}`, nums].filter(Boolean));
+  }
   if (summary.mode === 'shadow') segs.unshift(c.would_refuse ? `shadow: would have stopped ${c.would_refuse}` : 'shadow mode');
   let parts = [...warn, ...segs];
   let line = o.segment ? parts.join(' · ') : ['kerb', ...parts].join(' · ');

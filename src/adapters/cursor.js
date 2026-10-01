@@ -56,8 +56,8 @@ export async function post(ctx, p, { failure = false } = {}) {
   return lines.length ? { additional_context: lines.join('\n') } : null;
 }
 
-export function startOutput(lines) {
-  return lines.length ? { additional_context: `Kerb is active in this repo. Known boundaries:\n${lines.join('\n')}` } : null;
+export function startOutput(text) {
+  return text ? { additional_context: text } : null;
 }
 
 export function stopOutput() {

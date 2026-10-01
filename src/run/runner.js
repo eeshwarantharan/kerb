@@ -16,6 +16,7 @@ import { regenerateBriefing } from '../init/instructions.js';
 import { summaryTweak, startRecord } from '../engine.js';
 import { envFixFor } from '../insight/envclass.js';
 import { testResults } from '../reporters/record.js';
+import { afterCommand, writeLedgerFile } from '../insight/deliver.js';
 
 /**
  * Background commands: pre-check only, then run with the agent's normal behaviour.
@@ -177,11 +178,14 @@ export async function runSupervised(prep, o) {
   const envFix = insights && failureKind === 'environment' ? envFixFor(prep, analysis.env) : [];
   if (res.reason === 'timeout') notes.push(`killed the process tree after the ${formatDuration(o.timeoutMs)} total timeout`);
   if (res.reason === 'idle') notes.push(`killed the process tree after ${formatDuration(o.idleMs)} without output`);
+  // Delta (KERB-V2 7.1) in place of the generic footer; the ledger file for best-effort agents.
+  const after = afterCommand(prep, { runId: id, cls: prep.cls, insights });
+  if (prep.cls === 'check' && prep.tier !== 'enforced') writeLedgerFile(prep.root, store, now());
   const footerNeeded = shaped.cut || exit !== 0 || timedOut || notes.length > 0 || hints.length > 0;
   const footer = footerNeeded
     ? `kerb: exit ${exit} · ${formatDuration(res.durationMs)} · ${formatBytes(shaped.rawBytes)} → ${formatBytes(shaped.shownBytes)} · log ${logRel}`
     : null;
-  return { id, exit, classResult, shaped, analysis, notes, hints, envFix, footer, endRec, startRec, res, logRel };
+  return { id, exit, classResult, shaped, analysis, notes, hints, envFix, footer, delta: after.delta, endRec, startRec, res, logRel };
 }
 
 /** Print shaped output (stdout) and footer, hints and notes (stderr). */
@@ -190,13 +194,16 @@ export function printRun(ctx, r, { showOutput = true } = {}) {
     ctx.emitJson({
       refused: false, run: r.id, exit: r.exit, class_result: r.classResult, duration_ms: r.res.durationMs,
       raw_bytes: r.shaped.rawBytes, shown_bytes: r.shaped.shownBytes, output: r.shaped.text, footer: r.footer,
-      hints: r.hints, notes: r.notes, log: r.logRel,
+      hints: r.hints, notes: r.notes, log: r.logRel, delta: r.delta && r.delta.length ? r.delta : null,
       environment: r.envFix && r.envFix.length ? { subtype: r.endRec.env_subtype, fix: r.envFix } : null,
     });
     return;
   }
   if (showOutput && r.shaped.text) ctx.out(r.shaped.text);
-  if (r.footer) ctx.err(`${paint(ctx.color.err, 'dim', r.footer)}\n`);
+  if (r.delta && r.delta.length) {
+    const [head, ...rest] = r.delta;
+    ctx.err(`${[`${head} · exit ${r.exit} · log ${r.logRel}`, ...rest].join('\n')}\n`);
+  } else if (r.footer) ctx.err(`${paint(ctx.color.err, 'dim', r.footer)}\n`);
   for (const h of r.hints) ctx.err(`      hint: ${h}\n`);
   for (const l of r.envFix || []) ctx.err(`${l}\n`);
   for (const n of r.notes) ctx.err(formatNote(n, ctx.color.err));

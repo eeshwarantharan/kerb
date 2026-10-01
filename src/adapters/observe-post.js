@@ -17,6 +17,7 @@ import { regenerateBriefing } from '../init/instructions.js';
 import { hookCounter, HOOK_HASH_BUDGET_MS } from './observe.js';
 import { envFixFor } from '../insight/envclass.js';
 import { testResults } from '../reporters/record.js';
+import { afterCommand } from '../insight/deliver.js';
 
 /**
  * @param {any} ctx
@@ -129,8 +130,10 @@ export function observePost(ctx, o) {
   if (learnedNew) regenerateBriefing(prep.root);
   // Insight injections stay on in shadow mode; the user can turn them off (KERB-V2 10.2).
   const insights = prep.config.values.insights !== 'off';
-  const context = insights && failureKind === 'environment' ? envFixFor(prep, analysis.env) : [];
-  return { notes, hints: insights ? [...hints] : [], context };
+  const envFix = insights && failureKind === 'environment' ? envFixFor(prep, analysis.env) : [];
+  // One block after the command (KERB-V2 9): delta, environment fix, hints, notes.
+  const after = afterCommand({ ...prep, cls }, { runId: id, cls, notes, hints: insights ? [...hints] : [], envFix, insights });
+  return { notes: [], hints: [], context: after.lines };
 }
 
 function startRecord(prep, id, ts, pending, cls) {

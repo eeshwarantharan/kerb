@@ -171,7 +171,7 @@ test('K10 session start refreshes the bundle and the briefing', async () => {
     }
     const agents = repo.read('AGENTS.md');
     assert.match(agents, /- registry\.npmjs\.org: Use the mirror \(use https:\/\/npm\.corp\)/);
-    assert.match(JSON.parse(out).hookSpecificOutput.additionalContext, /Known boundaries:\n- registry\.npmjs\.org/);
+    assert.match(JSON.parse(out).hookSpecificOutput.additionalContext, /^kerb: active in this repo · known boundaries:\n- registry\.npmjs\.org/);
   } finally {
     setManagedConfigPathForTests(null);
     server.close();

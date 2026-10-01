@@ -4,6 +4,8 @@
 // deny: { decision: "deny", reason } (reason goes to the agent). AfterTool: tool_response
 // { llmContent, returnDisplay, error } where the shell output carries an "Exit Code: N" line.
 // SessionStart accepts hookSpecificOutput.additionalContext; AfterAgent accepts systemMessage.
+// Verified again 2026-10-02: SessionStart `source` is startup, resume or clear; PreCompress only
+// observes, so after a compression Kerb adds the ledger to the next turn through BeforeAgent.
 import { observePre, callId } from './observe.js';
 import { SHELL_TOOLS, toText, exitFromText, argsObject, commandOf, resolveCwd, refusalText, noteLines } from './shared.js';
 
@@ -41,8 +43,13 @@ export async function post(ctx, p) {
   return lines.length ? { hookSpecificOutput: { additionalContext: lines.join('\n') } } : null;
 }
 
-export function startOutput(lines) {
-  return lines.length ? { hookSpecificOutput: { additionalContext: `Kerb is active in this repo. Known boundaries:\n${lines.join('\n')}` } } : null;
+export function startOutput(text) {
+  return text ? { hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } } : null;
+}
+
+/** BeforeAgent: context appended to this turn's prompt (the ledger after a compression). */
+export function turnOutput(text) {
+  return text ? { hookSpecificOutput: { hookEventName: 'BeforeAgent', additionalContext: text } } : null;
 }
 
 export function stopOutput(text) {

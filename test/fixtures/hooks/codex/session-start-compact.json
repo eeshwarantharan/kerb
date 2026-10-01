@@ -1,0 +1,8 @@
+{
+  "session_id": "019a0000-0000-7000-8000-000000000001",
+  "transcript_path": "/Users/me/.codex/sessions/2026/10/02/rollout-2026-10-02T10-00-00-019a.jsonl",
+  "cwd": "/home/user/my-project",
+  "hook_event_name": "SessionStart",
+  "model": "gpt-5",
+  "source": "compact"
+}

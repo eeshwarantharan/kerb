@@ -23,7 +23,7 @@ test('V1 statusline is one line under 80 characters and fast', async () => {
   const line = r.stdout.trimEnd();
   assert.equal(line.split('\n').length, 1);
   assert.ok(line.length < 80, line);
-  assert.match(line, /^kerb · 1 re-run avoided · [\d.]+ KB noise trimmed · 1 wall known$/);
+  assert.match(line, /^kerb · (?:tests: red · )?1 re-run avoided · [\d.]+ KB noise trimmed · 1 wall known$/, 'v1 segments, after the v2 verification segment (VS3)');
   const t0 = process.hrtime.bigint();
   await inproc(repo, ['statusline'], {});
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
@@ -55,7 +55,7 @@ test('V4 --segment prints only Kerb\'s part; status-line JSON on stdin selects t
   busy(repo);
   const seg = repo.kerb(['statusline', '--segment']).stdout.trimEnd();
   assert.ok(!seg.startsWith('kerb'));
-  assert.match(seg, /^1 re-run avoided/);
+  assert.match(seg, /^(?:tests: red · )?1 re-run avoided/);
   const other = repo.kerb(['statusline'], { input: JSON.stringify({ session_id: 'unknown-session', cwd: repo.dir }) });
   assert.equal(other.stdout.trimEnd(), 'kerb · 1 wall known');
 });

@@ -3,7 +3,7 @@
 import path from 'node:path';
 import { atomicWrite, readJson } from '../util/fsx.js';
 
-const LOOP = new Set(['identical_retry', 'deja_vu', 'breaker_open']);
+const LOOP = new Set(['identical_retry', 'deja_vu', 'oscillating', 'breaker_open']);
 
 export function emptyCounters() {
   return {

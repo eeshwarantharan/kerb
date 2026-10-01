@@ -52,12 +52,15 @@ export default async function status(ctx, args) {
   const skips = runs.filter((r) => r.loop_skipped === 'hash_budget').length;
   const enforced = agents.some((a) => a.tier === 'enforced');
   const mode = effectiveMode(root, loadConfig(), now());
+  const { verification, verificationLine } = await import('../insight/verify.js');
+  let verify = [];
+  try { verify = verification({ root, git: findRoot(ctx.cwd).git, recs, session: session.id, policy, env: ctx.env }); } catch { verify = []; }
 
   if (ctx.json) {
     ctx.emitJson({
       root, agents, best_effort_note: enforced ? null : 'Kerb only sees commands run through kerb run.',
       boundaries: { total: policy.boundaries.length, by_source: bySource, suspected: (policy.suspected || []).length },
-      mode: { mode: mode.mode, source: mode.source, until: mode.until }, org: policy.org, open_breakers: breakers, last_runs: last, session, hash_budget_skips: skips, errors: summary.errors || 0,
+      mode: { mode: mode.mode, source: mode.source, until: mode.until }, verification: verify, org: policy.org, open_breakers: breakers, last_runs: last, session, hash_budget_skips: skips, errors: summary.errors || 0,
     });
     return 0;
   }
@@ -77,6 +80,10 @@ export default async function status(ctx, args) {
   if (policy.org) {
     const o = policy.org;
     ctx.out(`org policy  ${o.version != null ? `v${o.version}` : 'no verified bundle'}${o.offline ? ' · offline, using the cached bundle' : ''}${o.stale ? ' · cache expired, still in use' : ''}${o.last_error ? ` · last fetch: ${o.last_error}` : ''}\n`);
+  }
+  if (verify.length) {
+    ctx.out('verification\n');
+    for (const v of verify) ctx.out(`  ${v.command}  ${v.status}${v.files.length ? ` (changed: ${v.files.join(', ')})` : ''}${verificationLine(v) && v.status !== 'red' ? ` · ${verificationLine(v)}` : ''}\n`);
   }
   ctx.out(`open breakers  ${breakers.length ? '' : 'none'}\n`);
   for (const b of breakers) ctx.out(`  ${b.key} (since ${new Date(b.since).toISOString().slice(11, 19)}; the user can run kerb ack)\n`);

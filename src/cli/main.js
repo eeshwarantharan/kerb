@@ -37,6 +37,8 @@ export const COMMANDS = {
   scan: () => import('./scan.js'),
   gc: () => import('./gc.js'),
   reindex: () => import('./reindex.js'),
+  progress: () => import('./progress.js'),
+  ledger: () => import('./ledger.js'),
 };
 
 /** The six commands `kerb --help` shows (KERB-V2 10.3). */
@@ -62,7 +64,9 @@ export const GROUPS = [
     ['watch', 'live view of runs'],
   ]],
   ['Insight', [
-    ['why [run-id]', 'explain a refusal with its evidence'],
+    ['progress [--key K]', 'failing counts per check key since its last success, and the trend'],
+    ['ledger', 'what was tried in the last 24 hours, from the records'],
+    ['why [run-id]', 'explain a refusal (or a run\'s test results) with its evidence'],
     ['diff <runA> <runB>', 'files that differ between two runs'],
     ['gc [--dry-run]', "apply retention to Kerb's kept states"],
     ['reindex', 'rebuild the indexes in .kerb/index from the event log'],

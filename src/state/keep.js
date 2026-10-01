@@ -87,3 +87,12 @@ export function stateRefs(root) {
   if (r.status !== 0) return [];
   return r.stdout.split('\n').filter(Boolean).map((x) => x.slice(REF_PREFIX.length));
 }
+
+/** A snapshot's full tree id (resolving a lazily recorded HEAD tree), or null. */
+export function treeOf(root, snapshot) {
+  if (!snapshot) return null;
+  if (snapshot.tree) return snapshot.tree;
+  if (!snapshot.treeish) return null;
+  const r = git(root, ['rev-parse', '--verify', '-q', `${snapshot.treeish}^{tree}`], { encoding: 'utf8' });
+  return r.status === 0 ? r.stdout.trim() : null;
+}

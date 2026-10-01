@@ -18,7 +18,7 @@ export function paint(on, color, s) {
   return on ? `\x1b[${CODES[color]}m${s}\x1b[0m` : s;
 }
 
-export const LOOP_REASONS = new Set(['identical_retry', 'deja_vu', 'breaker_open']);
+export const LOOP_REASONS = new Set(['identical_retry', 'deja_vu', 'oscillating', 'breaker_open']);
 
 /**
  * A refusal: reason, summary, evidence and next are template-filled, validated fields.

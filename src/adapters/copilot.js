@@ -7,6 +7,8 @@
 //  - VS Code-compatible snake_case: { session_id, cwd, tool_name, tool_input, tool_result | tool_response, tool_use_id? }
 // Deny: permissionDecision "deny" (top-level for the CLI, inside hookSpecificOutput for VS Code).
 // A command preToolUse hook that exits non-zero denies the call, so the handler always exits 0.
+// Verified again 2026-10-02: sessionStart `source` is startup, resume or new; additionalContext is
+// read on sessionStart and postToolUse; preCompact output is ignored; agentStop can block.
 import { observePre, callId } from './observe.js';
 import { SHELL_TOOLS, toText, exitFromText, exitField, argsObject, commandOf, resolveCwd, refusalText, noteLines } from './shared.js';
 
@@ -65,10 +67,15 @@ export async function post(ctx, p, { failure = false } = {}) {
   return { additionalContext: lines.join('\n'), hookSpecificOutput: { hookEventName: failure ? 'PostToolUseFailure' : 'PostToolUse', additionalContext: lines.join('\n') } };
 }
 
-export function startOutput(lines) {
-  if (!lines.length) return null;
-  const text = `Kerb is active in this repo. Known boundaries:\n${lines.join('\n')}`;
+export function startOutput(text) {
+  if (!text) return null;
   return { additionalContext: text, hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } };
+}
+
+/** Stop gate: agentStop accepts decision "block" to force another turn. */
+export function stopBlock(reason, payload, text) {
+  if (payload && (payload.stop_hook_active || payload.stopHookActive)) return text ? stopOutput(text) : null;
+  return { decision: 'block', reason };
 }
 
 export function stopOutput(text) {
