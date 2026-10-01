@@ -2,6 +2,19 @@
 
 All notable changes to Kerb. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-10-02
+
+Milestone D of [docs/KERB-V2.md](docs/KERB-V2.md), "Instant answers and last green". Still a preview.
+
+### Added
+
+- **Instant answers:** a static check (tsc, ESLint, `prettier --check`, `ruff check`, mypy, `go vet`, `cargo check`/`clippy`, `deno lint`/`check`, or a test command listed in policy `hermetic_commands`) about to run on the same files and environment as a recorded run is answered from that run instead of running again: `kerb: cached`, the recorded result and exit code, a `cached_answer` event, counted in the recap and report. Policy `cache_ttl` (24 h by default).
+- **Last green and restore:** `kerb green [--key K] [--test T]` finds the newest state where a check or a single test passed and what changed since; `kerb restore <state> --patch` writes a patch back to it (applying nothing), `--keep-except <finding>` reverts only a cause finding's culprit hunks, and `--in-place` (human-only) backs up your changes with `git stash` and restores the state.
+
+### Fixed
+
+- Policy `check_commands` written with a path (`./run-tests.sh`) never matched.
+
 ## [0.4.0] - 2026-10-02
 
 Milestone C of [docs/KERB-V2.md](docs/KERB-V2.md), "Insight". Still a preview.
@@ -66,6 +79,7 @@ First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented 
 - The task benchmark has not been run yet, so there are no savings figures.
 - Hook latency is borderline against the 100 ms target for check commands after a failure (see `bench/results/`).
 
+[0.5.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.5.0
 [0.4.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.2.0

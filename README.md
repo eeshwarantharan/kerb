@@ -60,7 +60,7 @@ kerb: environment · TLS interception: a proxy re-signs HTTPS with a company CA 
 ```
 
 > [!NOTE]
-> **0.4 is a preview.** Everything in the [spec](docs/KERB.md) and milestones A to C of [v2](docs/KERB-V2.md) (shadow mode, `kerb scan`, the environment classifier, restorable states, the [KER record format](docs/KER.md), test-level results for eleven tools, deltas, verification status, convergence and the attempt ledger) is built and tested on macOS and Linux. Windows is experimental. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
+> **0.5 is a preview.** Everything in the [spec](docs/KERB.md) and milestones A to D of [v2](docs/KERB-V2.md) (shadow mode, `kerb scan`, the environment classifier, restorable states, the [KER record format](docs/KER.md), test-level results for eleven tools, deltas, verification status, convergence, the attempt ledger, instant answers and last green) is built and tested on macOS and Linux. Windows is experimental. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
 
 ## Try it safely
 
@@ -111,6 +111,8 @@ Agents burn paid turns hitting walls (blocked registries, hosts and protected br
 | **`kerb scan`** | Replays past agent sessions from local transcripts and shows what Kerb would have stopped, with tokens measured from the transcripts' own usage records where they have them. |
 | **Shadow mode** | The first week records instead of refusing, so you can check every would-be refusal before turning blocking on. |
 | **Insight** | After each test run, what changed: tests fixed, still failing, newly failing, flaky. Whether the last result still matches the files (green, red or stale), the failing trend per command (`kerb progress`), and a ledger of what was tried that survives compaction (`kerb ledger`). Optionally, a stop gate that won't let the agent finish on stale tests. |
+| **Instant answers** | A static check (tsc, ESLint, Ruff, mypy, …) asked to run again on the same files and environment gets the recorded result straight away, instead of a refusal or a re-run. |
+| **Last green** | `kerb green` finds the newest state where the tests passed and what changed since; `kerb restore <state> --patch` writes a patch back to it without touching your files. |
 | **`kerb wait-for`** | Turns polling into one call: retries inside Kerb and returns once, instead of the agent spending a turn per poll. |
 | **Output shaping** | Strips colour codes and progress bars, folds repeats, trims long output to a head and tail, and keeps the full log on disk. |
 | **Supervisor** | Total and idle timeouts that kill the whole process tree, so watch modes, prompts and stuck servers don't hang the agent. |

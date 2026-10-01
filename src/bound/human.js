@@ -39,7 +39,7 @@ export function humanOnlyRefusal(parsed) {
   const refuse = (summary) => ({
     reason: 'human_only',
     summary,
-    evidence: 'human-only: kerb ack, reset, forget, config, uninstall, enforce, run --force, and KERB_* variables',
+    evidence: 'human-only: kerb ack, reset, forget, config, uninstall, enforce, restore --in-place, run --force, and KERB_* variables',
     next: NEXT,
     exit: EXIT.POLICY,
   });
@@ -57,6 +57,7 @@ export function humanOnlyRefusal(parsed) {
     if (!argv) continue;
     const { sub, rest } = kerbSubcommand(argv);
     if (sub && HUMAN_ONLY_SUBCOMMANDS.has(sub)) return refuse(`kerb ${sub} is for the user, not the agent`);
+    if (sub === 'restore' && rest.includes('--in-place')) return refuse('kerb restore --in-place is for the user, not the agent');
     if (sub === 'run' || sub === 'wait-for') {
       const dd = rest.indexOf('--');
       const opts = dd === -1 ? rest : rest.slice(0, dd);

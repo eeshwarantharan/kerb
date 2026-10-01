@@ -39,6 +39,8 @@ export const COMMANDS = {
   reindex: () => import('./reindex.js'),
   progress: () => import('./progress.js'),
   ledger: () => import('./ledger.js'),
+  green: () => import('./green.js'),
+  restore: () => import('./restore.js'),
 };
 
 /** The six commands `kerb --help` shows (KERB-V2 10.3). */
@@ -66,6 +68,8 @@ export const GROUPS = [
   ['Insight', [
     ['progress [--key K]', 'failing counts per check key since its last success, and the trend'],
     ['ledger', 'what was tried in the last 24 hours, from the records'],
+    ['green [--key K] [--test T]', 'the newest state where a check (or one test) passed'],
+    ['restore <state> --patch', 'a patch back to that state (or --keep-except <finding>); applies nothing'],
     ['why [run-id]', 'explain a refusal (or a run\'s test results) with its evidence'],
     ['diff <runA> <runB>', 'files that differ between two runs'],
     ['gc [--dry-run]', "apply retention to Kerb's kept states"],
@@ -89,6 +93,7 @@ export const GROUPS = [
     ['forget <pattern>', 'remove a learned boundary'],
     ['config get|set <key> [value]', 'user settings (get needs no code)'],
     ['uninstall', 'remove everything init added'],
+    ['restore <state> --in-place', 'back up your changes with git stash, then restore the state'],
   ]],
 ];
 
