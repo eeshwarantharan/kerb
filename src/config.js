@@ -22,6 +22,7 @@ export const CONFIG_KEYS = {
   // KERB-V2 11a. `mode` is per user; `kerb init` records shadow mode per repo (src/mode.js).
   mode: { values: ['shadow', 'enforce'], default: null },
   insights: { values: ['on', 'off'], default: 'on' },
+  'tls.ca_bundle': { type: 'path', default: null },
 };
 
 /** Managed config locations per OS. */

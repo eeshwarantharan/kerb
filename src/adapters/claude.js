@@ -7,7 +7,7 @@
 //   Stop → top-level systemMessage is shown to the user; SessionEnd discards JSON output.
 import { formatRefusal } from '../ui/format.js';
 import { observePre, callId } from './observe.js';
-import { toText, exitFromText, exitField } from './shared.js';
+import { toText, exitFromText, exitField, noteLines } from './shared.js';
 
 export const AGENT = 'claude';
 /** Claude Code's Bash default when the call sets no timeout (BASH_DEFAULT_TIMEOUT_MS; 2 minutes). */
@@ -109,7 +109,7 @@ export async function post(ctx, payload, { failure = false } = {}) {
     timedOut,
     session: payload.session_id || null,
   });
-  const lines = [...r.notes.map((n) => `kerb: note · ${n}`), ...r.hints.map((h) => `kerb: hint · ${h}`)];
+  const lines = noteLines(r.notes, r.hints, r.context);
   return contextOutput(failure ? 'PostToolUseFailure' : 'PostToolUse', lines);
 }
 

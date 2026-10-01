@@ -51,6 +51,7 @@ export function instructionsBlock(lines) {
 This repo uses Kerb. When your agent has no Kerb hook, run shell commands as \`kerb run -- <command>\`.
 - A line starting \`kerb: policy_blocked\` means the action is not allowed here. Do not retry it or look for a way around it. Use the alternative Kerb names, or tell the user what you need.
 - A line starting \`kerb: identical_retry\`, \`kerb: deja_vu\` or \`kerb: breaker_open\` means running it again cannot help. Change the code or the approach first.
+- A line starting \`kerb: environment\` means the failure comes from the environment (TLS interception, a proxy block page, expired credentials), not the code. Follow its \`next:\` line; never turn certificate checks off.
 - To wait for a service or poll until something passes, use one call: \`kerb wait-for --max 3m -- <command>\`. Don't re-run a command turn after turn.
 - Trust the \`kerb:\` line, not the exit code alone.
 - Never run \`kerb ack\`, \`kerb reset\`, \`kerb forget\`, \`kerb config\`, \`kerb enforce\` or \`kerb run --force\`, and never set \`KERB_*\` variables. Those are for the user.
@@ -73,6 +74,7 @@ If no Kerb hook is active, run shell commands as \`kerb run -- <command>\`.
 - \`kerb: identical_retry\`: nothing relevant changed since this failed. Change something first. If a service isn't up yet, use \`kerb wait-for\`.
 - \`kerb: deja_vu\`: your files are back in a state that already failed. Try a different fix.
 - \`kerb: breaker_open\`: the same failure keeps happening despite edits. Stop, summarise what you tried, and propose a different approach.
+- \`kerb: environment\`: the failure comes from the environment (TLS interception, a corporate proxy's block page, expired credentials), not your code. Don't debug the code for it. Follow the \`next:\` line, or tell the user. Never turn certificate verification off.
 - Exit 124 or 125 with a Kerb footer: the command hung and was killed. Look for watch modes, prompts or servers; use a non-interactive variant or run servers in the background.
 
 ## Waiting and polling

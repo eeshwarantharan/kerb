@@ -1,0 +1,1 @@
+fatal: unable to access 'https://github.com/org/repo.git/': SSL certificate problem: self-signed certificate in certificate chain

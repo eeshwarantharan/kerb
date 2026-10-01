@@ -1,0 +1,2 @@
+  WARNING: Retrying (Retry(total=4)) after connection broken by 'SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1006)'))': /simple/requests/
+ERROR: Could not find a version that satisfies the requirement requests

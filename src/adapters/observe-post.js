@@ -15,6 +15,7 @@ import { DenialScanner, isNetworkCapable, recordDenial } from '../bound/learn.js
 import { takePending, markDone, recentlyDone } from './pending.js';
 import { regenerateBriefing } from '../init/instructions.js';
 import { hookCounter, HOOK_HASH_BUDGET_MS } from './observe.js';
+import { envFixFor } from '../insight/envclass.js';
 
 /**
  * @param {any} ctx
@@ -110,6 +111,7 @@ export function observePost(ctx, o) {
       post_hash: postHash,
       fingerprint: analysis.fingerprint,
       failure_kind: failureKind,
+      env_subtype: failureKind === 'environment' && analysis.env ? analysis.env.subtype : null,
       class_result: classResult,
       raw_bytes: shaped.rawBytes,
       shown_bytes: shaped.rawBytes,
@@ -123,7 +125,8 @@ export function observePost(ctx, o) {
   if (learnedNew) regenerateBriefing(prep.root);
   // Insight injections stay on in shadow mode; the user can turn them off (KERB-V2 10.2).
   const insights = prep.config.values.insights !== 'off';
-  return { notes, hints: insights ? [...hints] : [] };
+  const context = insights && failureKind === 'environment' ? envFixFor(prep, analysis.env) : [];
+  return { notes, hints: insights ? [...hints] : [], context };
 }
 
 function startRecord(prep, id, ts, pending, cls) {
@@ -137,7 +140,7 @@ function startRecord(prep, id, ts, pending, cls) {
 function endRecord(prep, id, cls, f) {
   return {
     type: 'end', id, ts: now(), exit: f.exit, signal: null, duration_ms: f.duration_ms, post_hash: f.post_hash ?? null,
-    fingerprint: f.fingerprint ?? null, failure_kind: f.failure_kind ?? null, class_result: f.class_result,
+    fingerprint: f.fingerprint ?? null, failure_kind: f.failure_kind ?? null, env_subtype: f.env_subtype ?? null, class_result: f.class_result,
     raw_bytes: f.raw_bytes, shown_bytes: f.shown_bytes, first_fail_line: f.first_fail_line ?? null,
     loop_skipped: f.loop_skipped ?? null, loop_checked: !!f.loop_checked, key: prep.key, class: cls, session: prep.session, log: f.log ?? null,
   };

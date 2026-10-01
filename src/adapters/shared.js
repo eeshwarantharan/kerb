@@ -72,6 +72,7 @@ export function refusalText(refusal) {
   return formatRefusal(refusal, false).trimEnd();
 }
 
-export function noteLines(notes = [], hints = []) {
-  return [...notes.map((n) => `kerb: note · ${n}`), ...hints.map((h) => `kerb: hint · ${h}`)];
+/** Context lines after a command: notes, hints, then insight blocks that already start with `kerb:`. */
+export function noteLines(notes = [], hints = [], context = []) {
+  return [...notes.map((n) => `kerb: note · ${n}`), ...hints.map((h) => `kerb: hint · ${h}`), ...(context || [])];
 }

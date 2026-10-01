@@ -1,6 +1,7 @@
 // Fingerprints and failure kinds (4.7.4).
 import { crypto } from '../util/lazy.js';
 import os from 'node:os';
+import { EnvClassifier } from '../insight/envclass.js';
 
 const MONTHS = '(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)';
 const DUR = '\\d+(?:\\.\\d+)?\\s?(?:ms|s|sec|secs|m|min|h)(?![A-Za-z0-9_])';
@@ -82,6 +83,7 @@ export class Analyzer {
     this.lastNonEmpty = null;
     this.lines = [];
     this.keepLines = 400;
+    this.env = new EnvClassifier();
   }
 
   /** @param {string} line ANSI-stripped, redacted */
@@ -92,6 +94,7 @@ export class Analyzer {
     this.hash.update('\n');
     if (line.trim()) this.lastNonEmpty = line;
     if (line.length > MAX_LINE) return;
+    this.env.line(line);
     if (!this.sawTransient && this.transient.some((re) => re.test(line))) this.sawTransient = true;
     if (!this.sawDependency && (this.dependency.some((re) => re.test(line))
       || (/no route to host/i.test(line) && PRIVATE_ADDR.test(line)))) this.sawDependency = true;
@@ -102,11 +105,16 @@ export class Analyzer {
   /** @param {{ timedOut?: boolean }} [o] */
   result(o = {}) {
     const first = (this.firstFail || this.lastNonEmpty || '').trim();
-    /** @type {'transient' | 'dependency' | 'ordinary'} */
+    const env = this.env.result();
+    /** @type {'transient' | 'dependency' | 'environment' | 'ordinary'} */
     let kind = 'ordinary';
-    if (o.timedOut || this.sawTransient) kind = 'transient';
+    // Environment failures (KERB-V2 8.3) are checked before the loop kinds; a Kerb timeout stays transient.
+    if (o.timedOut) kind = 'transient';
+    else if (env) kind = 'environment';
+    else if (this.sawTransient) kind = 'transient';
     else if (this.sawDependency) kind = 'dependency';
     return {
+      env,
       fingerprint: this.hash.digest('hex').slice(0, 32),
       kind,
       firstFailLine: first.length > 120 ? `${first.slice(0, 119)}…` : first,

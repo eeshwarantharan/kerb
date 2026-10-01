@@ -1,0 +1,2 @@
+Error: UNABLE_TO_VERIFY_LEAF_SIGNATURE
+    at TLSSocket.onConnectSecure (node:_tls_wrap:1674:34)

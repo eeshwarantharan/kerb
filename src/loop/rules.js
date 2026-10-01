@@ -8,7 +8,7 @@ const SETUP_CLASSES = new Set(['check', 'other', 'background']);
 /** A finished run that counts as a failure (4.7.5). */
 export function isFailure(r) {
   return r.finished && r.exit != null && r.exit !== 0 && r.class === 'check'
-    && r.class_result !== 'policy_denial' && r.class_result !== 'aborted';
+    && r.class_result !== 'policy_denial' && r.class_result !== 'aborted' && r.failure_kind !== 'environment';
 }
 
 export function isSuccess(r) {

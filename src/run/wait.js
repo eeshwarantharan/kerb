@@ -162,6 +162,7 @@ export async function waitFor(prep, w) {
     exit: finalExit,
     class_result: classResult,
     failure_kind: classResult === 'failure' || classResult === 'timeout' || classResult === 'idle' ? (last ? last.analysis.kind : 'ordinary') : null,
+    env_subtype: last && last.analysis.kind === 'environment' && last.analysis.env ? last.analysis.env.subtype : null,
     fingerprint: last ? last.analysis.fingerprint : null,
     first_fail_line: last && finalExit !== 0 ? redactText(last.analysis.firstFailLine) : null,
     pre_hash: w.loop ? w.loop.preHash : null,

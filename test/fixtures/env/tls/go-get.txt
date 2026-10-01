@@ -1,0 +1,1 @@
+go: github.com/pkg/errors@v0.9.1: Get "https://proxy.golang.org/github.com/pkg/errors/@v/v0.9.1.mod": tls: failed to verify certificate: x509: certificate signed by unknown authority

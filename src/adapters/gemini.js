@@ -37,7 +37,7 @@ export async function post(ctx, p) {
   const exit = exitFromText(text);
   const { observePost } = await import('./observe-post.js');
   const r = observePost(ctx, { agent: AGENT, toolUseId: callId(null, p.session_id, cwd, command), cwd, command, exit, output: cleanShellOutput(text), session: p.session_id || null });
-  const lines = noteLines(r.notes, r.hints);
+  const lines = noteLines(r.notes, r.hints, r.context);
   return lines.length ? { hookSpecificOutput: { additionalContext: lines.join('\n') } } : null;
 }
 

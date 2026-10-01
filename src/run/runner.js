@@ -14,6 +14,7 @@ import { supervise, markActive, clearActive, activeRuns, passthrough, SIGNUMS } 
 import { formatNote, paint } from '../ui/format.js';
 import { regenerateBriefing } from '../init/instructions.js';
 import { summaryTweak, startRecord } from '../engine.js';
+import { envFixFor } from '../insight/envclass.js';
 
 /**
  * Background commands: pre-check only, then run with the agent's normal behaviour.
@@ -145,6 +146,7 @@ export async function runSupervised(prep, o) {
     post_hash: postHash,
     fingerprint: analysis.fingerprint,
     failure_kind: failureKind,
+    env_subtype: failureKind === 'environment' && analysis.env ? analysis.env.subtype : null,
     class_result: classResult,
     raw_bytes: shaped.rawBytes,
     shown_bytes: shaped.shownBytes,
@@ -166,14 +168,16 @@ export async function runSupervised(prep, o) {
   if (learned && learned.becameConfirmed) regenerateBriefing(prep.root);
   evictLogs(store, prep.config.values.log_budget_mb);
 
-  const hints = prep.config.values.insights === 'off' ? [] : [...fixHits].map((i) => fixes[i].hint);
+  const insights = prep.config.values.insights !== 'off';
+  const hints = insights ? [...fixHits].map((i) => fixes[i].hint) : [];
+  const envFix = insights && failureKind === 'environment' ? envFixFor(prep, analysis.env) : [];
   if (res.reason === 'timeout') notes.push(`killed the process tree after the ${formatDuration(o.timeoutMs)} total timeout`);
   if (res.reason === 'idle') notes.push(`killed the process tree after ${formatDuration(o.idleMs)} without output`);
   const footerNeeded = shaped.cut || exit !== 0 || timedOut || notes.length > 0 || hints.length > 0;
   const footer = footerNeeded
     ? `kerb: exit ${exit} · ${formatDuration(res.durationMs)} · ${formatBytes(shaped.rawBytes)} → ${formatBytes(shaped.shownBytes)} · log ${logRel}`
     : null;
-  return { id, exit, classResult, shaped, analysis, notes, hints, footer, endRec, startRec, res, logRel };
+  return { id, exit, classResult, shaped, analysis, notes, hints, envFix, footer, endRec, startRec, res, logRel };
 }
 
 /** Print shaped output (stdout) and footer, hints and notes (stderr). */
@@ -183,12 +187,14 @@ export function printRun(ctx, r, { showOutput = true } = {}) {
       refused: false, run: r.id, exit: r.exit, class_result: r.classResult, duration_ms: r.res.durationMs,
       raw_bytes: r.shaped.rawBytes, shown_bytes: r.shaped.shownBytes, output: r.shaped.text, footer: r.footer,
       hints: r.hints, notes: r.notes, log: r.logRel,
+      environment: r.envFix && r.envFix.length ? { subtype: r.endRec.env_subtype, fix: r.envFix } : null,
     });
     return;
   }
   if (showOutput && r.shaped.text) ctx.out(r.shaped.text);
   if (r.footer) ctx.err(`${paint(ctx.color.err, 'dim', r.footer)}\n`);
   for (const h of r.hints) ctx.err(`      hint: ${h}\n`);
+  for (const l of r.envFix || []) ctx.err(`${l}\n`);
   for (const n of r.notes) ctx.err(formatNote(n, ctx.color.err));
 }
 

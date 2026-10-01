@@ -5,7 +5,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { findRoot } from '../util/repo.js';
 import { readJson, homeKerbDir } from '../util/fsx.js';
-import { now } from '../util/core.js';
+import { now, UsageError } from '../util/core.js';
 import { Store } from '../store/jsonl.js';
 import { loadSummary, rangeTotals } from '../store/summary.js';
 import { loadConfig } from '../config.js';
@@ -123,7 +123,9 @@ export async function runDoctor(root) {
 }
 
 export default async function doctor(ctx, args) {
-  parseOpts(args, {});
+  const { positionals } = parseOpts(args, { 'dry-run': 'bool' });
+  if (positionals[0] === 'tls') return (await import('./doctor-tls.js')).default(ctx, args.filter((a) => a !== 'tls'));
+  if (positionals.length) throw new UsageError(`unknown doctor topic: ${positionals[0]} (known: tls)`);
   const { root } = findRoot(ctx.cwd);
   const checks = await runDoctor(root);
   const failed = checks.some((c) => c.level === 'fail');

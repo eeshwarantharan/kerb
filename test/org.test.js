@@ -214,6 +214,12 @@ test('Z3 only bound/org.js and telemetry/otlp.js import network modules or call 
     const text = fs.readFileSync(f, 'utf8');
     const net = /from\s+['"]node:(http|https|net|dns|tls|http2|dgram)['"]|import\(\s*['"]node:(http|https|net|dns|tls|http2|dgram)['"]|require\(\s*['"](node:)?(http|https|net|dns|tls|http2|dgram)['"]/.test(text);
     const fetchCall = /(^|[^.\w])fetch\s*\(|globalThis\.fetch/.test(text);
+    // doctor tls reads Node's bundled public roots (tls.rootCertificates) and opens no connection.
+    if (rel === 'src/cli/doctor-tls.js') {
+      assert.ok(!/\btls\.(connect|createServer|createSecureContext)\b/.test(text), 'doctor tls only reads tls.rootCertificates');
+      assert.ok(!/node:(http|https|net|dns|http2|dgram)['"]/.test(text) && !fetchCall, 'doctor tls makes no network calls');
+      continue;
+    }
     if (!allowed.has(rel)) {
       assert.ok(!net, `${rel} imports a network module`);
       assert.ok(!fetchCall, `${rel} calls fetch`);

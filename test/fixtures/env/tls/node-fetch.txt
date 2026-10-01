@@ -1,0 +1,3 @@
+node:internal/process/promises:289
+Error: unable to get local issuer certificate
+  code: 'UNABLE_TO_GET_ISSUER_CERT_LOCALLY'

@@ -10,7 +10,10 @@ export const REPO_POLICY_FILE = 'kerb.policy.json';
 export const POLICY_KEYS = new Set([
   'version', 'breaker_threshold', 'retry_cooldown', 'hash_scope', 'shared_paths', 'check_commands',
   'transient_patterns', 'dependency_patterns', 'env_keys', 'env_markers', 'boundaries', 'fixes', '$schema', 'description',
+  'tls', 'environment_fixes',
 ]);
+/** Environment failure subtypes (KERB-V2 8.3) a policy may name a sanctioned fix for (6.2). */
+export const ENV_SUBTYPES = new Set(['tls_interception', 'proxy_page', 'auth_expired']);
 export const BOUNDARY_KINDS = new Set(['host', 'program', 'command', 'git_push']);
 const BOUNDARY_KEYS = new Set(['kind', 'pattern', 'alternative', 'why']);
 const FIX_KEYS = new Set(['key_contains', 'output_contains', 'hint']);
@@ -26,7 +29,7 @@ export const DEFAULT_ENV_KEYS = ['NODE_ENV', 'PYTHONPATH', 'VIRTUAL_ENV', 'CONDA
  * @param {any} p
  * @returns {{ level: 'error' | 'warning', message: string }[]}
  */
-export function lintPolicy(p) {
+export function lintPolicy(p, { layer = null } = {}) {
   const out = [];
   const err = (message) => out.push({ level: 'error', message });
   const warn = (message) => out.push({ level: 'warning', message });
@@ -77,6 +80,24 @@ export function lintPolicy(p) {
       });
     }
   }
+  if (p.tls !== undefined) {
+    if (!p.tls || typeof p.tls !== 'object' || Array.isArray(p.tls)) err('tls must be an object');
+    else {
+      for (const k of Object.keys(p.tls)) if (k !== 'ca_bundle') warn(`tls: unknown key ${k}`);
+      if (p.tls.ca_bundle !== undefined && (typeof p.tls.ca_bundle !== 'string' || !path.isAbsolute(p.tls.ca_bundle))) err('tls.ca_bundle must be an absolute path');
+      // A repo could point every tool at a hostile CA, so only the org bundle and managed config may set it.
+      if (layer === 'repo') warn('tls is ignored in kerb.policy.json; set tls.ca_bundle in the org bundle or the managed config');
+    }
+  }
+  if (p.environment_fixes !== undefined) {
+    if (!p.environment_fixes || typeof p.environment_fixes !== 'object' || Array.isArray(p.environment_fixes)) err('environment_fixes must be an object');
+    else {
+      for (const [k, v] of Object.entries(p.environment_fixes)) {
+        if (!ENV_SUBTYPES.has(k)) warn(`environment_fixes: unknown subtype ${k} (known: ${[...ENV_SUBTYPES].join(', ')})`);
+        if (typeof v !== 'string' || !v.trim() || v.length > 300) err(`environment_fixes.${k} must be text of at most 300 characters`);
+      }
+    }
+  }
   if (p.fixes !== undefined) {
     if (!Array.isArray(p.fixes)) err('fixes must be a list');
     else {
@@ -98,7 +119,7 @@ export function readRepoPolicy(root) {
   try { text = fs.readFileSync(file, 'utf8'); } catch { return null; }
   try {
     const policy = JSON.parse(text);
-    return { policy, problems: lintPolicy(policy), path: file };
+    return { policy, problems: lintPolicy(policy, { layer: 'repo' }), path: file };
   } catch (e) {
     return { policy: {}, problems: [{ level: 'error', message: `invalid JSON: ${e.message}` }], path: file };
   }
@@ -129,6 +150,10 @@ export function mergeLayers(layers, { lockRepoAlternatives = false } = {}) {
     /** @type {Boundary[]} */
     boundaries: [],
     fixes: [],
+    /** @type {{ path: string, source: string } | null} from the org layer only */
+    tls_ca_bundle: null,
+    /** @type {Record<string, { text: string, source: string }>} */
+    environment_fixes: {},
     layers: layers.map((l) => ({ name: l.name, version: l.version ?? null, source: l.source, stale: !!l.stale })),
   };
   const numericSet = new Set();
@@ -171,6 +196,18 @@ export function mergeLayers(layers, { lockRepoAlternatives = false } = {}) {
           status: b.status,
           entry: b.entry,
         });
+      }
+    }
+    if (layer.name === 'org' && !merged.tls_ca_bundle && p.tls && typeof p.tls.ca_bundle === 'string' && path.isAbsolute(p.tls.ca_bundle)) {
+      merged.tls_ca_bundle = { path: p.tls.ca_bundle, source: layer.source };
+    }
+    // Sanctioned environment fixes, like alternatives: the highest layer wins; repo ones are
+    // dropped when the managed config locks repo alternatives; learned entries have none.
+    if (p.environment_fixes && typeof p.environment_fixes === 'object' && layer.name !== 'learned' && !(layer.name === 'repo' && lockRepoAlternatives)) {
+      for (const [k, v] of Object.entries(p.environment_fixes)) {
+        if (ENV_SUBTYPES.has(k) && typeof v === 'string' && v.trim() && v.length <= 300 && !merged.environment_fixes[k]) {
+          merged.environment_fixes[k] = { text: v.trim(), source: layer.source };
+        }
       }
     }
     if (Array.isArray(p.fixes)) {
