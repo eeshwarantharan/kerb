@@ -2,7 +2,7 @@
 
 **Kerb keeps your coding agent on the road.** It stops AI coding agents from wasting turns on actions your environment forbids and on retries that cannot help, and it shows you every save.
 
-> **0.1 is a preview.** Everything in the spec is built and tested on macOS; Linux and Windows CI, a full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](.github/ISSUE_TEMPLATE/false-refusal.md).
+> **0.1 is a preview.** Everything in the spec is built and tested on macOS and Linux. Windows is experimental (hooks and pre-checks are expected to work; `kerb run` is still being fixed). A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](.github/ISSUE_TEMPLATE/false-refusal.md).
 
 Two refusals, as the agent sees them:
 
