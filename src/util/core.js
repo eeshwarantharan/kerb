@@ -1,4 +1,5 @@
 // Small shared helpers: exit codes, errors, clock, ids, durations, sizes, hashing.
+import fs from 'node:fs';
 import { crypto } from './lazy.js';
 
 /** Exit codes (4.2). Loop and policy codes are configurable by the human or managed config. */
@@ -111,9 +112,23 @@ export function pidAlive(pid) {
   if (!pid || !Number.isInteger(pid)) return false;
   try {
     process.kill(pid, 0);
-    return true;
   } catch (e) {
     return e.code === 'EPERM';
+  }
+  return !isZombie(pid);
+}
+
+/**
+ * A zombie has finished and only waits for its parent to collect it; on Linux CI runners that
+ * can take a while for reparented processes. Treat it as dead.
+ */
+export function isZombie(pid) {
+  if (process.platform !== 'linux') return false;
+  try {
+    const stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
+    return stat.slice(stat.lastIndexOf(')') + 2, stat.lastIndexOf(')') + 3) === 'Z';
+  } catch {
+    return false;
   }
 }
 

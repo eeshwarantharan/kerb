@@ -21,8 +21,8 @@ jobs:
     # Windows support is experimental in 0.x: its results are reported but don't block.
     continue-on-error: ${{ matrix.os == 'windows-latest' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: ${{ matrix.node }}
       - run: git config --global user.name ci && git config --global user.email ci@example.com
@@ -39,9 +39,15 @@ jobs:
           echo "side file:"; cat "$D/side.txt" || echo "(missing)"
           ls -la "$D"
           exit 0
-      - run: node --test --test-timeout=180000
+      - name: node --test
+        shell: bash
+        run: node --test --test-timeout=180000 2>&1 | tee test-output.txt
         env:
           CI: 'true'
+      - name: Annotate failing tests
+        if: failure()
+        shell: bash
+        run: node scripts/ci-annotate.js test-output.txt
 
   shuffled:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
@@ -51,8 +57,8 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: git config --global user.name ci && git config --global user.email ci@example.com
@@ -63,8 +69,8 @@ jobs:
   performance:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: git config --global user.name ci && git config --global user.email ci@example.com
@@ -83,8 +89,8 @@ jobs:
   pack:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - name: npm pack smoke test
@@ -107,8 +113,8 @@ jobs:
           - { target: win-x64, os: windows-latest }
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: git config --global user.name ci && git config --global user.email ci@example.com

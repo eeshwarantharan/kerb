@@ -135,7 +135,15 @@ export function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
 /** True if a process with this PID exists. */
 export function alive(pid) {
-  try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; }
+  try { process.kill(pid, 0); } catch (e) { return e.code === 'EPERM'; }
+  // A zombie (finished, not yet collected by its new parent) is dead for our purposes.
+  if (process.platform === 'linux') {
+    try {
+      const stat = fs.readFileSync(`/proc/${pid}/stat`, 'utf8');
+      if (stat[stat.lastIndexOf(')') + 2] === 'Z') return false;
+    } catch { return false; }
+  }
+  return true;
 }
 
 /** Poll until fn() is truthy or timeout. */
