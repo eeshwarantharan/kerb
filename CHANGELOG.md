@@ -2,6 +2,20 @@
 
 All notable changes to Kerb. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-10-02
+
+Milestone B of [docs/KERB-V2.md](docs/KERB-V2.md), "Truth". Still a preview.
+
+### Added
+
+- **State model:** check runs are identified by states built from git trees (through a copy of the index, so the real index is never touched), or outside git by the walk hash plus a content-addressed blob store. Post-states are kept as `state` records with refs under `refs/kerb/states/` (never pushed by default; `kerb doctor` warns about mirror remotes, and the hook notes `git push --mirror`). States can be materialized as a worktree or a patch, without touching the working tree. `kerb gc` applies retention.
+- **Kerb Execution Record (KER) v1:** JSON Schemas for every record type, published in [docs/KER.md](docs/KER.md); `session` records; rebuildable indexes in `.kerb/index/` and `kerb reindex`.
+- **Test-level results:** parsers for Vitest (including its agent reporter), Jest, pytest, go test, cargo test and Node's test runner, JUnit XML report files, and tsc, ESLint, Ruff, mypy and Clippy diagnostics as pseudo-tests. Check runs record `framework`, `tests_summary` and one `test_result` per test.
+
+### Changed
+
+- The loop rules compare state ids instead of v1 workspace hashes, with the same results (v1's W tests pass unchanged). A state id includes the HEAD commit, so a commit still makes a retry legitimate.
+
 ## [0.2.0] - 2026-10-01
 
 Milestone A of [docs/KERB-V2.md](docs/KERB-V2.md), "try it safely". Still a preview.
@@ -40,5 +54,6 @@ First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented 
 - The task benchmark has not been run yet, so there are no savings figures.
 - Hook latency is borderline against the 100 ms target for check commands after a failure (see `bench/results/`).
 
+[0.3.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.3.0
 [0.2.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.1.0

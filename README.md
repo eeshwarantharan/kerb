@@ -60,7 +60,7 @@ kerb: environment · TLS interception: a proxy re-signs HTTPS with a company CA 
 ```
 
 > [!NOTE]
-> **0.2 is a preview.** Everything in the [spec](docs/KERB.md) and milestone A of [v2](docs/KERB-V2.md) (shadow mode, `kerb scan`, the environment classifier, progressive help) is built and tested on macOS and Linux. Windows is experimental. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
+> **0.3 is a preview.** Everything in the [spec](docs/KERB.md) and milestones A and B of [v2](docs/KERB-V2.md) (shadow mode, `kerb scan`, the environment classifier, restorable states, the [KER record format](docs/KER.md) and test-level results for eleven tools) is built and tested on macOS and Linux. Windows is experimental. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
 
 ## Try it safely
 
@@ -191,6 +191,7 @@ kerb wait-for --until output:ready -- curl -s localhost:8080/health
 - **Locked settings.** The managed config sets defaults and can lock them, and can ignore alternatives named by repo policies (`lock_repo_alternatives`). `mode: enforce` skips the shadow week for everyone.
 - **Environment.** Put the company CA bundle in the org policy or managed config (`tls.ca_bundle`), and name sanctioned fixes for environment failures (`environment_fixes`, for example `"auth_expired": "run corp-login, then retry"`); agents see them with their source, like alternatives.
 - **Review.** `kerb export-denials` (no command text or output) from each machine; `kerb review --denials …` keeps hosts seen on 3+ machines and writes a policy patch plus a Markdown summary with three choices per host.
+- **Records.** Every run, state and test result is an event in `.kerb/runs.jsonl`, in a published format with JSON Schemas ([KER v1](docs/KER.md)), so your own tools can read what actually ran.
 - **Telemetry** is off by default. With an OTLP endpoint in the managed config and telemetry switched on, Kerb sends one metrics batch per session to your collector, never commands, output, paths or usernames.
 
 The full specification is [docs/KERB.md](docs/KERB.md).
