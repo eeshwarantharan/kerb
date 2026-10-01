@@ -28,6 +28,27 @@ export function hookPaths(command) {
   return head;
 }
 
+/**
+ * Remotes that would push Kerb's state refs (refs/kerb/*): `mirror = true`, or a push refspec
+ * whose source covers refs/kerb (KERB-V2 4.2).
+ */
+export function mirrorRisks(root) {
+  const r = spawnSync('git', ['-C', root, 'config', '--get-regexp', '^remote\\..*\\.(mirror|push)$'], { encoding: 'utf8' });
+  if (r.status !== 0) return [];
+  const out = [];
+  for (const line of r.stdout.split('\n').filter(Boolean)) {
+    const [key, ...rest] = line.split(' ');
+    const value = rest.join(' ');
+    const remote = key.replace(/^remote\./, '').replace(/\.(mirror|push)$/, '');
+    if (key.endsWith('.mirror') && value === 'true') out.push(`remote ${remote} is a mirror: a push sends Kerb's local state refs (refs/kerb/*), which hold uncommitted work`);
+    if (key.endsWith('.push')) {
+      const src = value.replace(/^\+/, '').split(':')[0];
+      if (['refs/*', 'refs/kerb/*', 'refs/kerb/states/*', '*'].includes(src)) out.push(`remote ${remote} pushes ${value}, which includes Kerb's local state refs (refs/kerb/*)`);
+    }
+  }
+  return out;
+}
+
 export async function runDoctor(root) {
   /** @type {{ level: 'ok' | 'warn' | 'fail', text: string, fix?: string }[]} */
   const checks = [];
@@ -116,6 +137,7 @@ export async function runDoctor(root) {
   if (git) {
     const cfgv = (k) => { const r = spawnSync('git', ['-C', root, 'config', '--get', k], { encoding: 'utf8' }); return r.status === 0 ? r.stdout.trim() : null; };
     if (cfgv('core.trustctime') === 'false') add('warn', 'core.trustctime is false: an edit that restores its mtime may look unchanged to Kerb', 'git config core.trustctime true');
+    for (const w of mirrorRisks(root)) add('warn', w, 'git config --unset remote.<name>.mirror, or narrow its push refspec to refs/heads/*');
     const st = spawnSync('git', ['-C', root, 'status', '--porcelain', '--', 'kerb.policy.json', '.kerbignore'], { encoding: 'utf8' });
     if (st.status === 0 && st.stdout.trim()) add('warn', `policy files changed since the last commit: ${st.stdout.trim().split('\n').map((l) => l.slice(3)).join(', ')}`, 'review the change (an agent may have edited it) and commit or revert it');
   }

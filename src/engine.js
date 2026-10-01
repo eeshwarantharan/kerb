@@ -98,7 +98,12 @@ function orphanEnd(info) {
 export function preRefusal(prep) {
   const human = humanOnlyRefusal(prep.parsed);
   if (human) return { refusal: human, notes: [], hosts: [] };
-  return boundaryCheck(prep.parsed, prep.policy, { env: prep.ctx.env });
+  const r = boundaryCheck(prep.parsed, prep.policy, { env: prep.ctx.env });
+  // Kept states live under refs/kerb/; only a mirror push sends them (KERB-V2 4.2).
+  if (prep.git && prep.parsed.segments.some((s) => s.name === 'git' && s.args.includes('push') && s.args.includes('--mirror'))) {
+    r.notes = [...r.notes, "git push --mirror also pushes Kerb's local state refs (refs/kerb/*), which hold uncommitted work"];
+  }
+  return r;
 }
 
 /**

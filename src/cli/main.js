@@ -35,6 +35,7 @@ export const COMMANDS = {
   enforce: () => import('./enforce.js'),
   'review-shadow': () => import('./review-shadow.js'),
   scan: () => import('./scan.js'),
+  gc: () => import('./gc.js'),
 };
 
 /** The six commands `kerb --help` shows (KERB-V2 10.3). */
@@ -62,6 +63,7 @@ export const GROUPS = [
   ['Insight', [
     ['why [run-id]', 'explain a refusal with its evidence'],
     ['diff <runA> <runB>', 'files that differ between two runs'],
+    ['gc [--dry-run]', "apply retention to Kerb's kept states"],
   ]],
   ['Platform (what agents and hooks call)', [
     ['run [opts] -- <command>', 'pre-check, run supervised, shape output, record'],

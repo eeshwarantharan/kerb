@@ -10,7 +10,7 @@ export const REPO_POLICY_FILE = 'kerb.policy.json';
 export const POLICY_KEYS = new Set([
   'version', 'breaker_threshold', 'retry_cooldown', 'hash_scope', 'shared_paths', 'check_commands',
   'transient_patterns', 'dependency_patterns', 'env_keys', 'env_markers', 'boundaries', 'fixes', '$schema', 'description',
-  'tls', 'environment_fixes',
+  'tls', 'environment_fixes', 'worktree_links',
 ]);
 /** Environment failure subtypes (KERB-V2 8.3) a policy may name a sanctioned fix for (6.2). */
 export const ENV_SUBTYPES = new Set(['tls_interception', 'proxy_page', 'auth_expired']);
@@ -18,7 +18,7 @@ export const BOUNDARY_KINDS = new Set(['host', 'program', 'command', 'git_push']
 const BOUNDARY_KEYS = new Set(['kind', 'pattern', 'alternative', 'why']);
 const FIX_KEYS = new Set(['key_contains', 'output_contains', 'hint']);
 const PATTERN_LISTS = ['transient_patterns', 'dependency_patterns'];
-const STRING_LISTS = ['shared_paths', 'check_commands', 'env_keys', 'env_markers'];
+const STRING_LISTS = ['shared_paths', 'check_commands', 'env_keys', 'env_markers', 'worktree_links'];
 export const MAX_PATTERN_LEN = 200;
 export const MAX_PATTERNS = 50;
 
@@ -147,6 +147,7 @@ export function mergeLayers(layers, { lockRepoAlternatives = false } = {}) {
     dependency_patterns: [],
     env_keys: [...DEFAULT_ENV_KEYS],
     env_markers: [],
+    worktree_links: [],
     /** @type {Boundary[]} */
     boundaries: [],
     fixes: [],
@@ -174,7 +175,7 @@ export function mergeLayers(layers, { lockRepoAlternatives = false } = {}) {
       merged.hash_scope = p.hash_scope;
       numericSet.add('hash_scope');
     }
-    for (const k of ['shared_paths', 'check_commands', 'transient_patterns', 'dependency_patterns', 'env_keys', 'env_markers']) {
+    for (const k of ['shared_paths', 'check_commands', 'transient_patterns', 'dependency_patterns', 'env_keys', 'env_markers', 'worktree_links']) {
       if (Array.isArray(p[k])) for (const v of p[k]) if (typeof v === 'string' && !merged[k].includes(v)) merged[k].push(v);
     }
     if (Array.isArray(p.boundaries)) {

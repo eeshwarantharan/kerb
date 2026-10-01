@@ -134,7 +134,7 @@ function changedFiles(input, runs) {
   const out = new Set();
   try {
     for (let i = 1; i < runs.length && out.size < 10; i++) {
-      const d = diffSnapshots(input.root, readSnapshot(input.store, runs[i - 1].id), readSnapshot(input.store, runs[i].id));
+      const d = diffSnapshots(input.root, readSnapshot(input.store, runs[i - 1]), readSnapshot(input.store, runs[i]));
       if (d) for (const f of d) out.add(f);
     }
   } catch { /* evidence is best effort */ }

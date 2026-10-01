@@ -23,8 +23,8 @@ export default async function diff(ctx, args) {
   const runs = buildRuns(store.read());
   const a = findRun(runs, positionals[0]);
   const b = findRun(runs, positionals[1]);
-  const sa = readSnapshot(store, a.id);
-  const sb = readSnapshot(store, b.id);
+  const sa = readSnapshot(store, a);
+  const sb = readSnapshot(store, b);
   const files = diffSnapshots(root, sa, sb);
   const sameFingerprint = a.fingerprint && b.fingerprint ? a.fingerprint === b.fingerprint : null;
   if (ctx.json) {

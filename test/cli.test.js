@@ -92,6 +92,7 @@ test('T0 every command supports --json and prints exactly one JSON object', () =
     enforce: ['enforce'],
     'review-shadow': ['review-shadow'],
     scan: ['scan'],
+    gc: ['gc', '--dry-run'],
   };
   const skipped = new Set(['watch', 'hook']); // watch streams events; hook speaks each agent's protocol
   for (const name of Object.keys(COMMANDS)) {

@@ -18,7 +18,7 @@ export function loopGate(prep, o = {}) {
   const seg = checkSegment(prep.parsed, prep.checkCommands);
   const segCwd = seg ? seg.cwd : prep.ctx.cwd;
   const { scope, envStamp } = scopeAndStamp(prep, segCwd);
-  const hctx = { root: prep.root, git: prep.git, policy: prep.policy, env: prep.ctx.env };
+  const hctx = { root: prep.root, git: prep.git, policy: prep.policy, env: prep.ctx.env, envStamp };
   let recs = null;
   if (o.lazy && !o.force) {
     recs = o.runs || loadRuns(prep.store).recs;
@@ -36,7 +36,7 @@ export function loopGate(prep, o = {}) {
     hashMs: pre.ms,
     /** Post-hash after the run; writes the run's snapshot. */
     postHash(runId) {
-      const post = hashWorkspace(hctx, scope, budget);
+      const post = hashWorkspace({ ...hctx, store: true }, scope, budget);
       if (post.snapshot) writeSnapshot(prep.store, runId, post.snapshot);
       return { hash: post.hash, skipped: post.skipped };
     },

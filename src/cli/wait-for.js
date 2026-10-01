@@ -38,12 +38,12 @@ export default async function waitForCmd(ctx, args) {
   if (prep.cls === 'check') {
     const seg = checkSegment(prep.parsed, prep.checkCommands);
     const { scope, envStamp } = scopeAndStamp(prep, seg ? seg.cwd : ctx.cwd);
-    const hctx = { root: prep.root, git: prep.git, policy: prep.policy, env: ctx.env };
+    const hctx = { root: prep.root, git: prep.git, policy: prep.policy, env: ctx.env, envStamp };
     const budget = prep.config.values.hash_budget_ms || 2000;
     const pre0 = hashWorkspace(hctx, scope, budget);
     loop = {
       preHash: pre0.hash, envStamp, skipped: pre0.skipped,
-      postHash(id) { const p = hashWorkspace(hctx, scope, budget); if (p.snapshot) writeSnapshot(prep.store, id, p.snapshot); return { hash: p.hash }; },
+      postHash(id) { const p = hashWorkspace({ ...hctx, store: true }, scope, budget); if (p.snapshot) writeSnapshot(prep.store, id, p.snapshot); return { hash: p.hash }; },
     };
   }
   const lim = limits(prep, { idle: opts.idle, budget: opts.budget });
