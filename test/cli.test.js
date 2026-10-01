@@ -19,6 +19,23 @@ test('T0 --version matches package.json', () => {
   assert.equal(VERSION, pkg.version);
 });
 
+test('CL1 --help lists exactly six commands', () => {
+  const r = runKerb(['--help']);
+  const listed = r.stdout.split('\n').filter((l) => /^ {2}[a-z]/.test(l)).map((l) => l.trim().split(/\s+/)[0]);
+  assert.deepEqual(listed, ['init', 'scan', 'status', 'report', 'enforce', 'doctor']);
+  assert.match(r.stdout, /more commands: kerb help all/);
+  assert.deepEqual(runKerb(['--json', '--help']).json.start, listed);
+});
+
+test('CL2 help all lists every command', async () => {
+  const { COMMANDS: all } = await import('../src/cli/main.js');
+  const r = runKerb(['help', 'all']);
+  assert.equal(r.code, 0);
+  const listed = new Set(r.stdout.split('\n').filter((l) => /^ {2}[a-z]/.test(l)).map((l) => l.trim().split(/\s+/)[0]));
+  for (const name of Object.keys(all)) assert.ok(listed.has(name), `help all lists ${name}`);
+  for (const group of ['Look around', 'Insight', 'Platform', 'Platform teams', 'Human-only']) assert.match(r.stdout, new RegExp(`^${group}`, 'm'));
+});
+
 test('T0 unknown command exits 64', () => {
   const r = runKerb(['frobnicate']);
   assert.equal(r.code, 64);

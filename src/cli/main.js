@@ -37,44 +37,80 @@ export const COMMANDS = {
   scan: () => import('./scan.js'),
 };
 
+/** The six commands `kerb --help` shows (KERB-V2 10.3). */
+export const START = [
+  ['init [--agent <name>] [--dry-run]', 'wire Kerb into your agents; starts in shadow mode for 7 days'],
+  ['scan [--since 30d]', 'see what Kerb would have caught in your past agent sessions'],
+  ['status', 'mode, agents, boundaries, open breakers and recent runs'],
+  ['report [--since 7d]', 'what Kerb measured, and what it estimates'],
+  ['enforce', 'turn blocking on after shadow mode (human-only)'],
+  ['doctor [tls]', 'check the installation and print fixes; tls finds your company CA'],
+];
+
+/** Everything else, grouped, for `kerb help all`. */
+export const GROUPS = [
+  ['Look around', [
+    ['mode', 'shadow or enforce, and what shadow mode would have stopped'],
+    ['review-shadow [--since 7d]', 'each command shadow mode would have stopped, with evidence'],
+    ['history [-n N] [--key K]', 'recent runs and refusals'],
+    ['map', 'every boundary with source and hits'],
+    ['recap', 'the session recap'],
+    ['statusline [--segment]', 'one status line'],
+    ['card [--week|--session|--scan]', 'shareable SVG and HTML card'],
+    ['watch', 'live view of runs'],
+  ]],
+  ['Insight', [
+    ['why [run-id]', 'explain a refusal with its evidence'],
+    ['diff <runA> <runB>', 'files that differ between two runs'],
+  ]],
+  ['Platform (what agents and hooks call)', [
+    ['run [opts] -- <command>', 'pre-check, run supervised, shape output, record'],
+    ['wait-for [opts] -- <command>', 'poll a command inside one call until a condition holds'],
+    ['check -- <command>', 'pre-check only; never runs anything'],
+    ['hook <agent> <event>', 'hook handler for an agent'],
+  ]],
+  ['Platform teams', [
+    ['policy keygen|sign|verify|lint', 'sign and check org policy bundles'],
+    ['export-denials [--since 7d]', 'learned boundaries, for team review'],
+    ['review --denials <file...>', 'turn exported denials into a policy patch'],
+  ]],
+  ['Human-only (each asks for a code typed in your terminal)', [
+    ['enforce', 'turn blocking on'],
+    ['ack [key]', 'allow one more run of a command after a breaker opened'],
+    ['reset [key]', 'clear loop state'],
+    ['forget <pattern>', 'remove a learned boundary'],
+    ['config get|set <key> [value]', 'user settings (get needs no code)'],
+    ['uninstall', 'remove everything init added'],
+  ]],
+];
+
+const FOOTER = `global flags: --json  --cwd <dir>  --no-color  --help  --version
+exit codes: child's code, 75 loop refusal, 77 policy refusal, 124 timeout, 125 idle,
+            64 usage, 70 internal, 71 state corrupt. Trust the "kerb:" line over the code.
+`;
+
+const WIDTH = Math.max(...[...START, ...GROUPS.flatMap(([, l]) => l)].map(([u]) => u.length));
+
+function rows(list, width) {
+  return list.map(([u, d]) => `  ${u.padEnd(width)}  ${d}`).join('\n');
+}
+
 export const HELP = `kerb ${VERSION} · keeps your coding agent on the road
 
 usage: kerb <command> [options]
 
-running
-  run [opts] -- <command>        pre-check, run supervised, shape output, record
-  wait-for [opts] -- <command>   poll a command inside one call until a condition holds
-  check -- <command>             pre-check only; never runs anything
+${rows(START, WIDTH)}
 
-setup
-  init [--agent <name>] [--dry-run] [--refresh]   wire Kerb into detected agents
-  uninstall                      remove everything init added (human-only)
-  doctor                         check installation and print fixes
+more commands: kerb help all
+${FOOTER}`;
 
-looking
-  status                         tiers, boundaries, open breakers, recent runs
-  why [run-id]                   explain a refusal
-  history [-n N] [--key K]       recent runs
-  diff <runA> <runB>             files that differ between two runs
-  map                            every boundary with source and hits
-  report [--since 7d]            measured and estimated savings
-  recap                          session recap
-  statusline [--segment]         one status line
-  card [--week|--session]        shareable SVG and HTML card
-  watch                          live view of runs
+export const HELP_ALL = `kerb ${VERSION} · all commands
 
-human-only
-  ack [key]  reset [key]  forget <pattern>  config get|set <key> [value]
+Start here
+${rows(START, WIDTH)}
+${GROUPS.map(([name, list]) => `\n${name}\n${rows(list, WIDTH)}`).join('\n')}
 
-platform teams
-  policy keygen|sign|verify|lint
-  export-denials [--since 7d]
-  review --denials <file...>
-
-global flags: --json  --cwd <dir>  --no-color  --help  --version
-exit codes: child's code, 75 loop refusal, 77 policy refusal, 124 timeout, 125 idle,
-            64 usage, 70 internal, 71 state corrupt. Trust the "kerb:" line over the code.
-`;
+${FOOTER}`;
 
 /**
  * Split global flags from the rest. Flags after a bare `--` belong to the child command.
@@ -116,8 +152,9 @@ export async function main(argv, io = {}) {
   const ctx = createContext({ ...io, json: g.json, noColor: g.noColor, cwd: g.cwd ? path.resolve(io.cwd || process.cwd(), g.cwd) : io.cwd });
 
   if (!name || name === 'help' || name === '--help' || name === '-h') {
-    if (ctx.json) ctx.emitJson({ version: VERSION, commands: Object.keys(COMMANDS) });
-    else ctx.out(HELP);
+    const all = name === 'help' && args[0] === 'all';
+    if (ctx.json) ctx.emitJson({ version: VERSION, start: START.map(([u]) => u.split(' ')[0]), commands: Object.keys(COMMANDS) });
+    else ctx.out(all ? HELP_ALL : HELP);
     return 0;
   }
   if (name === '--version' || name === '-v' || name === 'version') {
