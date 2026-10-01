@@ -18,17 +18,33 @@
 </p>
 
 <p align="center">
-  <a href="#install"><b>Install</b></a> ·
+  <a href="#try-it-safely"><b>Install</b></a> ·
   <a href="#works-with"><b>Works with</b></a> ·
   <a href="#boundaries"><b>Boundaries</b></a> ·
   <a href="#for-platform-teams"><b>Platform teams</b></a> ·
   <a href="docs/KERB.md"><b>Spec</b></a> ·
+  <a href="docs/KERB-V2.md"><b>v2 plan</b></a> ·
   <a href="#faq"><b>FAQ</b></a>
 </p>
 
 ---
 
-Two refusals, as the agent sees them. Each one is three lines, arrives before the command runs, and names the next step:
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eeshwarantharan/kerb/main/docs/assets/scan-hero.svg" alt="kerb scan output: test re-runs with nothing changed, retries against blocked hosts, certificate errors, output beyond the budget, hung commands and polls, replayed from past agent sessions" width="860">
+  <br><sub><code>kerb scan</code> on the sample transcripts in <a href="test/fixtures/scan/">test/fixtures/scan</a>. Run it in your repo to see your own; it reads local files only.</sub>
+</p>
+
+## Who it's for
+
+**You use a coding agent: see what it wasted last month, then stop it.** `kerb scan` replays your past Claude Code, Codex and Gemini CLI sessions and counts the test re-runs that couldn't help, the retries against walls, the certificate errors and the hung commands. `kerb init` then runs in shadow mode for a week: it records what it would have stopped and blocks nothing, until you turn it on.
+
+**You work behind a corporate network: your agent learns the walls instead of hitting them.** Kerb refuses blocked registries and hosts before the command runs and names the approved mirror. It recognises TLS interception, proxy block pages and expired credentials as environment problems, so the agent stops debugging code that isn't broken, and points each tool at your company CA bundle. It never suggests turning certificate checks off.
+
+**You run a platform team: give every agent the company's rules, signed, and see which walls they hit.** A signed policy bundle reaches every developer's agent through managed config. Learned denials come back for review as a policy patch, and telemetry (off by default) goes only to your own collector.
+
+## What the agent sees
+
+Each refusal is three lines, arrives before the command runs, and names the next step. An environment failure gets a fix line instead of another debugging attempt:
 
 ```
 kerb: policy_blocked · registry.npmjs.org is blocked here
@@ -38,10 +54,40 @@ kerb: policy_blocked · registry.npmjs.org is blocked here
 kerb: identical_retry · nothing relevant changed since this failed
       matches run 0muomskqv002xs (ordinary) · FAIL src/cart.test.js › applies the discount
       next: change something first, or run `kerb diff` to compare attempts
+
+kerb: environment · TLS interception: a proxy re-signs HTTPS with a company CA this tool does not trust; not a code problem
+      next: retry with PIP_CERT=/etc/company/ca.pem for this command (company CA bundle from org policy v42)
 ```
 
 > [!NOTE]
-> **0.1 is a preview.** Everything in the [spec](docs/KERB.md) is built and tested on macOS and Linux. Windows is experimental: hooks and pre-checks are expected to work, and `kerb run` is still being fixed. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
+> **0.2 is a preview.** Everything in the [spec](docs/KERB.md) and milestone A of [v2](docs/KERB-V2.md) (shadow mode, `kerb scan`, the environment classifier, progressive help) is built and tested on macOS and Linux. Windows is experimental. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
+
+## Try it safely
+
+```bash
+brew install eeshwarantharan/tap/kerb   # macOS and Linux
+# or download a binary from Releases (checksums and build provenance attached)
+# or: npm install -g kerb-cli           # Node 20+; the command is still `kerb`
+
+cd my-repo
+kerb scan                             # what Kerb would have caught in your past sessions (replayed)
+kerb init                             # hooks, status line, skill, AGENTS.md block; shadow mode for 7 days
+kerb doctor                           # everything green, or the exact fix
+```
+
+`kerb init` prints every file it changed, which agents are **enforced** (native hook) or **best effort** (instructions only), and how to undo it (`kerb uninstall`). The standalone binary is the recommended install: hooks call it by absolute path, so Node version managers never get in the way, and it starts faster (see [Honest numbers](#honest-numbers)).
+
+**Shadow mode.** For the first 7 days Kerb refuses nothing. Every refusal it would have made is recorded, the recap says `would have stopped 4 re-runs and 1 blocked retry`, and insights (hints, environment fixes) still reach the agent. After 7 days, or 20 would-be refusals, the recap asks you once to look:
+
+```bash
+kerb review-shadow     # each command it would have stopped, the evidence, and what happened when it ran anyway
+kerb enforce           # turn blocking on (you type a code; an agent can't)
+kerb mode              # which mode, since when, and what it would have stopped
+```
+
+A managed config can set `mode: enforce` for a whole organisation.
+
+`kerb --help` shows the six commands above (`init`, `scan`, `status`, `report`, `enforce`, `doctor`); `kerb help all` shows the rest.
 
 ## Demo
 
@@ -61,31 +107,20 @@ Agents burn paid turns hitting walls (blocked registries, hosts and protected br
 |---|---|
 | **Boundary Map** | Knows what your environment forbids (registries, hosts, programs, protected branches), refuses before the command runs, and names the approved alternative. Learns new walls from real policy denials, so each one is hit once. |
 | **Loopbreaker** | Judges retries by the actual state of your files and environment, not by the command text. Refuses re-runs that can't change the result, returns to a state that already failed, and the same failure over and over despite edits. Lets legitimate retries through. |
+| **Environment classifier** | TLS interception, corporate proxy block pages and expired credentials are recorded as environment failures: never counted as loops, and answered with a fix line (your company CA bundle for this tool, or "ask the user to re-authenticate"). |
+| **`kerb scan`** | Replays past agent sessions from local transcripts and shows what Kerb would have stopped, with tokens measured from the transcripts' own usage records where they have them. |
+| **Shadow mode** | The first week records instead of refusing, so you can check every would-be refusal before turning blocking on. |
 | **`kerb wait-for`** | Turns polling into one call: retries inside Kerb and returns once, instead of the agent spending a turn per poll. |
 | **Output shaping** | Strips colour codes and progress bars, folds repeats, trims long output to a head and tail, and keeps the full log on disk. |
 | **Supervisor** | Total and idle timeouts that kill the whole process tree, so watch modes, prompts and stuck servers don't hang the agent. |
 | **Visible saves** | A status line, a session recap and a shareable card, with measured and estimated numbers always labelled apart. |
 | **Org policy** | A signed, versioned policy bundle so a platform team can give every agent the company's current rules. |
 
-## Install
-
-```bash
-brew install eeshwarantharan/tap/kerb   # macOS and Linux
-# or download a binary from Releases (checksums and build provenance attached)
-# or: npm install -g kerb-cli           # Node 20+; the command is still `kerb`
-
-cd my-repo
-kerb init                             # detects agents, installs hooks, status line, skill, AGENTS.md block
-kerb doctor                           # everything green, or the exact fix
-```
-
-`kerb init` prints every file it changed, which agents are **enforced** (native hook) or **best effort** (instructions only), and how to undo it (`kerb uninstall`). The standalone binary is the recommended install: hooks call it by absolute path, so Node version managers never get in the way, and it starts faster (see [Honest numbers](#honest-numbers)).
-
 ## What you'll see
 
 Nothing, until Kerb saves something. Then (example output):
 
-- **A status line** in agents that have one: `kerb · 3 re-runs avoided · 1.2 MB noise trimmed · 4 walls known`
+- **A status line** in agents that have one: `kerb · 3 re-runs avoided · 1.2 MB noise trimmed · 4 walls known` (in shadow mode it starts `kerb · shadow: would have stopped 3`)
 - **A recap** when the agent finishes a turn with new saves:
 
   ```
@@ -97,7 +132,7 @@ Nothing, until Kerb saves something. Then (example output):
     hangs killed      1
   ```
 
-- **A card** you can share: `kerb card --week` writes an SVG and an HTML page (and a PNG where `rsvg-convert` or macOS `qlmanage` exists). Measured numbers only; a dollar figure appears only if you set a price, and it is marked "est.".
+- **A card** you can share: `kerb card --week` writes an SVG and an HTML page (and a PNG where `rsvg-convert` or macOS `qlmanage` exists); `kerb card --scan` draws the replayed numbers. Measured numbers only; a dollar figure appears only if you set a price, and it is marked "est.".
 - **A live view**: `kerb watch` in a second terminal.
 
 ## Boundaries
@@ -120,6 +155,12 @@ Put a `kerb.policy.json` at the repo root:
 Kerb checks every segment of a command before it runs: URLs and registry flags, the registry `npm install` or `pip install` would use implicitly (it reads `.npmrc`, `pip.conf`, `GOPROXY` and friends), `git push` targets, program names and command globs.
 
 **Learning.** When a command fails with a real policy denial (for example `blocked by policy: a.example` or `CONNECT tunnel failed, response 403`) *and* that line names a host the command actually contacted, Kerb records the wall and refuses the next attempt before it runs. DNS failures are recorded as *suspected* and never block until they are seen from two different commands. Learned walls expire 14 days after their last hit, never name alternatives, and can be removed with `kerb forget <host>`.
+
+## Corporate TLS and proxies
+
+When a command fails because a proxy re-signs HTTPS, Kerb says so and gives the setting for that tool, pointed at your company CA bundle: `NODE_EXTRA_CA_CERTS` for Node, plus `npm config set cafile` for npm; `PIP_CERT` or `REQUESTS_CA_BUNDLE` for Python; `SSL_CERT_FILE` for uv, Go and OpenSSL tools (`CURL_CA_BUNDLE` for curl); `GIT_SSL_CAINFO` for git; `AWS_CA_BUNDLE` for the AWS CLI; `cafile` in `bunfig.toml` for `bun install`. Java needs the CA imported into a truststore, so Kerb tells the user instead.
+
+The bundle comes from the managed config or the org policy (`tls.ca_bundle`), or from your own config. A repo's `kerb.policy.json` can't set it. If none is configured, `kerb doctor tls` finds the company root CAs in your OS trust store (the ones that aren't public roots), and after you type the confirmation code writes `~/.kerb/ca-bundle.pem` (public roots plus those CAs) and sets `tls.ca_bundle`.
 
 ## Works with
 
@@ -147,7 +188,8 @@ kerb wait-for --until output:ready -- curl -s localhost:8080/health
 ## For platform teams
 
 - **Org bundle.** Keep the policy in a repo ([template](templates/agent-policy/)), sign it in CI with `kerb policy sign` (Ed25519), and publish it. A managed config deployed by MDM (`/Library/Application Support/Kerb/managed.json`, `/etc/kerb/managed.json`, `%ProgramData%\Kerb\managed.json`) points at the bundle and pins your public key. Kerb fetches at session start, verifies the signature, and caches for 24 hours; an unverified bundle is never used. Lower layers can add blocks but never remove one.
-- **Locked settings.** The managed config sets defaults and can lock them, and can ignore alternatives named by repo policies (`lock_repo_alternatives`).
+- **Locked settings.** The managed config sets defaults and can lock them, and can ignore alternatives named by repo policies (`lock_repo_alternatives`). `mode: enforce` skips the shadow week for everyone.
+- **Environment.** Put the company CA bundle in the org policy or managed config (`tls.ca_bundle`), and name sanctioned fixes for environment failures (`environment_fixes`, for example `"auth_expired": "run corp-login, then retry"`); agents see them with their source, like alternatives.
 - **Review.** `kerb export-denials` (no command text or output) from each machine; `kerb review --denials …` keeps hosts seen on 3+ machines and writes a policy patch plus a Markdown summary with three choices per host.
 - **Telemetry** is off by default. With an OTLP endpoint in the managed config and telemetry switched on, Kerb sends one metrics batch per session to your collector, never commands, output, paths or usernames.
 
@@ -157,16 +199,16 @@ The full specification is [docs/KERB.md](docs/KERB.md).
 
 | Command | What it does |
 |---|---|
+| `kerb init` / `kerb scan` / `kerb status` / `kerb report` / `kerb enforce` / `kerb doctor [tls]` | Start here (`kerb --help`) |
 | `kerb run [--timeout d] [--idle d] [--budget n] [--key k] [--class c] -- <cmd>` | Pre-check, run supervised, shape output, record |
 | `kerb wait-for [--until …] [--interval 5s] [--max 3m] [--backoff] -- <cmd>` | Poll inside one call |
 | `kerb check -- <cmd>` | Pre-check only; never runs anything |
-| `kerb init` / `kerb uninstall` / `kerb doctor` | Set up, remove, diagnose |
-| `kerb status` / `kerb why [id]` / `kerb history` / `kerb diff a b` / `kerb map` | Look around |
-| `kerb report [--since 7d] [--estimate]` / `kerb recap` / `kerb statusline` / `kerb card` / `kerb watch` | See the saves |
-| `kerb ack` / `kerb reset` / `kerb forget` / `kerb config set` | Human-only: each asks you to type a code at the terminal |
+| `kerb mode` / `kerb review-shadow` / `kerb why [id]` / `kerb history` / `kerb diff a b` / `kerb map` | Look around |
+| `kerb recap` / `kerb statusline` / `kerb card [--week\|--session\|--scan]` / `kerb watch` | See the saves |
+| `kerb enforce` / `kerb ack` / `kerb reset` / `kerb forget` / `kerb config set` / `kerb uninstall` | Human-only: each asks you to type a code at the terminal |
 | `kerb policy keygen\|sign\|verify\|lint`, `kerb export-denials`, `kerb review` | Platform teams |
 
-Every command takes `--json` (one JSON object), `--cwd <dir>` and `--no-color`.
+`kerb help all` lists everything, grouped. Every command takes `--json` (one JSON object), `--cwd <dir>` and `--no-color`.
 
 | Exit code | Meaning |
 |---|---|
@@ -182,15 +224,17 @@ Exit codes can collide with a tool's own codes, so **trust the `kerb:` line** (o
 
 `kerb report` has two sections, labelled.
 
-- **Measured:** runs by class and tier, refusals by reason, re-runs avoided (refusals whose matched run exists), the run time and output those runs took, polls folded (attempts, not turns), bytes trimmed, hangs killed, walls learned, and loop checks skipped for the hash budget.
+- **Measured:** runs by class and tier, refusals by reason, would-be refusals in shadow mode, re-runs avoided (refusals whose matched run exists), the run time and output those runs took, polls folded (attempts, not turns), bytes trimmed, hangs killed, walls learned, and loop checks skipped for the hash budget.
 - **Estimated**, only if you set a price (or pass `--estimate`): tokens × your input price, with the formula and every assumption printed. A refusal still costs the agent a turn to read, so Kerb never reports "turns saved".
 
 What we have measured so far, on one Apple Silicon laptop (8 cores, a 5,000-file git repo, warm, end to end including process start; raw results in [`bench/results/`](bench/results/)): the `PreToolUse` hook takes p95 69 ms for an ordinary command and 98 ms for a check command with a previous failure (which must hash the workspace) with the standalone binary; with `npm install` on Node 20 the same cases take 82 ms and 136 ms, of which ~44 ms is Node's own start-up. The task benchmark (success rate, turns and tokens with and without Kerb) has not been run yet; its harness is in [`bench/`](bench/), and no savings figure will appear here until it has.
 
+`kerb scan` numbers are **replayed**, and labelled so: what Kerb's rules would have done with the commands in your transcripts. Tokens are shown only when the transcripts record usage, and are measured as the growth in the agent's context after each command's output (the next call's input minus this call's input and output), split by size when several results arrived together.
+
 ## Security
 
 - **Deny-only.** Kerb can make an agent do less. Its hooks never return "allow" or "approve", never rewrite a command, and never suggest a way around a block.
-- **No agent bypass.** There is no flag or variable an agent can set to switch Kerb off. The hook refuses `kerb ack|reset|forget|config|uninstall`, `run --force` and any `KERB_*` variable, and those actions need a code typed at your terminal.
+- **No agent bypass.** There is no flag or variable an agent can set to switch Kerb off. The hook refuses `kerb ack|reset|forget|config|uninstall|enforce`, `run --force` and any `KERB_*` variable, and those actions need a code typed at your terminal.
 - **Fail open.** If Kerb breaks or runs out of time, the command runs and the problem is logged and counted (`kerb doctor` shows it).
 - **No surprise network.** The only network calls are to an org bundle URL or telemetry endpoint an admin configured.
 - **Not a security boundary.** Kerb reduces waste; your firewall and platform policy remain the enforcement.
@@ -203,7 +247,9 @@ See [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 **Is it fast in a big monorepo?** Check commands hash only their own package plus root-level shared files, using `git status` (with fsmonitor and the untracked cache when your repo enables them). On a 100,000-file repo with both enabled that took about 80 ms warm in our test. If hashing ever exceeds its budget (300 ms in hooks), Kerb skips loop checks for that call and lets the command run; `kerb doctor` reports how often that happens.
 
-**Does it send data anywhere?** No, unless an admin configures an org bundle URL or a telemetry endpoint. Everything else stays in `.kerb/` in your repo and `~/.kerb/`.
+**Does it send data anywhere?** No, unless an admin configures an org bundle URL or a telemetry endpoint. Everything else stays in `.kerb/` in your repo and `~/.kerb/`. `kerb scan` reads your agents' local transcripts and writes nothing.
+
+**Can I try it without it blocking anything?** Yes, that's the default: `kerb init` starts a 7-day shadow mode, and `kerb review-shadow` shows each command it would have stopped and what happened when it ran anyway.
 
 **How is it different from RTK?** RTK compresses the output of 100+ CLI commands. Kerb stops the command from running at all when it can't help, and its output shaping is generic. They compose: "RTK saves tokens inside each call. Kerb saves the calls that shouldn't happen."
 

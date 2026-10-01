@@ -2,6 +2,24 @@
 
 All notable changes to Kerb. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-10-01
+
+Milestone A of [docs/KERB-V2.md](docs/KERB-V2.md), "try it safely". Still a preview.
+
+### Added
+
+- **Shadow mode:** `kerb init` starts a 7-day shadow period per repo. Hooks, `kerb run` and `kerb wait-for` record `would_refuse` events instead of refusing; the recap, status line and `kerb report` show what Kerb would have stopped, and the recap asks once for a review after 7 days or 20 events. `kerb mode`, `kerb review-shadow` (each event with its evidence and what happened when the command ran anyway) and human-only `kerb enforce`. A managed config can set `mode: enforce`; `kerb config set insights off` silences hints.
+- **`kerb scan`:** replays past Claude Code, Codex and Gemini CLI sessions in this repo from their local transcripts: identical re-runs, retries against blocked hosts, environment failures, hangs, output beyond the budget and polling, labelled "replayed", with tokens measured from the transcripts' usage records when present. Reads only, writes nothing. `kerb card --scan` draws it; `kerb init` offers it.
+- **Environment classifier:** TLS interception, corporate proxy block pages (Squid's stock page so far) and expired credentials are recorded as `failure_kind: environment` with a subtype, never count toward loop refusals, and come with a fix line: the per-tool CA setting pointed at `tls.ca_bundle` (managed config, org policy or user config, never repo policy), or a sanctioned fix from policy `environment_fixes`. Kerb never suggests disabling verification.
+- **`kerb doctor tls`:** finds company root CAs in the OS trust store and, after the human's code, writes `~/.kerb/ca-bundle.pem` and sets `tls.ca_bundle`.
+- **Progressive help:** `kerb --help` shows six commands; `kerb help all` lists the rest in groups.
+- README rewritten around one headline per audience, with `kerb scan` output as the hero (`scripts/hero.js` regenerates it from the sample transcripts).
+
+### Changed
+
+- `kerb enforce` joins the human-only commands the hooks refuse.
+- The benchmark's Kerb arm runs in enforce mode.
+
 ## [0.1.0] - 2026-10-01
 
 First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented and tested on macOS and Linux; Windows is experimental.
@@ -22,4 +40,5 @@ First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented 
 - The task benchmark has not been run yet, so there are no savings figures.
 - Hook latency is borderline against the 100 ms target for check commands after a failure (see `bench/results/`).
 
+[0.2.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.2.0
 [0.1.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.1.0

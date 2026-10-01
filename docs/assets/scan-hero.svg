@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="991" height="296" viewBox="0 0 991 296" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">
+  <title>kerb scan: what Kerb would have caught in past agent sessions (sample transcripts)</title>
+  <rect width="991" height="296" rx="10" fill="#111827"/>
+  <circle cx="22" cy="20" r="6" fill="#4B5563"/><circle cx="42" cy="20" r="6" fill="#4B5563"/><circle cx="62" cy="20" r="6" fill="#4B5563"/>
+  <text x="28" y="64" fill="#9AA5B1" xml:space="preserve">$ kerb scan</text>
+  <text x="28" y="86" fill="#F5B301" xml:space="preserve">kerb scan · 30 days · 1 Claude Code session, 1 Codex session, 2 Gemini CLI sessions in this repo (replayed)</text>
+  <text x="28" y="108" fill="#E5E7EB" xml:space="preserve">      4 test re-runs with nothing changed        13s of run time · ≈ 344 tokens (measured from transcripts)</text>
+  <text x="28" y="130" fill="#E5E7EB" xml:space="preserve">      2 retries against blocked hosts            registry.npmjs.org</text>
+  <text x="28" y="152" fill="#E5E7EB" xml:space="preserve">      2 certificate errors (corporate TLS)       no CA bundle configured</text>
+  <text x="28" y="174" fill="#E5E7EB" xml:space="preserve">  39 KB of output beyond Kerb's budget           ≈ 9.8k tokens (measured from transcripts)</text>
+  <text x="28" y="196" fill="#E5E7EB" xml:space="preserve">      2 commands that hung or were interrupted   10s waiting</text>
+  <text x="28" y="218" fill="#E5E7EB" xml:space="preserve">      2 polls kerb wait-for would fold           into 1 call</text>
+  <text x="28" y="240" fill="#E5E7EB" xml:space="preserve"></text>
+  <text x="28" y="262" fill="#9AA5B1" xml:space="preserve">$ kerb init        # shadow mode for 7 days: records what it would stop, blocks nothing</text>
+</svg>

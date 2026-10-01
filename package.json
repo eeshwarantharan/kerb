@@ -1,6 +1,6 @@
 {
   "name": "kerb-cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Stops AI coding agents from wasting turns on blocked actions and retries that can't help.",
   "type": "module",
   "bin": {
@@ -11,6 +11,7 @@
     "src/",
     "templates/",
     "docs/KERB.md",
+    "docs/KERB-V2.md",
     "README.md",
     "LICENSE",
     "SECURITY.md",

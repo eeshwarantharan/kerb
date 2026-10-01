@@ -593,7 +593,7 @@ Each milestone is a release. Ship early; adoption features come first.
 - [x] **A2** `kerb scan` for Claude Code (VERIFY transcripts), then Codex and Gemini CLI. *Tests: SC1–SC10.*
 - [x] **A3** Environment classifier, TLS fixes, `kerb doctor tls`. *Tests: EN1–EN9.*
 - [x] **A4** Progressive CLI help. *Tests: CL1–CL2.*
-- [ ] **A5** README rewrite around one headline per audience; scan output as the hero image.
+- [x] **A5** README rewrite around one headline per audience; scan output as the hero image.
 
 ### Milestone B · v0.3 "Truth"
 
@@ -770,3 +770,5 @@ Publish the harness, tasks and raw results in `bench/`. If arm 2 matches arm 4, 
 - 2026-10-01 · 10.1 · Replay rules as implemented: identical retries apply v1's kinds (ordinary always; transient from the second identical retry; dependency within the 60 s cooldown; environment never) with "no edit tool call and no other check/other/background command in between"; a command whose output already holds a Kerb refusal is skipped, and `kerb run|wait-for -- <inner>` is judged as `<inner>`. Blocked hosts: a host confirmed by a strong denial (or two weak hits from different commands) counts every later command that contacts it, across sessions; commands today's org or repo boundaries block are a separate row. Polling: three or more runs of one command, nothing else between, each within 5 minutes; attempts already counted as identical retries are not counted again. Hangs include user interrupts. Policy is today's org and repo layers; the learned layer is not used, since it may have been learned from these same sessions.
 - 2026-10-01 · 10.1 · `kerb init` offers the scan as its last line rather than running it, so init stays fast and non-interactive. `kerb card --scan [--since 30d]` writes the card from replayed numbers, never with a dollar figure.
 - 2026-10-01 · 10.3 · `kerb help all` repeats the six start commands, then the spec's groups. `run`, `wait-for`, `check` and `hook` go under "Platform (what agents and hooks call)", since they are the interface agents use; `enforce` appears both in the six and under Human-only. Groups list only commands that exist; Insight grows with milestones C–E.
+- 2026-10-01 · 13 (A5) · The README hero is `kerb scan` run on the sample transcripts in `test/fixtures/scan`, drawn as a terminal by `scripts/hero.js` (clock fixed so "30 days" always covers the samples), and captioned as such. Reason: only measured numbers may appear, and no real multi-agent history with these failures exists yet; the owner's own transcripts are not published. Replace it with a real scan once a design user agrees to share one (G2).
+- 2026-10-01 · 13 (A) · Milestone A ships as 0.2.0 (package version and CHANGELOG). Not tagged or published: that waits for the owner.
