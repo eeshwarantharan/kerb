@@ -7,6 +7,7 @@ import { buildRuns } from '../store/jsonl.js';
 import { diffSnapshots, readSnapshot } from './workspace.js';
 import { failPrinter } from '../insight/history.js';
 import { findCycle } from '../insight/converge.js';
+import { cachedAnswer } from '../insight/cache.js';
 
 const SETUP_CLASSES = new Set(['check', 'other', 'background']);
 
@@ -62,6 +63,12 @@ export function evaluateRules(input) {
   const { runs, window, postAck, ack } = keyHistory(recs, key);
   // After `kerb ack`, exactly one run is allowed regardless of the rules.
   if (ack && postAck.length === 0) return null;
+  // Instant answers (KERB-V2 6.3) take identical_retry's place for hermetic commands, and also
+  // answer a re-run after a success.
+  if (input.hermetic) {
+    const cached = cachedAnswer({ recs, key, state: hash, nowTs, ttlMs: policy.cache_ttl_ms });
+    if (cached) return cached;
+  }
   if (!postAck.length) return null;
   const latest = postAck[postAck.length - 1];
   const cooldownMs = policy.retry_cooldown_ms ?? 60_000;

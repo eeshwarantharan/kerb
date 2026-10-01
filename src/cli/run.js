@@ -51,7 +51,8 @@ export default async function run(ctx, args) {
     recordRefusal(prep, gate.refusal, gate.matched);
     if (!prep.shadow) {
       emitRefusal(ctx, gate.refusal, prep.key);
-      return EXIT.LOOP;
+      // A cached answer exits with the recorded result's code (KERB-V2 6.3).
+      return gate.refusal.cached ? gate.refusal.exit : EXIT.LOOP;
     }
   }
   const lim = limits(prep, { ...opts, agentTimeoutMs: hook ? hook.agentTimeoutMs : null });

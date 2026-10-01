@@ -89,3 +89,13 @@ test('M8 list settings merge across layers; numeric settings take the higher lay
   assert.deepEqual(m.check_commands, ['just test', 'make ci']);
   assert.deepEqual(m.transient_patterns, ['A', 'B']);
 });
+
+test('policy check_commands match the program as written (./run-tests.sh) or by its base name', async () => {
+  const { parseCommand } = await import('../src/parse/tokenize.js');
+  const { classifyCommand, compileCheckCommands } = await import('../src/parse/classify-cmd.js');
+  const cls = (c, pats) => classifyCommand(parseCommand(c, { cwd: '/w' }), { checkCommands: compileCheckCommands(pats) });
+  assert.equal(cls('./run-tests.sh', ['./run-tests.sh']), 'check');
+  assert.equal(cls('./run-tests.sh --fast', ['./run-tests.sh']), 'check');
+  assert.equal(cls('./run-tests.sh', ['run-tests.sh']), 'check');
+  assert.equal(cls('./other.sh', ['./run-tests.sh']), 'other');
+});

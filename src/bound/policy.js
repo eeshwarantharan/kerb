@@ -10,7 +10,7 @@ export const REPO_POLICY_FILE = 'kerb.policy.json';
 export const POLICY_KEYS = new Set([
   'version', 'breaker_threshold', 'retry_cooldown', 'hash_scope', 'shared_paths', 'check_commands',
   'transient_patterns', 'dependency_patterns', 'env_keys', 'env_markers', 'boundaries', 'fixes', '$schema', 'description',
-  'tls', 'environment_fixes', 'worktree_links', 'stop_gate', 'verify_keys',
+  'tls', 'environment_fixes', 'worktree_links', 'stop_gate', 'verify_keys', 'hermetic_commands', 'cache_ttl',
 ]);
 /** Environment failure subtypes (KERB-V2 8.3) a policy may name a sanctioned fix for (6.2). */
 export const ENV_SUBTYPES = new Set(['tls_interception', 'proxy_page', 'auth_expired']);
@@ -18,7 +18,7 @@ export const BOUNDARY_KINDS = new Set(['host', 'program', 'command', 'git_push']
 const BOUNDARY_KEYS = new Set(['kind', 'pattern', 'alternative', 'why']);
 const FIX_KEYS = new Set(['key_contains', 'output_contains', 'hint']);
 const PATTERN_LISTS = ['transient_patterns', 'dependency_patterns'];
-const STRING_LISTS = ['shared_paths', 'check_commands', 'env_keys', 'env_markers', 'worktree_links', 'verify_keys'];
+const STRING_LISTS = ['shared_paths', 'check_commands', 'env_keys', 'env_markers', 'worktree_links', 'verify_keys', 'hermetic_commands'];
 export const MAX_PATTERN_LEN = 200;
 export const MAX_PATTERNS = 50;
 
@@ -51,6 +51,9 @@ export function lintPolicy(p, { layer = null } = {}) {
     }
   }
   if (p.hash_scope !== undefined && !['package', 'repo'].includes(p.hash_scope)) err('hash_scope must be "package" or "repo"');
+  if (p.cache_ttl !== undefined) {
+    try { if (parseDuration(p.cache_ttl) < 0 || parseDuration(p.cache_ttl) > 30 * 86_400_000) err('cache_ttl must be between 0 and 30d'); } catch { err(`cache_ttl is not a duration: ${p.cache_ttl}`); }
+  }
   if (p.stop_gate !== undefined && !['warn', 'block', 'off'].includes(p.stop_gate)) err('stop_gate must be "warn", "block" or "off"');
   for (const k of STRING_LISTS) {
     if (p[k] === undefined) continue;
@@ -150,6 +153,8 @@ export function mergeLayers(layers, { lockRepoAlternatives = false } = {}) {
     env_markers: [],
     worktree_links: [],
     verify_keys: [],
+    hermetic_commands: [],
+    cache_ttl_ms: 24 * 3600_000,
     stop_gate: 'warn',
     /** @type {Boundary[]} */
     boundaries: [],
@@ -178,11 +183,14 @@ export function mergeLayers(layers, { lockRepoAlternatives = false } = {}) {
       merged.hash_scope = p.hash_scope;
       numericSet.add('hash_scope');
     }
+    if (!numericSet.has('cache_ttl') && p.cache_ttl !== undefined) {
+      try { merged.cache_ttl_ms = parseDuration(p.cache_ttl); numericSet.add('cache_ttl'); } catch { /* lint reports it */ }
+    }
     if (!numericSet.has('stop_gate') && ['warn', 'block', 'off'].includes(p.stop_gate)) {
       merged.stop_gate = p.stop_gate;
       numericSet.add('stop_gate');
     }
-    for (const k of ['shared_paths', 'check_commands', 'transient_patterns', 'dependency_patterns', 'env_keys', 'env_markers', 'worktree_links', 'verify_keys']) {
+    for (const k of ['shared_paths', 'check_commands', 'transient_patterns', 'dependency_patterns', 'env_keys', 'env_markers', 'worktree_links', 'verify_keys', 'hermetic_commands']) {
       if (Array.isArray(p[k])) for (const v of p[k]) if (typeof v === 'string' && !merged[k].includes(v)) merged[k].push(v);
     }
     if (Array.isArray(p.boundaries)) {

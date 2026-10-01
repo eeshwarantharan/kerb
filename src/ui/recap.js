@@ -29,6 +29,7 @@ export function renderRecap(session, { title = 'this session' } = {}) {
     const tokens = Math.round(c.avoided_bytes / 4);
     rows.push(['re-runs avoided', `${c.reruns_avoided}  (saved ${formatDuration(c.avoided_ms)} of run time, ≈ ${formatCount(tokens)} token${tokens === 1 ? '' : 's'} of output)`]);
   }
+  if (c.cached_answers) rows.push(['answered from cache', `${c.cached_answers}  (saved ${formatDuration(c.cached_ms || 0)} of run time)`]);
   const policy = c.by_reason.policy_blocked || 0;
   const human = c.by_reason.human_only || 0;
   if (policy) rows.push(['blocked early', `${policy} command${policy === 1 ? '' : 's'} refused before running`]);
@@ -51,7 +52,7 @@ export function renderRecap(session, { title = 'this session' } = {}) {
 /** "4 re-runs and 1 blocked retry": what shadow mode would have stopped, by kind. */
 export function wouldStopped(c) {
   const by = c.would_by_reason || {};
-  const loops = (by.identical_retry || 0) + (by.deja_vu || 0) + (by.breaker_open || 0);
+  const loops = (by.identical_retry || 0) + (by.deja_vu || 0) + (by.oscillating || 0) + (by.breaker_open || 0) + (by.cached || 0);
   const parts = [];
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
   if (loops) parts.push(plural(loops, 're-run', 're-runs'));

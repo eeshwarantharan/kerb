@@ -111,6 +111,16 @@ export function preRefusal(prep) {
  * `would_refuse`, and the caller lets the command run.
  */
 export function recordRefusal(prep, refusal, matched = null) {
+  if (refusal.cached && !prep.shadow) {
+    // A cached answer is its own event (KERB-V2 6.3).
+    const rec = {
+      type: 'cached_answer', id: newId(), ts: now(), key: prep.key, state: refusal.details.state, source_run: refusal.details.source_run,
+      exit: refusal.exit, avoided_duration_ms: matched ? matched.duration_ms || 0 : 0, avoided_output_bytes: matched ? matched.shown_bytes || 0 : 0,
+      class: prep.cls, cmd: redactText(prep.command), agent: prep.agent, tier: prep.tier, session: ensureSession(prep), mode: prep.mode ? prep.mode.mode : null,
+    };
+    prep.store.ensure().append([rec], summaryTweak(prep));
+    return rec;
+  }
   const rec = {
     type: prep.shadow ? 'would_refuse' : 'refusal',
     id: newId(),

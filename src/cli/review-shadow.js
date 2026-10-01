@@ -5,7 +5,7 @@ import { Store, buildRuns } from '../store/jsonl.js';
 import { now, parseDuration, UsageError } from '../util/core.js';
 import { parseOpts } from './args.js';
 
-const LOOP = new Set(['identical_retry', 'deja_vu', 'breaker_open']);
+const LOOP = new Set(['identical_retry', 'deja_vu', 'oscillating', 'breaker_open', 'cached']);
 
 /**
  * What happened when the command ran anyway: the first run of the same key that started at or

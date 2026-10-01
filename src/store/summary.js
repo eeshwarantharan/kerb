@@ -27,6 +27,9 @@ export function emptyCounters() {
     would_refuse: 0,
     would_by_reason: {},
     would_reruns: 0,
+    // Instant answers (KERB-V2 6.3).
+    cached_answers: 0,
+    cached_ms: 0,
   };
 }
 
@@ -105,6 +108,11 @@ function bump(c, r) {
         c.avoided_bytes += r.avoided_output_bytes || 0;
       }
       break;
+    case 'cached_answer':
+      c.cached_answers = (c.cached_answers || 0) + 1;
+      c.cached_ms = (c.cached_ms || 0) + (r.avoided_duration_ms || 0);
+      c.avoided_bytes += r.avoided_output_bytes || 0;
+      break;
     case 'would_refuse':
       c.would_refuse = (c.would_refuse || 0) + 1;
       c.would_by_reason = c.would_by_reason || {};
@@ -165,7 +173,7 @@ export function currentSession(summary) {
 
 /** Save counts are what the recap reports; a session with none prints nothing. */
 export function saveCount(c) {
-  return c.refusals + c.polls_folded + (c.trimmed_bytes > 0 ? 1 : 0) + c.hangs_killed + c.walls_new + (c.would_refuse || 0);
+  return c.refusals + c.polls_folded + (c.trimmed_bytes > 0 ? 1 : 0) + c.hangs_killed + c.walls_new + (c.would_refuse || 0) + (c.cached_answers || 0);
 }
 
 function prune(summary) {

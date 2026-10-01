@@ -5,6 +5,7 @@ import { hashWorkspace, scopeAndStamp, writeSnapshot } from './workspace.js';
 import { evaluateRules, keyHistory, isFailure } from './rules.js';
 import { loadRuns } from '../engine.js';
 import { now } from '../util/core.js';
+import { isHermetic } from '../insight/cache.js';
 
 /**
  * @param {any} prep engine prep
@@ -20,7 +21,9 @@ export function loopGate(prep, o = {}) {
   const { scope, envStamp } = scopeAndStamp(prep, segCwd);
   const hctx = { root: prep.root, git: prep.git, policy: prep.policy, env: prep.ctx.env, envStamp };
   let recs = null;
-  if (o.lazy && !o.force) {
+  // Hermetic checks can be answered even after a success, so they always need the state.
+  const hermetic = isHermetic(prep.parsed, prep.policy);
+  if (o.lazy && !o.force && !hermetic) {
     recs = o.runs || loadRuns(prep.store).recs;
     const { postAck } = keyHistory(recs, prep.key);
     if (!postAck.some(isFailure)) {
@@ -53,6 +56,7 @@ export function loopGate(prep, o = {}) {
     root: prep.root,
     store: prep.store,
     command: prep.command,
+    hermetic,
   });
   return { refusal: verdict ? verdict.refusal : null, matched: verdict ? verdict.matched : null, loop };
 }

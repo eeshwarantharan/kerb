@@ -43,6 +43,14 @@ export function compileCheckCommands(patterns = []) {
 }
 
 /**
+ * The segment as the user wrote the program (`./run-tests.sh test`); `seg.text` uses its base
+ * name (`run-tests.sh test`). Policy patterns may be written either way.
+ */
+export function asWritten(seg) {
+  return [seg.program || seg.name, ...(seg.args || [])].join(' ');
+}
+
+/**
  * @param {import('./tokenize.js').Segment} seg
  * @param {((text: string) => boolean)[]} [extra] compiled policy check_commands
  * @returns {'check' | 'query' | 'other' | 'neutral'}
@@ -51,7 +59,7 @@ export function classifySegment(seg, extra = []) {
   if (seg.opaque || !seg.name) return 'other';
   if (NEUTRAL_PROGRAMS.has(seg.name)) return 'neutral';
   const text = seg.text;
-  if (CHECK_DEFAULTS.some((re) => re.test(text)) || extra.some((f) => f(text))) return 'check';
+  if (CHECK_DEFAULTS.some((re) => re.test(text)) || extra.some((f) => f(text) || f(asWritten(seg)))) return 'check';
   if (QUERY_PROGRAMS.has(seg.name)) return 'query';
   if (seg.name === 'command' && (seg.args[0] === '-v' || seg.args[0] === '-V')) return 'query';
   if (seg.name === 'git') {
