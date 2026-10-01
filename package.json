@@ -13,7 +13,8 @@
     "docs/KERB.md",
     "README.md",
     "LICENSE",
-    "SECURITY.md"
+    "SECURITY.md",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=20"

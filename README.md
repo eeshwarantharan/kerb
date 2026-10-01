@@ -1,10 +1,34 @@
-# Kerb
+<p align="center">
+  <img src="https://raw.githubusercontent.com/eeshwarantharan/kerb/main/docs/assets/kerb-logo.png" alt="Kerb" width="520">
+</p>
 
-**Kerb keeps your coding agent on the road.** It stops AI coding agents from wasting turns on actions your environment forbids and on retries that cannot help, and it shows you every save.
+<h3 align="center">Keeps your coding agent on the road.</h3>
 
-> **0.1 is a preview.** Everything in the spec is built and tested on macOS and Linux. Windows is experimental (hooks and pre-checks are expected to work; `kerb run` is still being fixed). A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](.github/ISSUE_TEMPLATE/false-refusal.md).
+<p align="center">
+  Kerb stops AI coding agents from wasting turns on actions your environment forbids<br>
+  and on retries that cannot help, and shows you every save.
+</p>
 
-Two refusals, as the agent sees them:
+<p align="center">
+  <a href="https://github.com/eeshwarantharan/kerb/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/eeshwarantharan/kerb/ci.yml?branch=main&label=ci&style=flat-square"></a>
+  <a href="https://www.npmjs.com/package/kerb-cli"><img alt="npm" src="https://img.shields.io/npm/v/kerb-cli?style=flat-square&color=162640"></a>
+  <img alt="Dependencies: 0" src="https://img.shields.io/badge/dependencies-0-2ea44f?style=flat-square">
+  <img alt="Node 20+" src="https://img.shields.io/badge/node-%E2%89%A520-339933?style=flat-square">
+  <a href="LICENSE"><img alt="License: Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square"></a>
+</p>
+
+<p align="center">
+  <a href="#install"><b>Install</b></a> ·
+  <a href="#works-with"><b>Works with</b></a> ·
+  <a href="#boundaries"><b>Boundaries</b></a> ·
+  <a href="#for-platform-teams"><b>Platform teams</b></a> ·
+  <a href="docs/KERB.md"><b>Spec</b></a> ·
+  <a href="#faq"><b>FAQ</b></a>
+</p>
+
+---
+
+Two refusals, as the agent sees them. Each one is three lines, arrives before the command runs, and names the next step:
 
 ```
 kerb: policy_blocked · registry.npmjs.org is blocked here
@@ -16,13 +40,32 @@ kerb: identical_retry · nothing relevant changed since this failed
       next: change something first, or run `kerb diff` to compare attempts
 ```
 
+> [!NOTE]
+> **0.1 is a preview.** Everything in the [spec](docs/KERB.md) is built and tested on macOS and Linux. Windows is experimental: hooks and pre-checks are expected to work, and `kerb run` is still being fixed. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
+
 ## Demo
 
-A 60–90 second recording of the scripted demo in [`demo/`](demo/) (a blocked registry, a database that starts late, a real test failure, then the recap) goes here with the first release. The scenario and its [VHS](https://github.com/charmbracelet/vhs) tape are in the repo, so you can run it yourself.
+A recording lands here with the first tagged release. Until then, the scripted scenario is in [`demo/`](demo/): a blocked registry, a test database that starts late, a real test failure, and the recap. Run it yourself:
+
+```bash
+sh demo/setup.sh /tmp/kerb-demo && cd /tmp/kerb-demo && kerb init
+```
 
 ## Why
 
 Agents burn paid turns hitting walls (blocked registries, hosts and protected branches), going in circles (re-running a failing test with nothing changed, or returning to a state that already failed), drowning in noise (progress bars and 50,000-line logs) and hanging (watch modes, prompts, servers). Every retry re-sends the whole conversation, so these are the most expensive tokens an agent spends, and they buy nothing. Kerb refuses the call before it runs, says why in one line, and names the next step.
+
+## What it does
+
+| | |
+|---|---|
+| **Boundary Map** | Knows what your environment forbids (registries, hosts, programs, protected branches), refuses before the command runs, and names the approved alternative. Learns new walls from real policy denials, so each one is hit once. |
+| **Loopbreaker** | Judges retries by the actual state of your files and environment, not by the command text. Refuses re-runs that can't change the result, returns to a state that already failed, and the same failure over and over despite edits. Lets legitimate retries through. |
+| **`kerb wait-for`** | Turns polling into one call: retries inside Kerb and returns once, instead of the agent spending a turn per poll. |
+| **Output shaping** | Strips colour codes and progress bars, folds repeats, trims long output to a head and tail, and keeps the full log on disk. |
+| **Supervisor** | Total and idle timeouts that kill the whole process tree, so watch modes, prompts and stuck servers don't hang the agent. |
+| **Visible saves** | A status line, a session recap and a shareable card, with measured and estimated numbers always labelled apart. |
+| **Org policy** | A signed, versioned policy bundle so a platform team can give every agent the company's current rules. |
 
 ## Install
 
@@ -166,6 +209,10 @@ See [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 **Why not a flag to skip it?** Because an agent in a debugging spiral would set it on every command. Legitimate retries are handled by Kerb's own rules; a person can run `kerb ack` or `kerb run --force` at their terminal.
 
+## Contributing
+
+Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md); it explains how to add a denial signature, a transient pattern or an agent adapter.
+
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+[Apache-2.0](LICENSE)
