@@ -2,14 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeRepo, records } from './helpers.js';
+import { makeRepo, records, shPath } from './helpers.js';
 import { loadSummary } from '../src/store/summary.js';
 
 const stamp = (file) => `node -e "require('fs').appendFileSync('${file}', Date.now() + '\\\\n')"`;
 
 test('WF1 succeeds on the 4th attempt → exit 0, one summary line, only the final output', () => {
   const repo = makeRepo();
-  const n = path.join(repo.home, 'n');
+  const n = shPath(repo.home, 'n');
   const cmd = `c=$(cat ${n} 2>/dev/null || echo 0); c=$((c+1)); echo $c > ${n}; echo "attempt $c"; [ $c -ge 4 ]`;
   const r = repo.kerb(['wait-for', '--interval', '1s', '--max', '30s', '--', cmd]);
   assert.equal(r.code, 0);
@@ -39,7 +39,7 @@ test('WF2 an attempt is never started too close to --max to show its output', ()
 
 test('WF3 --interval is respected within ±10% plus scheduling tolerance', () => {
   const repo = makeRepo();
-  const f = path.join(repo.home, 'times');
+  const f = shPath(repo.home, 'times');
   repo.kerb(['wait-for', '--interval', '2s', '--max', '7s', '--', `${stamp(f)}; exit 1`]);
   const t = fs.readFileSync(f, 'utf8').trim().split('\n').map(Number);
   assert.ok(t.length >= 3);
@@ -51,7 +51,7 @@ test('WF3 --interval is respected within ±10% plus scheduling tolerance', () =>
 
 test('WF4 --backoff doubles the interval', () => {
   const repo = makeRepo();
-  const f = path.join(repo.home, 'times');
+  const f = shPath(repo.home, 'times');
   repo.kerb(['wait-for', '--interval', '1s', '--backoff', '--max', '9s', '--', `${stamp(f)}; exit 1`]);
   const t = fs.readFileSync(f, 'utf8').trim().split('\n').map(Number);
   assert.ok(t.length >= 4, `attempts ${t.length}`);
@@ -63,7 +63,7 @@ test('WF4 --backoff doubles the interval', () => {
 
 test('WF5 --until output:ready stops when a line matches', () => {
   const repo = makeRepo();
-  const n = path.join(repo.home, 'n');
+  const n = shPath(repo.home, 'n');
   const cmd = `c=$(cat ${n} 2>/dev/null || echo 0); c=$((c+1)); echo $c > ${n}; if [ $c -ge 2 ]; then echo "server ready"; else echo starting; fi; exit 3`;
   const r = repo.kerb(['wait-for', '--until', 'output:ready', '--interval', '1s', '--max', '20s', '--', cmd]);
   assert.equal(r.code, 0);
@@ -74,7 +74,7 @@ test('WF5 --until output:ready stops when a line matches', () => {
 
 test('WF6 a blocked host → policy_blocked before any attempt', () => {
   const repo = makeRepo({ files: { 'kerb.policy.json': JSON.stringify({ boundaries: [{ kind: 'host', pattern: 'blocked.example' }] }) } });
-  const side = path.join(repo.home, 'side');
+  const side = shPath(repo.home, 'side');
   const r = repo.kerb(['wait-for', '--', `touch ${side}; curl https://blocked.example/health`]);
   assert.equal(r.code, 77);
   assert.match(r.stderr, /^kerb: policy_blocked/m);
@@ -91,7 +91,7 @@ test('WF7 out-of-range values are usage errors', () => {
 
 test('WF9 one wait record; a successful wait clears the key', () => {
   const repo = makeRepo({ git: true, files: { 'a.js': '1\n' } });
-  const n = path.join(repo.home, 'n');
+  const n = shPath(repo.home, 'n');
   const cmd = `c=$(cat ${n} 2>/dev/null || echo 0); c=$((c+1)); echo $c > ${n}; echo "FAIL"; [ $c -ge 3 ]`;
   assert.equal(repo.kerb(['run', '--class', 'check', '--', cmd]).code, 1);
   assert.equal(repo.kerb(['run', '--class', 'check', '--', cmd]).code, 75);

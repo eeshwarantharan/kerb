@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeRepo, ROOT } from './helpers.js';
+import { makeRepo, ROOT, shPath } from './helpers.js';
 import { hostMatches } from '../src/bound/precheck.js';
 
 const POLICY = {
@@ -25,7 +25,7 @@ function repoWith(files = {}, git = false) {
 
 test('X1 curl to a blocked host → 77, not executed', () => {
   const repo = repoWith();
-  const side = path.join(repo.home, 'side');
+  const side = shPath(repo.home, 'side');
   const r = repo.kerb(['run', '--', `touch ${side} && curl https://blocked.example/x`]);
   assert.equal(r.code, 77);
   assert.match(r.stderr, /^kerb: policy_blocked · blocked\.example is blocked here$/m);

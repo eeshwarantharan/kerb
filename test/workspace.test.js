@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { makeRepo, records } from './helpers.js';
+import { makeRepo, records, shPath } from './helpers.js';
 import { computeScope } from '../src/loop/scope.js';
 import { hashWorkspace, setHashDelayForTests } from '../src/loop/workspace.js';
 import { envStamp } from '../src/loop/envstamp.js';
@@ -236,9 +236,9 @@ test('W15 hash budget exceeded → command allowed, loop checks skipped and reco
   setHashDelayForTests(60);
   const sink = { write() {}, isTTY: false };
   try {
-    const code = await main(['run', '--class', 'check', '--', `echo ran >> ${path.join(repo.dir, 'side.txt')}; exit 1`], { stdout: sink, stderr: sink, cwd: repo.dir });
+    const code = await main(['run', '--class', 'check', '--', `echo ran >> ${shPath(repo.dir, 'side.txt')}; exit 1`], { stdout: sink, stderr: sink, cwd: repo.dir });
     assert.equal(code, 1);
-    const code2 = await main(['run', '--class', 'check', '--', `echo ran >> ${path.join(repo.dir, 'side.txt')}; exit 1`], { stdout: sink, stderr: sink, cwd: repo.dir });
+    const code2 = await main(['run', '--class', 'check', '--', `echo ran >> ${shPath(repo.dir, 'side.txt')}; exit 1`], { stdout: sink, stderr: sink, cwd: repo.dir });
     assert.equal(code2, 1, 'second identical run allowed because loop checks were skipped');
   } finally {
     setHashDelayForTests(0);

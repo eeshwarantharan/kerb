@@ -34,9 +34,11 @@ jobs:
         run: |
           node --input-type=module -e "const m = await import('./src/run/supervisor.js'); console.log('bash used by kerb:', m.findWindowsBash())"
           D="$(mktemp -d)"; cd "$D" && git init -q
+          set +e
           node "$GITHUB_WORKSPACE/bin/kerb.js" run -- "echo hello >> '$D/side.txt'; echo out; exit 3"; echo "kerb exit: $?"
           echo "side file:"; cat "$D/side.txt" || echo "(missing)"
           ls -la "$D"
+          exit 0
       - run: node --test --test-timeout=180000
         env:
           CI: 'true'

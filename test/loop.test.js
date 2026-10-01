@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeRepo, records, runKerbAsync, inproc } from './helpers.js';
+import { makeRepo, records, runKerbAsync, inproc, shPath } from './helpers.js';
 import { setClock } from '../src/util/core.js';
 import { evaluateRules } from '../src/loop/rules.js';
 import { mergeLayers } from '../src/bound/policy.js';
@@ -13,7 +13,7 @@ import { Store } from '../src/store/jsonl.js';
 /** A repo plus a check-class failing command whose side effects land outside the repo. */
 function setup({ git = true, files = {} } = {}) {
   const repo = makeRepo({ git, files: { 'a.js': '1\n', ...files } });
-  const ran = path.join(repo.home, 'ran.log');
+  const ran = shPath(repo.home, 'ran.log');
   const count = () => (fs.existsSync(ran) ? fs.readFileSync(ran, 'utf8').split('\n').filter(Boolean).length : 0);
   const cmd = (body = 'echo "FAIL: expected 1 to equal 2"; exit 1') => `echo x >> ${ran}; ${body}`;
   const check = (body, extra = []) => repo.kerb(['run', '--class', 'check', ...extra, '--', cmd(body)]);

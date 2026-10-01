@@ -2,13 +2,13 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeRepo, records } from './helpers.js';
+import { makeRepo, records, shPath } from './helpers.js';
 
 const POLICY = { 'kerb.policy.json': JSON.stringify({ boundaries: [{ kind: 'program', pattern: 'docker' }] }) };
 
 function activity() {
   const repo = makeRepo({ git: true, files: { ...POLICY, 'a.js': '1\n' } });
-  const ran = path.join(repo.home, 'ran');
+  const ran = shPath(repo.home, 'ran');
   const fail = `echo x >> ${ran}; echo "FAIL: expected 1"; seq 1 50; exit 1`;
   repo.kerb(['run', '--class', 'check', '--', fail]);
   repo.kerb(['run', '--class', 'check', '--', fail]); // identical_retry
@@ -88,7 +88,7 @@ test('Q8 status shows each agent\'s tier, coverage and hash-budget skips', () =>
 
 test('status lists an open breaker until it is acknowledged', () => {
   const repo = makeRepo({ git: true, files: { 'a.js': '1\n' } });
-  const ran = path.join(repo.home, 'ran');
+  const ran = shPath(repo.home, 'ran');
   for (const v of ['1', '2', '3', '4']) {
     repo.write('a.js', `${v}\n`);
     repo.kerb(['run', '--class', 'check', '--', `echo x >> ${ran}; echo FAIL; exit 1`]);

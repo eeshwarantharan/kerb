@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeRepo, records, runKerbAsync, alive, waitFor, sleep } from './helpers.js';
+import { makeRepo, records, runKerbAsync, alive, waitFor, sleep, shPath } from './helpers.js';
 import { decodeRecord } from '../src/store/jsonl.js';
 
 const posix = process.platform !== 'win32';
@@ -90,7 +90,7 @@ test('B11 interleaving of stdout and stderr is preserved in the log', () => {
 
 test('A6 SIGTERM to Kerb kills the group, records aborted, exits 143', { skip: !posix }, async () => {
   const repo = makeRepo();
-  const pidFile = path.join(repo.dir, 'child.pid');
+  const pidFile = shPath(repo.dir, 'child.pid');
   const { child, done } = runKerbAsync(['run', '--', `sleep 30 & echo $! > ${pidFile}; wait`], { cwd: repo.dir, env: repo.env });
   await waitFor(() => fs.existsSync(pidFile) && fs.readFileSync(pidFile, 'utf8').trim(), 5000);
   const gpid = Number(fs.readFileSync(pidFile, 'utf8'));
@@ -104,7 +104,7 @@ test('A6 SIGTERM to Kerb kills the group, records aborted, exits 143', { skip: !
 
 test('A7 after SIGKILL to Kerb, the next invocation records aborted and kills the orphaned group', { skip: !posix }, async () => {
   const repo = makeRepo();
-  const pidFile = path.join(repo.dir, 'child.pid');
+  const pidFile = shPath(repo.dir, 'child.pid');
   const { child, done } = runKerbAsync(['run', '--', `sleep 30 & echo $! > ${pidFile}; wait`], { cwd: repo.dir, env: repo.env });
   await waitFor(() => fs.existsSync(pidFile) && fs.readFileSync(pidFile, 'utf8').trim(), 5000);
   const gpid = Number(fs.readFileSync(pidFile, 'utf8'));

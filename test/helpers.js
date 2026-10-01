@@ -25,6 +25,15 @@ export function tmpDir(prefix = 'kerb-test-') {
   return process.platform === 'win32' ? dir.replace(/\\/g, '/') : dir;
 }
 
+/**
+ * path.join for paths that go inside shell commands: forward slashes on Windows, where Git Bash
+ * reads backslashes as escapes.
+ */
+export function shPath(...parts) {
+  const p = path.join(...parts);
+  return process.platform === 'win32' ? p.replace(/\\/g, '/') : p;
+}
+
 /** A temp repo with an isolated HOME. `git: true` initialises git with one commit. `config` seeds ~/.kerb/config.json. */
 export function makeRepo({ git = false, files = {}, config = null } = {}) {
   const dir = tmpDir('kerb-repo-');
