@@ -32,7 +32,14 @@ const cacheDir = path.join(root, 'dist', 'node-cache');
 
 function run(cmd, argv, o = {}) {
   const r = spawnSync(cmd, argv, { stdio: 'inherit', ...o });
-  if (r.status !== 0) throw new Error(`${cmd} ${argv.join(' ')} failed (${r.status})`);
+  if (r.status !== 0) throw new Error(`${cmd} ${argv.join(' ')} failed (${r.error ? r.error.message : r.status})`);
+}
+
+/** npx: on Windows it is npx.cmd, which Node only starts through a shell, so quote the arguments. */
+function npx(argv) {
+  if (process.platform !== 'win32') return run('npx', argv);
+  const quoted = argv.map((a) => (/^[\w@.:\\/=-]+$/.test(a) ? a : `"${a.replace(/"/g, '\\"')}"`));
+  return run('npx.cmd', quoted, { shell: true });
 }
 
 function archiveName(target) {
@@ -105,7 +112,7 @@ async function main() {
     const blob = target === HOST && blobs.cache ? blobs.cache : blobs.plain;
     const pj = ['--yes', POSTJECT, out, 'NODE_SEA_BLOB', blob, '--sentinel-fuse', FUSE];
     if (isMac) pj.push('--macho-segment-name', 'NODE_SEA');
-    run(process.platform === 'win32' ? 'npx.cmd' : 'npx', pj);
+    npx(pj);
     if (isMac && process.platform === 'darwin') run('codesign', ['--sign', '-', out]);
     sums.push(`${sha256File(out)}  ${path.basename(out)}`);
     console.log(`built ${path.relative(root, out)}`);
