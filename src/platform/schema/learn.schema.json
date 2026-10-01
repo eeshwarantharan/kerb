@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/learn.schema.json",
+  "title": "KER v1 learn",
+  "description": "A wall learned from a policy denial (v1 4.8.5). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts",
+    "host",
+    "status"
+  ],
+  "properties": {
+    "type": {
+      "const": "learn"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "host": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "suspected"
+      ]
+    },
+    "run": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "session": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "new": {
+      "type": "boolean"
+    }
+  }
+}

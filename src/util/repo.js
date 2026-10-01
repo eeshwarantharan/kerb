@@ -44,3 +44,20 @@ export function relPath(root, p) {
   const r = path.relative(root, p).split(path.sep).join('/');
   return r === '' ? '.' : r;
 }
+
+/** The checked-out branch, read from .git/HEAD (no git spawn); null when detached or outside git. */
+export function branchOf(root) {
+  try {
+    let dir = path.join(root, '.git');
+    if (fs.statSync(dir).isFile()) {
+      const m = /^gitdir: (.+)$/m.exec(fs.readFileSync(dir, 'utf8'));
+      if (!m) return null;
+      dir = path.resolve(root, m[1].trim());
+    }
+    const head = fs.readFileSync(path.join(dir, 'HEAD'), 'utf8').trim();
+    const m = /^ref: refs\/heads\/(.+)$/.exec(head);
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}

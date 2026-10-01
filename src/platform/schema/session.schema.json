@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/session.schema.json",
+  "title": "KER v1 session",
+  "description": "An agent session, written when its first record arrives. Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts"
+  ],
+  "properties": {
+    "type": {
+      "const": "session"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "agent": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tier": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "started": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "branch": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mode": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "shadow",
+        "enforce",
+        null
+      ]
+    }
+  }
+}

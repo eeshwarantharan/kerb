@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/boundary.schema.json",
+  "title": "KER v1 boundary",
+  "description": "A learned boundary entry, as kept in ~/.kerb/learned.jsonl (v1 4.8.5). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "kind",
+    "pattern",
+    "status"
+  ],
+  "properties": {
+    "type": {
+      "const": "boundary"
+    },
+    "kind": {
+      "const": "host"
+    },
+    "pattern": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "suspected"
+      ]
+    },
+    "first_seen": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "last_seen": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "hits": {
+      "type": "integer"
+    },
+    "keys": {
+      "type": "array"
+    },
+    "evidence_run": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

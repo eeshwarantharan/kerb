@@ -36,6 +36,7 @@ export const COMMANDS = {
   'review-shadow': () => import('./review-shadow.js'),
   scan: () => import('./scan.js'),
   gc: () => import('./gc.js'),
+  reindex: () => import('./reindex.js'),
 };
 
 /** The six commands `kerb --help` shows (KERB-V2 10.3). */
@@ -64,6 +65,7 @@ export const GROUPS = [
     ['why [run-id]', 'explain a refusal with its evidence'],
     ['diff <runA> <runB>', 'files that differ between two runs'],
     ['gc [--dry-run]', "apply retention to Kerb's kept states"],
+    ['reindex', 'rebuild the indexes in .kerb/index from the event log'],
   ]],
   ['Platform (what agents and hooks call)', [
     ['run [opts] -- <command>', 'pre-check, run supervised, shape output, record'],

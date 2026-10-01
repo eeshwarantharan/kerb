@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/wait.schema.json",
+  "title": "KER v1 wait",
+  "description": "A `kerb wait-for` call: many attempts, counted as one run (v1 4.7.8). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts",
+    "key",
+    "attempts",
+    "result"
+  ],
+  "properties": {
+    "type": {
+      "const": "wait"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "key": {
+      "type": "string"
+    },
+    "attempts": {
+      "type": "integer"
+    },
+    "duration_ms": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "met",
+        "gave_up",
+        "aborted"
+      ]
+    },
+    "final_exit": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "pre_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "a state id (v2) or a v1 workspace hash"
+    },
+    "post_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "a state id (v2) or a v1 workspace hash"
+    },
+    "session": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

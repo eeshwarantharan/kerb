@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { EXIT, KerbError, now, pidAlive } from '../util/core.js';
 import { ensureDir, logError } from '../util/fsx.js';
+import { branchOf } from '../util/repo.js';
 import { applyRecords, loadSummary, writeSummary } from './summary.js';
 
 const CRC_TABLE = (() => {
@@ -129,9 +130,10 @@ export class Store {
    */
   append(recs, tweak) {
     this.withLock(() => {
+      const summary = loadSummary(this.dir);
+      recs = withSessions(this.root, summary, recs);
       const data = recs.map((r) => `${encodeRecord(r)}\n`).join('');
       if (data) fs.appendFileSync(this.file, data, { mode: 0o600 });
-      const summary = loadSummary(this.dir);
       applyRecords(summary, recs, now());
       if (tweak) tweak(summary);
       writeSummary(this.dir, summary);
@@ -224,6 +226,40 @@ export class Store {
     return out;
   }
 
+  /**
+   * Records from a byte position onwards, across rotations: `rotations` is how many rotated files
+   * existed when `offset` (into the then-current file) was taken. Damaged lines are skipped and a
+   * torn last line is left for later. Used by the indexes, which are derived and never block.
+   * @returns {{ recs: object[], rotations: number, offset: number, reset: boolean }}
+   *   reset: the log no longer matches the position (rebuild instead)
+   */
+  readFrom(rotations = 0, offset = 0) {
+    const rotated = this.rotatedFiles();
+    const latest = rotated.length ? rotated[rotated.length - 1].n : 0;
+    if (latest < rotations) return { recs: [], rotations: latest, offset: 0, reset: true };
+    const plan = [];
+    for (const r of rotated) if (r.n > rotations) plan.push({ file: r.file, from: 0 });
+    if (plan.length) plan[0].from = offset;
+    plan.push({ file: this.file, from: plan.length ? 0 : offset });
+    const recs = [];
+    let end = 0;
+    for (const p of plan) {
+      let buf;
+      try { buf = fs.readFileSync(p.file); } catch { buf = Buffer.alloc(0); }
+      if (buf.length < p.from) return { recs: [], rotations: latest, offset: 0, reset: true };
+      let pos = p.from;
+      for (;;) {
+        const nl = buf.indexOf(10, pos);
+        if (nl === -1) break;
+        const rec = decodeRecord(buf.toString('utf8', pos, nl));
+        if (rec) recs.push(rec);
+        pos = nl + 1;
+      }
+      end = pos;
+    }
+    return { recs, rotations: latest, offset: end, reset: false };
+  }
+
   truncateTorn(offset) {
     this.withLock(() => {
       try {
@@ -232,6 +268,24 @@ export class Store {
       } catch { /* nothing to repair */ }
     });
   }
+}
+
+/**
+ * Precede the first record of a session this log hasn't seen with a `session` record (KER v1).
+ * The summary (updated under the same lock) remembers which sessions are known.
+ */
+function withSessions(root, summary, recs) {
+  const out = [];
+  const seen = new Set();
+  for (const r of recs) {
+    const id = r.session;
+    if (id && r.type !== 'session' && !seen.has(id) && !(summary.sessions && summary.sessions[id])) {
+      seen.add(id);
+      out.push({ type: 'session', id, ts: r.ts || now(), agent: r.agent ?? null, tier: r.tier ?? null, started: r.ts || now(), branch: branchOf(root), mode: r.mode ?? summary.mode ?? null });
+    }
+    out.push(r);
+  }
+  return out;
 }
 
 function lineNumberAt(file, offset) {

@@ -129,6 +129,7 @@ export function recordRefusal(prep, refusal, matched = null) {
     agent: prep.agent,
     tier: prep.tier,
     session: ensureSession(prep),
+    mode: prep.mode ? prep.mode.mode : null,
   };
   prep.store.ensure().append([rec], summaryTweak(prep));
   return rec;
@@ -210,6 +211,7 @@ export function startRecord(prep, id, extra = {}) {
     agent: prep.agent,
     tier: prep.tier,
     session: ensureSession(prep),
+    mode: prep.mode ? prep.mode.mode : null,
   };
 }
 

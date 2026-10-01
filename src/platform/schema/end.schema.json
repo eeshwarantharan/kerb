@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/end.schema.json",
+  "title": "KER v1 end",
+  "description": "A run finished (v1 4.9). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts"
+  ],
+  "properties": {
+    "type": {
+      "const": "end"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "exit": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "signal": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "duration_ms": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "post_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "a state id (v2) or a v1 workspace hash"
+    },
+    "fingerprint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "failure_kind": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "transient",
+        "dependency",
+        "environment",
+        "ordinary",
+        null
+      ]
+    },
+    "env_subtype": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "class_result": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "ok",
+        "failure",
+        "policy_denial",
+        "timeout",
+        "idle",
+        "aborted",
+        null
+      ]
+    },
+    "raw_bytes": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "shown_bytes": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "first_fail_line": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "loop_skipped": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "key": {
+      "type": "string"
+    },
+    "class": {
+      "type": "string",
+      "enum": [
+        "check",
+        "query",
+        "other",
+        "background"
+      ]
+    },
+    "session": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

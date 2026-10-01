@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/start.schema.json",
+  "title": "KER v1 start",
+  "description": "A run began (v1 4.9). Joined with its `end` into a `run`. Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts",
+    "key",
+    "class"
+  ],
+  "properties": {
+    "type": {
+      "const": "start"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "key": {
+      "type": "string"
+    },
+    "class": {
+      "type": "string",
+      "enum": [
+        "check",
+        "query",
+        "other",
+        "background"
+      ]
+    },
+    "cmd": {
+      "type": "string"
+    },
+    "cwd": {
+      "type": "string"
+    },
+    "scope": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "pre_hash": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "a state id (v2) or a v1 workspace hash"
+    },
+    "env_stamp": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "kerb_pid": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "pgid": {
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "agent": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "tier": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "session": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "mode": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "shadow",
+        "enforce",
+        null
+      ]
+    }
+  }
+}

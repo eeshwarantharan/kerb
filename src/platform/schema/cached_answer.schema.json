@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/cached_answer.schema.json",
+  "title": "KER v1 cached_answer",
+  "description": "A check answered from a recorded run on the same state (6.3). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts",
+    "key",
+    "state",
+    "source_run"
+  ],
+  "properties": {
+    "type": {
+      "const": "cached_answer"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "key": {
+      "type": "string"
+    },
+    "state": {
+      "type": "string",
+      "pattern": "^st_[0-9a-f]{16}$"
+    },
+    "source_run": {
+      "type": "string"
+    }
+  }
+}

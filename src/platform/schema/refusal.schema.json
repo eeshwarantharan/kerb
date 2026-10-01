@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/refusal.schema.json",
+  "title": "KER v1 refusal",
+  "description": "Kerb refused a command. Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts",
+    "key",
+    "reason"
+  ],
+  "properties": {
+    "type": {
+      "const": "refusal"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "key": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "matched_run": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "avoided_duration_ms": {
+      "type": "number",
+      "minimum": 0
+    },
+    "avoided_output_bytes": {
+      "type": "integer",
+      "minimum": 0
+    }
+  }
+}

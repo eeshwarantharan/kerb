@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/test_result.schema.json",
+  "title": "KER v1 test_result",
+  "description": "One test (or diagnostic) in a run (5.3, 5.4). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "run",
+    "test_id",
+    "status"
+  ],
+  "properties": {
+    "type": {
+      "const": "test_result"
+    },
+    "run": {
+      "type": "string"
+    },
+    "test_id": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pass",
+        "fail",
+        "skip",
+        "error"
+      ]
+    },
+    "location": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "message": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 200
+    },
+    "duration_ms": {
+      "type": [
+        "number",
+        "null"
+      ]
+    },
+    "key": {
+      "type": "string"
+    },
+    "state": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "a state id (v2) or a v1 workspace hash"
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/state.schema.json",
+  "title": "KER v1 state",
+  "description": "A kept state: the content of a check command's scope plus its environment stamp (4.1, 4.2). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts",
+    "mode",
+    "materializable"
+  ],
+  "properties": {
+    "type": {
+      "const": "state"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^st_[0-9a-f]{16}$"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "git",
+        "walk"
+      ]
+    },
+    "scope": {
+      "type": "string"
+    },
+    "snapshot_tree": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "env_stamp": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "materializable": {
+      "type": "boolean"
+    }
+  }
+}

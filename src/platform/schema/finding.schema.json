@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/finding.schema.json",
+  "title": "KER v1 finding",
+  "description": "A cause isolated by the worker (8.2). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "kind",
+    "test_id",
+    "confidence"
+  ],
+  "properties": {
+    "type": {
+      "const": "finding"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "kind": {
+      "const": "cause"
+    },
+    "test_id": {
+      "type": "string"
+    },
+    "good_state": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^st_[0-9a-f]{16}$"
+    },
+    "bad_state": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^st_[0-9a-f]{16}$"
+    },
+    "culprit_hunks": {
+      "type": "array"
+    },
+    "probes": {
+      "type": "integer"
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "confirmed",
+        "undetermined"
+      ]
+    },
+    "reason_if_undetermined": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}

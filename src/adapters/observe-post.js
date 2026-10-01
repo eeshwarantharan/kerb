@@ -133,7 +133,7 @@ function startRecord(prep, id, ts, pending, cls) {
   return {
     type: 'start', id, ts, key: prep.key, class: cls, cmd: redactText(prep.command), cwd: prep.cwdRel,
     scope: pending ? pending.scope : null, pre_hash: pending ? pending.pre_hash : null, env_stamp: pending ? pending.env_stamp : null,
-    kerb_pid: null, pgid: null, agent: prep.agent, tier: 'enforced', session: prep.session, observed: true,
+    kerb_pid: null, pgid: null, agent: prep.agent, tier: 'enforced', session: prep.session, observed: true, mode: prep.mode ? prep.mode.mode : null,
   };
 }
 

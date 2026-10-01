@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/fix.schema.json",
+  "title": "KER v1 fix",
+  "description": "A change that turned a failure green (7.6). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "fingerprint",
+    "from_state",
+    "to_state",
+    "confidence"
+  ],
+  "properties": {
+    "type": {
+      "const": "fix"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "fingerprint": {
+      "type": "string"
+    },
+    "family": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "test_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "from_state": {
+      "type": "string",
+      "pattern": "^st_[0-9a-f]{16}$"
+    },
+    "to_state": {
+      "type": "string",
+      "pattern": "^st_[0-9a-f]{16}$"
+    },
+    "hunks": {
+      "type": [
+        "array",
+        "null"
+      ]
+    },
+    "commit": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": [
+        "minimal",
+        "full diff"
+      ]
+    }
+  }
+}

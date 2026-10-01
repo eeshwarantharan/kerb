@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/ack.schema.json",
+  "title": "KER v1 ack",
+  "description": "A human allowed one more run of a key (v1 4.7.7). Readers must ignore fields they don't know; within KER v1 changes are additive only.",
+  "type": "object",
+  "required": [
+    "type",
+    "id",
+    "ts",
+    "key"
+  ],
+  "properties": {
+    "type": {
+      "const": "ack"
+    },
+    "id": {
+      "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
+    "key": {
+      "type": "string"
+    },
+    "fingerprint": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  }
+}
