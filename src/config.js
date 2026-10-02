@@ -23,6 +23,13 @@ export const CONFIG_KEYS = {
   mode: { values: ['shadow', 'enforce'], default: null },
   insights: { values: ['on', 'off'], default: 'on' },
   'tls.ca_bundle': { type: 'path', default: null },
+  // The background worker (KERB-V2 8.1, 11a).
+  worker: { values: ['auto', 'on', 'off', 'manual'], default: 'auto' },
+  cause: { values: ['on', 'off'], default: 'off' },
+  worker_budget_cpu_min_per_hour: { type: 'int', default: 15, min: 1 },
+  cause_max_probes: { type: 'int', default: 12, min: 3 },
+  cause_max_seconds: { type: 'int', default: 180, min: 10 },
+  share_fixes: { type: 'bool', default: false },
 };
 
 /** Managed config locations per OS. */

@@ -2,6 +2,22 @@
 
 All notable changes to Kerb. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-10-02
+
+Milestone E of [docs/KERB-V2.md](docs/KERB-V2.md), "Cause and proof". Still a preview.
+
+### Added
+
+- **Background worker:** `kerb worker` starts on demand, one per repo, niced, one job at a time within a per-job probe budget and an hourly budget, and exits after 60 s idle. It never touches the working tree: probes run in worktrees under `.kerb/worktrees/`. `kerb worker status|stop`, `kerb jobs`. Config `worker` (`auto`, off in CI; `on`; `off`; `manual`).
+- **Narrowing:** a command that runs only one test, for Vitest, Jest, pytest, go test, cargo test and Node's runner.
+- **Cause isolation:** when a test that passed starts failing, the worker reproduces it in isolation, searches the hunks between the two states with delta debugging, confirms the culprit with one more probe, and reports it at your next command: `kerb: cause · "logout clears session" broke at attempt 4`, the culprit lines, and the `kerb restore … --keep-except` patch that reverts just them. Static checks by default; tests once you run `kerb config set cause on`. Never applied automatically.
+- **Proven fixes:** a failure turned green is recorded as a fix (and minimised to the hunks that matter, in the background); when the same failure comes back, one hint points to it (`kerb show fix:<id>`), or to a similar one, labelled as not the same error. Commits are attached once the fix is committed.
+- **Sharing fixes:** with `share_fixes` on (human-only), committed fixes are written to `refs/notes/kerb` (fingerprints and test ids only); `kerb sync` merges a team's notes, and `kerb sync --push` (human-only) publishes yours.
+
+### Fixed
+
+- The Node test reporter missed the test file when the command quoted it.
+
 ## [0.5.0] - 2026-10-02
 
 Milestone D of [docs/KERB-V2.md](docs/KERB-V2.md), "Instant answers and last green". Still a preview.
@@ -79,6 +95,7 @@ First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented 
 - The task benchmark has not been run yet, so there are no savings figures.
 - Hook latency is borderline against the 100 ms target for check commands after a failure (see `bench/results/`).
 
+[0.6.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.5.0
 [0.4.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.4.0
 [0.3.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.3.0

@@ -892,8 +892,6 @@ A change that turned a failure green (7.6).
     "type",
     "id",
     "fingerprint",
-    "from_state",
-    "to_state",
     "confidence"
   ],
   "properties": {
@@ -907,6 +905,12 @@ A change that turned a failure green (7.6).
       "type": "integer",
       "minimum": 0,
       "description": "milliseconds since the Unix epoch"
+    },
+    "key": {
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "fingerprint": {
       "type": "string"
@@ -924,11 +928,17 @@ A change that turned a failure green (7.6).
       }
     },
     "from_state": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^st_[0-9a-f]{16}$"
     },
     "to_state": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^st_[0-9a-f]{16}$"
     },
     "hunks": {
@@ -947,8 +957,12 @@ A change that turned a failure green (7.6).
       "type": "string",
       "enum": [
         "minimal",
-        "full diff"
+        "full diff",
+        "shared"
       ]
+    },
+    "shared": {
+      "type": "boolean"
     }
   }
 }
@@ -987,6 +1001,12 @@ A cause isolated by the worker (8.2).
     "kind": {
       "const": "cause"
     },
+    "key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "test_id": {
       "type": "string"
     },
@@ -1005,7 +1025,19 @@ A cause isolated by the worker (8.2).
       "pattern": "^st_[0-9a-f]{16}$"
     },
     "culprit_hunks": {
-      "type": "array"
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "locations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hunk_count": {
+      "type": "integer"
     },
     "probes": {
       "type": "integer"

@@ -22,6 +22,17 @@ export function currentState(root, git, key, policy, env, budgetMs = 2000) {
   return hashWorkspace({ root, git, policy, env, envStamp: stamp, store: true }, scope, budgetMs);
 }
 
+/** The env stamp a key's runs use (its package root and the repo root). */
+export function envStampForKey(root, key, policy, env) {
+  const cut = key.indexOf('::');
+  const cwdRel = cut === -1 ? '.' : key.slice(0, cut);
+  const cwd = path.resolve(root, cwdRel === '.' ? '' : cwdRel);
+  const parsed = parseCommand(keyCommand(key), { cwd });
+  const seg = checkSegment(parsed, compileCheckCommands(policy.check_commands));
+  const scope = computeScope(root, seg ? seg.cwd : cwd, policy);
+  return envStamp(env, policy, [scope.pkgRoot, root]);
+}
+
 /** Files that differ between a kept state and a freshly computed one (at most `max`). */
 export function changedSince(root, stateId, cur, max = 5) {
   const a = readState(root, stateId);

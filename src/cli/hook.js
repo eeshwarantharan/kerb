@@ -215,6 +215,12 @@ async function sessionStop(ctx, adapter, payload) {
       if (v.block && adapter.stopBlock) block = v.block;
     } catch (e) { logError('stop verification', e); }
   }
+  // Once: cause isolation could have run, if a person turns it on (KERB-V2 8.1).
+  if (summary.cause_offer && !summary.cause_offered) {
+    const t = String(summary.cause_offer.test || '');
+    parts.push(`kerb: note · Kerb could have isolated which change broke "${t.slice(t.indexOf('::') + 2)}"; to let it, run kerb config set cause on (it runs your tests in the background)`);
+    store.updateSummary((s) => { s.cause_offered = true; });
+  }
   const { shadowPrompt, markPrompted } = await import('../mode.js');
   const prompt = shadowPrompt(root, config, summary, now());
   if (prompt) parts.push(prompt);

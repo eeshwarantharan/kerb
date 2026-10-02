@@ -26,6 +26,12 @@
     "kind": {
       "const": "cause"
     },
+    "key": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "test_id": {
       "type": "string"
     },
@@ -44,7 +50,19 @@
       "pattern": "^st_[0-9a-f]{16}$"
     },
     "culprit_hunks": {
-      "type": "array"
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "locations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "hunk_count": {
+      "type": "integer"
     },
     "probes": {
       "type": "integer"

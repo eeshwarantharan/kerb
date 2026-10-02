@@ -30,7 +30,7 @@ export function parse(text, ctx) {
 }
 
 function commandFile(ctx) {
-  const files = String(ctx.command || '').split(/\s+/).filter((w) => /\.(test|spec)\.[cm]?[jt]s$|(^|\/)test\.[cm]?[jt]s$/.test(w));
+  const files = String(ctx.command || '').split(/\s+/).map((w) => w.replace(/^['"]|['"]$/g, '')).filter((w) => /\.(test|spec)\.[cm]?[jt]s$|(^|\/)test\.[cm]?[jt]s$/.test(w));
   return files.length === 1 ? repoPath(files[0], ctx) : '';
 }
 

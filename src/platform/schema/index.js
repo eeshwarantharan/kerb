@@ -791,8 +791,6 @@ export const SCHEMAS = {
       "type",
       "id",
       "fingerprint",
-      "from_state",
-      "to_state",
       "confidence"
     ],
     "properties": {
@@ -806,6 +804,12 @@ export const SCHEMAS = {
         "type": "integer",
         "minimum": 0,
         "description": "milliseconds since the Unix epoch"
+      },
+      "key": {
+        "type": [
+          "string",
+          "null"
+        ]
       },
       "fingerprint": {
         "type": "string"
@@ -823,11 +827,17 @@ export const SCHEMAS = {
         }
       },
       "from_state": {
-        "type": "string",
+        "type": [
+          "string",
+          "null"
+        ],
         "pattern": "^st_[0-9a-f]{16}$"
       },
       "to_state": {
-        "type": "string",
+        "type": [
+          "string",
+          "null"
+        ],
         "pattern": "^st_[0-9a-f]{16}$"
       },
       "hunks": {
@@ -846,8 +856,12 @@ export const SCHEMAS = {
         "type": "string",
         "enum": [
           "minimal",
-          "full diff"
+          "full diff",
+          "shared"
         ]
+      },
+      "shared": {
+        "type": "boolean"
       }
     }
   },
@@ -879,6 +893,12 @@ export const SCHEMAS = {
       "kind": {
         "const": "cause"
       },
+      "key": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
       "test_id": {
         "type": "string"
       },
@@ -897,7 +917,19 @@ export const SCHEMAS = {
         "pattern": "^st_[0-9a-f]{16}$"
       },
       "culprit_hunks": {
-        "type": "array"
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "locations": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "hunk_count": {
+        "type": "integer"
       },
       "probes": {
         "type": "integer"

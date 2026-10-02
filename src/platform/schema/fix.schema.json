@@ -8,8 +8,6 @@
     "type",
     "id",
     "fingerprint",
-    "from_state",
-    "to_state",
     "confidence"
   ],
   "properties": {
@@ -23,6 +21,12 @@
       "type": "integer",
       "minimum": 0,
       "description": "milliseconds since the Unix epoch"
+    },
+    "key": {
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "fingerprint": {
       "type": "string"
@@ -40,11 +44,17 @@
       }
     },
     "from_state": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^st_[0-9a-f]{16}$"
     },
     "to_state": {
-      "type": "string",
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^st_[0-9a-f]{16}$"
     },
     "hunks": {
@@ -63,8 +73,12 @@
       "type": "string",
       "enum": [
         "minimal",
-        "full diff"
+        "full diff",
+        "shared"
       ]
+    },
+    "shared": {
+      "type": "boolean"
     }
   }
 }

@@ -185,7 +185,7 @@ export async function runSupervised(prep, o) {
   const footer = footerNeeded
     ? `kerb: exit ${exit} · ${formatDuration(res.durationMs)} · ${formatBytes(shaped.rawBytes)} → ${formatBytes(shaped.shownBytes)} · log ${logRel}`
     : null;
-  return { id, exit, classResult, shaped, analysis, notes, hints, envFix, footer, delta: after.delta, endRec, startRec, res, logRel };
+  return { id, exit, classResult, shaped, analysis, notes, hints, envFix, footer, delta: after.delta, extra: after.extra || [], endRec, startRec, res, logRel };
 }
 
 /** Print shaped output (stdout) and footer, hints and notes (stderr). */
@@ -206,6 +206,7 @@ export function printRun(ctx, r, { showOutput = true } = {}) {
   } else if (r.footer) ctx.err(`${paint(ctx.color.err, 'dim', r.footer)}\n`);
   for (const h of r.hints) ctx.err(`      hint: ${h}\n`);
   for (const l of r.envFix || []) ctx.err(`${l}\n`);
+  for (const l of r.extra || []) ctx.err(`${l}\n`);
   for (const n of r.notes) ctx.err(formatNote(n, ctx.color.err));
 }
 

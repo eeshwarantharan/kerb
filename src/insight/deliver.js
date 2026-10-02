@@ -12,6 +12,9 @@ import { computeDelta } from './delta.js';
 import { progress, series } from './converge.js';
 import { renderLedger, recentKeys, WINDOW_MS } from './ledger.js';
 import { verification, verificationLine } from './verify.js';
+import { afterRun, afterCommit, deliverFindings } from './triggers.js';
+import { loadSummary } from '../store/summary.js';
+import { gitSub } from '../parse/tokenize.js';
 
 export const AFTER_MAX_LINES = 10;
 export const START_FRESH_BYTES = 400 * 4;
@@ -37,6 +40,8 @@ function capBytes(text, max) {
  */
 export function afterCommand(prep, o) {
   let delta = [];
+  const hints = [...(o.hints || [])];
+  let findings = [];
   if (o.cls === 'check') {
     try {
       const recs = prep.store.read({ maxBytes: READ_BYTES });
@@ -44,6 +49,11 @@ export function afterCommand(prep, o) {
         const d = computeDelta(recs, o.runId);
         if (d) delta = d.lines;
       }
+      // Proven fixes, the one recurrence hint, and jobs for the worker (7.6, 8.2).
+      try {
+        const t = afterRun(prep, recs, o.runId);
+        if (o.insights !== false) hints.push(...t.hints.slice(0, 1));
+      } catch { /* never breaks a run */ }
       const end = recs.find((r) => r.type === 'end' && r.id === o.runId);
       if (end && end.exit != null) {
         const p = progress(recs, end.key);
@@ -53,8 +63,12 @@ export function afterCommand(prep, o) {
       }
     } catch { /* insights never break a run */ }
   }
-  const lines = [...delta, ...(o.envFix || []), ...(o.hints || []).map((h) => `kerb: hint · ${h}`), ...(o.notes || []).map((n) => `kerb: note · ${n}`)];
-  return { lines: capLines(lines, AFTER_MAX_LINES), delta };
+  try {
+    if (prep.git && prep.parsed && prep.parsed.segments.some((s) => { const g = s.name === 'git' ? gitSub(s) : null; return g && g.sub === 'commit'; })) afterCommit(prep, prep.store.read({ maxBytes: READ_BYTES }));
+    if (o.insights !== false) findings = deliverFindings(prep.store, () => loadSummary(prep.store.dir), () => prep.store.read({ maxBytes: READ_BYTES }));
+  } catch { /* never breaks a run */ }
+  const lines = [...findings, ...delta, ...(o.envFix || []), ...hints.map((h) => `kerb: hint · ${h}`), ...(o.notes || []).map((n) => `kerb: note · ${n}`)];
+  return { lines: capLines(lines, AFTER_MAX_LINES), delta, extra: [...findings, ...hints.slice((o.hints || []).length).map((h) => `kerb: hint · ${h}`)] };
 }
 
 /**
