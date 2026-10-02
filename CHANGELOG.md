@@ -2,6 +2,21 @@
 
 All notable changes to Kerb. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+Milestone G of [docs/KERB-V2.md](docs/KERB-V2.md), "Proof", in progress: the benchmark (section 15), and what running it found.
+
+### Added
+
+- **Benchmark v2** in [`bench/`](bench/): 34 tasks across Node, Python and Go (seeded regressions with ground truth, a TLS-inspecting proxy, slow suites, a compaction-length task, a 100,000-file monorepo), each with a reference solution and validated; a four-arm harness (plain, skill-only, Kerb v1, Kerb v2) reading attempts, tokens and time to green from transcripts; refusals and cached answers judged by replay; the launch gate with paired bootstrap confidence intervals. The cause-isolation benchmark and hook latency have been run (results in `bench/results/`); the agent runs have not.
+
+### Fixed
+
+- Cause isolation never started when the test command names only failing tests (`pytest -q`, Jest's and Vitest's default reporters): a green run without names now counts as every test passing.
+- `pytest -q` output (no header, totals without `===`) wasn't parsed.
+- Cause isolation could confirm an innocent edit for a flaky test: confirmation now needs the state without the culprit to pass twice and the culprit alone to fail.
+- A probe whose build failed (for example an unused Go import with only some edits applied) counted as the test failing; it now counts as "didn't run".
+
 ## [0.7.0] - 2026-10-02
 
 Milestone F of [docs/KERB-V2.md](docs/KERB-V2.md), "Platform". Still a preview.

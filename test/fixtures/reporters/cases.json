@@ -10,6 +10,7 @@
   { "fixture": "pytest/default.txt", "root": "/work/py", "rp": "RP3" },
   { "fixture": "pytest/ra.txt", "root": "/work/py", "rp": "RP3" },
   { "fixture": "pytest/verbose.txt", "root": "/work/py", "rp": "RP3" },
+  { "fixture": "pytest/quiet.txt", "root": "/work/py", "rp": "RP3" },
   { "fixture": "junit/pytest-junit.xml", "root": "/work/py", "rp": "RP3", "report": true },
   { "fixture": "go/default.txt", "root": "/work/gomod-proj", "rp": "RP4" },
   { "fixture": "go/verbose.txt", "root": "/work/gomod-proj", "rp": "RP4" },

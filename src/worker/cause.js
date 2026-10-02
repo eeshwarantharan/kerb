@@ -83,9 +83,16 @@ export async function isolate(o) {
       finding.partial = true;
       return done('interdependent changes (budget exhausted; the smallest failing set found so far)');
     }
-    // Confirm: B without exactly the culprit set must pass.
-    let confirmed;
-    try { confirmed = (await bench.probe(all.filter((h) => !culprit.includes(h)), { fresh: true })) === 'pass'; } catch (e) { if (!(e instanceof Budget)) throw e; confirmed = false; }
+    // Confirm, on fresh runs: B without exactly the culprit set passes twice, and G with only the
+    // culprit set fails. A flaky test rarely survives all three (found by bench/cause.js: one
+    // probe let a 50% flaky test blame an innocent hunk).
+    let confirmed = false;
+    try {
+      const rest = all.filter((h) => !culprit.includes(h));
+      confirmed = (await bench.probe(rest, { fresh: true })) === 'pass'
+        && (await bench.probe(rest, { fresh: true })) === 'pass'
+        && (culprit.length === all.length || (await bench.probe(culprit, { fresh: true })) === 'fail');
+    } catch (e) { if (!(e instanceof Budget)) throw e; confirmed = false; }
     finding.probes = bench.probes;
     finding.culprit_hunks = culprit;
     finding.locations = culprit.map((id) => hunkLocation(bench, id));

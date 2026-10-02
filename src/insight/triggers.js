@@ -1,7 +1,7 @@
 // What a finished run sets off (KERB-V2 7.6, 8.1, 8.2): record a proven fix, queue a cause or a
 // minimisation job for the worker, and deliver findings the worker has produced.
 import { readState } from '../state/keep.js';
-import { keyRuns, testsByRun, flakyTests, keyCommand } from './history.js';
+import { keyRuns, testsByRun, flakyTests, keyCommand, isSuccess } from './history.js';
 import { fixFor, fixHint, attachCommits, writeNotes } from './fixes.js';
 import { isHermetic } from './cache.js';
 import { enqueue } from '../worker/queue.js';
@@ -21,8 +21,13 @@ export function backgroundAllowed(prep) {
  */
 function lastPass(recs, runs, byRun, testId, before) {
   for (let i = before - 1; i >= 0; i--) {
-    const t = (byRun.get(runs[i].id) || []).find((x) => x.test_id === testId);
-    if (t && t.status === 'pass') {
+    const results = byRun.get(runs[i].id) || [];
+    const t = results.find((x) => x.test_id === testId);
+    // Most runners name only failures (pytest -q, Jest and Vitest by default): a fully green run
+    // that names no passing test passed every test it ran. If this test didn't exist yet, the
+    // worker's reproduction step (it must pass on the good state) says so, and nothing is blamed.
+    const greenWithoutNames = !t && isSuccess(runs[i]) && !results.some((x) => x.status === 'pass');
+    if ((t && t.status === 'pass') || greenWithoutNames) {
       const state = readState(runs[i].root || '', runs[i].post_hash);
       return { run: runs[i], stateId: runs[i].post_hash, state };
     }

@@ -1,5 +1,10 @@
 {
-  "date": "2026-09-30T22:01:13.276Z",
+  "date": "2026-10-02T17:14:26.304Z",
+  "load_average": [
+    3.24,
+    7.12,
+    7.12
+  ],
   "kerb": "kerb-darwin-arm64",
   "harness_node": "v20.12.2",
   "platform": "darwin-arm64",
@@ -9,31 +14,53 @@
   "cases": {
     "query": {
       "p50_ms": 55,
-      "p95_ms": 68.7,
-      "min_ms": 52.5
+      "p95_ms": 61.7,
+      "min_ms": 52.8,
+      "budget_ms": 60,
+      "within_budget": false
     },
     "check": {
-      "p50_ms": 60.7,
-      "p95_ms": 70.5,
-      "min_ms": 57.9
+      "p50_ms": 63.5,
+      "p95_ms": 68.9,
+      "min_ms": 61,
+      "budget_ms": 120,
+      "within_budget": true
     },
     "check-after-failure": {
-      "p50_ms": 93.3,
-      "p95_ms": 98.3,
-      "min_ms": 90.2
+      "p50_ms": 96.2,
+      "p95_ms": 109.9,
+      "min_ms": 93.1,
+      "budget_ms": 120,
+      "within_budget": true
     },
     "blocked": {
-      "p50_ms": 61.6,
-      "p95_ms": 81.9,
-      "min_ms": 58.5
+      "p50_ms": 62,
+      "p95_ms": 65.7,
+      "min_ms": 59.6,
+      "budget_ms": 60,
+      "within_budget": false
+    },
+    "post": {
+      "p50_ms": 57,
+      "p95_ms": 62.7,
+      "min_ms": 54.5,
+      "budget_ms": 150,
+      "within_budget": true
+    },
+    "statusline": {
+      "p50_ms": 47.6,
+      "p95_ms": 54.6,
+      "min_ms": 45.5,
+      "budget_ms": 50,
+      "within_budget": false
     }
   },
   "node_startup": {
     "p50_ms": 43.7,
-    "p95_ms": 57.4
+    "p95_ms": 45.7
   },
   "latency_gate": {
-    "target_p95_ms": 100,
-    "pass": true
+    "budgets": "KERB-V2 section 12",
+    "pass": false
   }
 }

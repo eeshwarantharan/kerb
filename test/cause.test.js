@@ -217,3 +217,23 @@ test('CA12 added and deleted files are single hunks', () => {
   assert.deepEqual(f.culprit_hunks, ['src/new.js#0']);
   assert.deepEqual(f.locations, ['src/new.js']);
 });
+
+const hasPytest = (await import('node:child_process')).spawnSync('python3', ['-m', 'pytest', '--version']).status === 0;
+test('CA13 runners that name only failures (pytest -q) still start isolation, and it finds the culprit', { skip: !hasPytest && 'pytest not installed' }, () => {
+  const pad = '#\n'.repeat(7);
+  const repo = makeRepo({ git: true, config: { cause: 'on', worker: 'manual' }, files: {
+    'shop.py': `def total(xs):\n    return sum(xs)\n${pad}\ndef label(x):\n    return str(x)\n`,
+    'test_shop.py': 'from shop import total, label\n\n\ndef test_total():\n    assert total([1, 2]) == 3\n\n\ndef test_label():\n    assert label(1) == "1"\n',
+  } });
+  const cmd = 'python3 -m pytest -q -p no:cacheprovider';
+  repo.kerb(['run', '--', cmd]);
+  const green = records(repo.dir).filter((r) => r.type === 'test_result');
+  assert.equal(green.length, 0, 'the green run names no test');
+  repo.write('shop.py', `def total(xs):\n    return sum(xs) + 1\n${pad}\ndef label(x):\n    return str(x).strip()\n`);
+  repo.kerb(['run', '--', cmd]);
+  assert.deepEqual(listJobs(repo.dir).filter((j) => j.kind === 'cause').map((j) => j.payload.test_id), ['pytest:test_shop.py::test_total']);
+  repo.kerb(['worker', '--once']);
+  const f = records(repo.dir).filter((r) => r.type === 'finding').pop();
+  assert.equal(f.confidence, 'confirmed');
+  assert.deepEqual(f.locations, ['shop.py:2']);
+});

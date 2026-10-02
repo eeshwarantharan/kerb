@@ -21,7 +21,10 @@ const DIAGNOSTICS = new Set(['tsc', 'eslint', 'ruff', 'mypy', 'clippy']);
  * Failures-only reporters and diagnostics don't list what passed: absent then means pass.
  */
 export function targetStatus(testIds, parsed, exit) {
-  if (!parsed || !parsed.results) return exit === 0 ? 'pass' : 'fail';
+  // No test results and a failure: the run stopped before the tests (a build or collection error,
+  // like Go's unused import when only some hunks are applied). That says nothing about the target
+  // test, so it is "didn't run", which ddmin treats as unresolved (found by bench/cause.js).
+  if (!parsed || !parsed.results) return exit === 0 ? 'pass' : 'missing';
   // A reporter that lists passing or skipped tests lists every test it ran.
   const listsPasses = parsed.results.some((x) => x.status === 'pass' || x.status === 'skip');
   let all = 'pass';

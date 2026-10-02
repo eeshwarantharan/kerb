@@ -4,10 +4,13 @@
 //   -v:       "tests/test_cart.py::test_discount FAILED      [ 28%]"
 //   summary:  "FAILED tests/test_cart.py::test_discount - assert 100 == 90", "ERROR tests/…::test_error"
 //   sections: "____ TestUser.test_logout ____" … "tests/test_cart.py:22: AssertionError"
-//   totals:   "=== 3 failed, 2 passed, 1 skipped, 1 error in 0.02s ==="
+//   totals:   "=== 3 failed, 2 passed, 1 skipped, 1 error in 0.02s ===" (`-q`: the same line without ===)
 import { lines, repoPath, summarize } from './common.js';
 
 export const framework = 'pytest';
+/** The `-q` totals line on its own: counts only, then the time. */
+const QUIET_LINE = /^((?:\d+ (?:failed|passed|skipped|deselected|xfailed|xpassed|warnings?|errors?)(?:, )?)+) in [\d.]+s(?: \([^)]*\))?$/;
+const QUIET_TOTALS = new RegExp(`(^|\\n)${QUIET_LINE.source.slice(1, -1)}\\s*$`);
 const MAP = { PASSED: 'pass', FAILED: 'fail', ERROR: 'error', SKIPPED: 'skip', XFAIL: 'skip', XPASS: 'pass' };
 
 /** "tests/test_cart.py::TestUser::test_logout" → file and "TestUser > test_logout". */
@@ -17,7 +20,8 @@ export function splitNodeId(id, ctx) {
 }
 
 export function parse(text, ctx) {
-  if (!/(^|\n)=+ test session starts =+/.test(text) && !/(^|\n)=+ .*(passed|failed|error).* in [\d.]+s/.test(text)) return null;
+  // `-q` drops the session header and the === around the totals: "2 failed, 2 passed in 0.02s".
+  if (!/(^|\n)=+ test session starts =+/.test(text) && !/(^|\n)=+ .*(passed|failed|error).* in [\d.]+s/.test(text) && !QUIET_TOTALS.test(text)) return null;
   const tests = new Map();
   const put = (id, patch) => {
     const { file, name } = splitNodeId(id, ctx);
@@ -48,7 +52,7 @@ export function parse(text, ctx) {
       section = null;
       continue;
     }
-    if ((m = /^=+ (.*\b(?:passed|failed|error|errors|skipped|no tests ran)\b.*) in [\d.]+s(?: \([^)]*\))? =+$/.exec(line))) {
+    if ((m = /^=+ (.*\b(?:passed|failed|error|errors|skipped|no tests ran)\b.*) in [\d.]+s(?: \([^)]*\))? =+$/.exec(line)) || (m = QUIET_LINE.exec(line))) {
       const part = (w) => { const x = new RegExp(`(\\d+) ${w}`).exec(m[1]); return x ? Number(x[1]) : 0; };
       counts = { failed: part('failed'), passed: part('passed') + part('xpassed'), skipped: part('skipped') + part('xfailed') + part('deselected') * 0, errors: part('errors?') };
     }

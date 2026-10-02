@@ -1,0 +1,24 @@
+.FF.s                                                                    [100%]
+=================================== FAILURES ===================================
+________________________________ test_discount _________________________________
+
+    def test_discount():
+>       assert 100 * 0.9 == 85
+E       assert (100 * 0.9) == 85
+
+tests/test_cart.py:9: AssertionError
+_____________________________ TestUser.test_logout _____________________________
+
+self = <test_cart.TestUser object at 0x1060a8050>
+
+    def test_logout(self):
+>       assert {"user": "a"}.get("user") is None
+E       AssertionError: assert 'a' is None
+E        +  where 'a' = <built-in method get of dict object at 0x10608f300>('user')
+E        +    where <built-in method get of dict object at 0x10608f300> = {'user': 'a'}.get
+
+tests/test_cart.py:14: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_cart.py::test_discount - assert (100 * 0.9) == 85
+FAILED tests/test_cart.py::TestUser::test_logout - AssertionError: assert 'a'...
+2 failed, 2 passed, 1 skipped in 0.02s

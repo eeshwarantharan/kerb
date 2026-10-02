@@ -1,0 +1,26 @@
+{
+  "framework": "pytest",
+  "results": [
+    {
+      "test_id": "pytest:tests/test_cart.py::test_discount",
+      "status": "fail",
+      "location": "tests/test_cart.py:9",
+      "message": "assert (100 * 0.9) == 85",
+      "duration_ms": null
+    },
+    {
+      "test_id": "pytest:tests/test_cart.py::TestUser > test_logout",
+      "status": "fail",
+      "location": "tests/test_cart.py:14",
+      "message": "AssertionError: assert 'a' is None",
+      "duration_ms": null
+    }
+  ],
+  "summary": {
+    "passed": 2,
+    "failed": 2,
+    "skipped": 1,
+    "errors": 0,
+    "total": 5
+  }
+}
