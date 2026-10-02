@@ -19,9 +19,18 @@ export function kerbArgv(args) {
   return [TEST_BIN, args];
 }
 
-/** Make a fresh temp directory. */
+// Temp directories are removed when the test process exits (KERB_TEST_KEEP=1 keeps them for
+// debugging): a full run makes tens of thousands of them.
+const made = [];
+process.on('exit', () => {
+  if (process.env.KERB_TEST_KEEP) return;
+  for (const d of made) try { fs.rmSync(d, { recursive: true, force: true }); } catch { /* still in use */ }
+});
+
+/** Make a fresh temp directory (removed when the test process exits). */
 export function tmpDir(prefix = 'kerb-test-') {
   const dir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), prefix)));
+  made.push(dir);
   // Tests put these paths inside bash commands; on Windows, Git Bash reads backslashes as escapes.
   return process.platform === 'win32' ? dir.replace(/\\/g, '/') : dir;
 }

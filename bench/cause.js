@@ -7,18 +7,19 @@
 // confirmed finding is a false positive.
 //
 //   node bench/cause.js [--generated 24] [--seed 1] [--only id,id] [--out bench/results/cause]
+//                       [--large] [--keep]
 //
 // Scenarios: the seeded regressions in bench/tasks.js, plus generated Node (node --test) and
 // pytest repos: one culprit among harmless edits, two culprits breaking two tests, and flaky
 // controls. Writes rows.jsonl and summary.json; the gate (15) is precision >= 95% among
-// confirmed findings.
+// confirmed findings. Large seeded tasks (100,000 files) run only with --large; sandboxes are
+// removed after each scenario unless --keep.
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { TASKS } from './tasks.js';
-import { sandbox, available } from './sandbox.js';
+import { sandbox, available, tempDir, release, spaceProblem } from './sandbox.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const kerbJs = path.join(root, 'bin', 'kerb.js');
@@ -112,6 +113,7 @@ function scenarios(o) {
   const have = available();
   for (const t of TASKS.filter((x) => x.seeded)) {
     if ((t.needs || []).some((n) => !have.has(n))) continue;
+    if (t.large && !o.large) continue;
     out.push({ id: t.id, lang: t.lang, control: false, test: t.test, setup: t.setup, edits: t.edits, culprits: { '*': t.seeded.culprits } });
   }
   const rand = rng(o.seed);
@@ -154,7 +156,7 @@ export function judge(finding, scenario) {
 }
 
 function runScenario(s, o) {
-  const home = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'kerb-cause-home-')));
+  const home = tempDir('kerb-cause-home-');
   fs.mkdirSync(path.join(home, '.kerb'), { recursive: true });
   fs.writeFileSync(path.join(home, '.kerb', 'config.json'), JSON.stringify({ mode: 'enforce', cause: 'on', worker: 'manual', insights: 'on' }));
   const box = sandbox({ id: s.id, setup: s.setup }, {}, { ...process.env, HOME: home });
@@ -174,7 +176,9 @@ function runScenario(s, o) {
     cause_jobs: jobs.filter((j) => j.kind === 'cause').length, worker: (() => { try { return JSON.parse(w.stdout); } catch { return null; } })(),
     findings: judged, ms: Date.now() - t0,
   };
-  if (!o.keep) { fs.rmSync(box.dir, { recursive: true, force: true }); fs.rmSync(home, { recursive: true, force: true }); } else row.dir = box.dir;
+  release(home);
+  release(box.dir, { keep: o.keep });
+  if (o.keep) row.dir = box.dir;
   return row;
 }
 
@@ -199,12 +203,14 @@ export function summarize(rows) {
 if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) {
   const args = process.argv.slice(2);
   const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i === -1 ? d : args[i + 1]; };
-  const o = { generated: Number(opt('generated', 24)), seed: Number(opt('seed', 1)), keep: args.includes('--keep') };
+  const o = { generated: Number(opt('generated', 24)), seed: Number(opt('seed', 1)), keep: args.includes('--keep'), large: args.includes('--large') };
   const only = opt('only') ? opt('only').split(',') : null;
   const outDir = path.resolve(root, opt('out', 'bench/results/cause'));
   fs.mkdirSync(outDir, { recursive: true });
   const rows = [];
   for (const s of scenarios(o).filter((x) => !only || only.includes(x.id))) {
+    const full = spaceProblem({ large: TASKS.some((t) => t.id === s.id && t.large) }, { large: true });
+    if (full) { console.error(`stopping: ${s.id}: ${full}`); process.exitCode = 1; break; }
     const row = runScenario(s, o);
     rows.push(row);
     const f = row.findings.map((x) => `${x.confidence}${x.counted ? (x.correct ? (x.exact ? ' ✓' : ' ✓ (wider hunk)') : ' ✗') : ''} ${x.locations.join(', ')}`).join('; ') || 'no finding';

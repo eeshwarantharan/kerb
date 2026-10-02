@@ -15,6 +15,8 @@
 //   needs            outside services or tools: npm-mirror, pypi-mirror, tls-proxy, go, python
 //   seeded           ground truth for cause isolation: the culprit lines ("file:line")
 //   slow             takes more than ~20 s even when solved
+//   large            a 100,000-file repo (about 1 GB on disk): runs only with --large; ctx.fill
+//                    sets a smaller file count for the unit tests
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -301,7 +303,7 @@ const goVet = {
   solve: (d) => edit(d, 'report/report.go', '%s items', '%d items'),
 };
 
-/** @type {{ id: string, category: string, lang: string, prompt: string, test: string, check: string, setup: Function, solve: Function | null, edits?: Function, needs?: string[], seeded?: { culprits: string[] }, slow?: boolean }[]} */
+/** @type {{ id: string, category: string, lang: string, prompt: string, test: string, check: string, setup: Function, solve: Function | null, edits?: Function, needs?: string[], seeded?: { culprits: string[] }, slow?: boolean, large?: boolean }[]} */
 export const TASKS = [
   {
     id: 'npm-mirror-install', category: 'wall', lang: 'node', needs: ['npm-mirror'], test: 'npm install', check: 'node -e "import(\'left-pad\').then(()=>0)"',
@@ -372,11 +374,11 @@ export const TASKS = [
   },
   ...typechecks,
   {
-    id: 'monorepo-package-test', category: 'scale', lang: 'node', slow: true, test: 'npm test', check: 'cd packages/app && npm test',
+    id: 'monorepo-package-test', category: 'scale', lang: 'node', slow: true, large: true, test: 'npm test', check: 'cd packages/app && npm test',
     prompt: 'In the monorepo, the app package test fails. Fix packages/app/src/greet.js.',
-    setup: (d) => {
+    setup: (d, ctx = {}) => {
       const files = { 'package.json': JSON.stringify({ name: 'mono', private: true, workspaces: ['packages/*'] }), 'kerb.policy.json': POLICY };
-      for (let i = 0; i < 100_000; i++) files[`packages/lib${i % 200}/src/f${i}.js`] = `export const v${i} = ${i};\n`;
+      for (let i = 0; i < (ctx.fill ?? 100_000); i++) files[`packages/lib${i % 200}/src/f${i}.js`] = `export const v${i} = ${i};\n`;
       for (let i = 0; i < 200; i++) files[`packages/lib${i}/package.json`] = JSON.stringify({ name: `lib${i}` });
       files['packages/app/package.json'] = PKG();
       files['packages/app/src/greet.js'] = "export const greet = (n) => 'Hi ' + n;\n";
@@ -384,6 +386,28 @@ export const TASKS = [
       w(d, files);
     },
     solve: (d) => w(d, { 'packages/app/src/greet.js': "export const greet = (n) => `Hello, ${n}!`;\n" }),
+  },
+  {
+    id: 'seeded-regression-monorepo', category: 'regression', lang: 'node', slow: true, large: true, test: 'cd packages/app && node --test',
+    check: "cd packages/app && node --test && grep -q 'export function shout' src/greet.js",
+    prompt: 'In the monorepo, I added shout() to the app package and tidied it; now the app tests fail. Fix the regression and keep shout().',
+    setup: (d, ctx = {}) => {
+      const files = { 'package.json': JSON.stringify({ name: 'mono', private: true, workspaces: ['packages/*'] }), 'kerb.policy.json': POLICY };
+      for (let i = 0; i < (ctx.fill ?? 100_000); i++) files[`packages/lib${i % 200}/src/f${i}.js`] = `export const v${i} = ${i};\n`;
+      for (let i = 0; i < 200; i++) files[`packages/lib${i}/package.json`] = JSON.stringify({ name: `lib${i}` });
+      files['packages/app/package.json'] = PKG();
+      files['packages/app/src/greet.js'] = "export function greet(n) {\n  return `Hello, ${n}!`;\n}\n\nexport function initials(n) {\n  return n.split(' ').map((w) => w[0]).join('');\n}\n\nexport function polite(n) {\n  return 'Dear ' + n;\n}\n";
+      files['packages/app/test/greet.test.js'] = nodeTest("import { greet, initials } from '../src/greet.js';", "test('greet', () => assert.equal(greet('Ada'), 'Hello, Ada!'));\ntest('initials', () => assert.equal(initials('Ada Lovelace'), 'AL'));");
+      w(d, files);
+    },
+    edits: (d) => {
+      edit(d, 'packages/app/src/greet.js', '  return `Hello, ${n}!`;', '  return `Hello ${n}!`;');
+      edit(d, 'packages/app/src/greet.js', "  return 'Dear ' + n;", "  return `Dear ${n}`;");
+      edit(d, 'packages/app/src/greet.js', "export function polite(n) {", "export function shout(n) {\n  return n.toUpperCase();\n}\n\nexport function polite(n) {");
+      w(d, { 'packages/lib7/src/extra.js': 'export const extra = 1;\n' });
+    },
+    seeded: { culprits: ['packages/app/src/greet.js:2'] },
+    solve: (d) => edit(d, 'packages/app/src/greet.js', '  return `Hello ${n}!`;', '  return `Hello, ${n}!`;'),
   },
   {
     id: 'curl-blocked-host', category: 'wall', lang: 'shell', test: 'curl', check: 'grep -q \'"ok":true\' data.json',

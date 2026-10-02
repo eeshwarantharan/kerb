@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { tempDir, release } from './sandbox.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const kerb = process.env.KERB_BENCH_BIN ? [path.resolve(root, process.env.KERB_BENCH_BIN)] : [process.execPath, path.join(root, 'bin', 'kerb.js')];
@@ -16,8 +17,9 @@ const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i === -1 ? d : 
 const runs = Number(opt('runs', 50));
 const outDir = path.resolve(root, opt('out', 'bench/results'));
 
-const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'kerb-bench-'));
-const home = fs.mkdtempSync(path.join(os.tmpdir(), 'kerb-bench-home-'));
+// Both are removed at exit, Ctrl-C included.
+const repo = tempDir('kerb-bench-');
+const home = tempDir('kerb-bench-home-');
 for (let i = 0; i < 5000; i++) {
   const d = path.join(repo, 'src', `d${i % 50}`);
   if (i < 50) fs.mkdirSync(d, { recursive: true });
@@ -88,7 +90,7 @@ result.latency_gate = { budgets: 'KERB-V2 section 12', pass: Object.values(resul
 fs.mkdirSync(outDir, { recursive: true });
 const file = path.join(outDir, `hook-latency-${result.platform}-${process.env.KERB_BENCH_BIN ? 'binary' : 'npm'}.json`);
 fs.writeFileSync(file, `${JSON.stringify(result, null, 2)}\n`);
-fs.rmSync(repo, { recursive: true, force: true });
-fs.rmSync(home, { recursive: true, force: true });
+release(repo);
+release(home);
 console.log(JSON.stringify(result, null, 2));
 console.log(`wrote ${path.relative(root, file)}`);

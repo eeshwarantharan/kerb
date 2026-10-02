@@ -9,7 +9,7 @@ import path from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { ROOT, tmpDir, waitFor, baseEnv, makeRepo } from './helpers.js';
 import { TASKS } from '../bench/tasks.js';
-import { validateTask, available } from '../bench/sandbox.js';
+import { validateTask, available, spaceProblem } from '../bench/sandbox.js';
 import { greenMetrics, checkPattern } from '../bench/transcript.js';
 import { judgeRun } from '../bench/judge.js';
 import { covers, judge, summarize } from '../bench/cause.js';
@@ -41,7 +41,7 @@ test('each quick task fails as given and passes with its reference solution', { 
 test('seeded culprits name lines the edits changed', () => {
   for (const t of TASKS.filter((x) => x.seeded)) {
     const d = tmpDir('kerb-seed-');
-    t.setup(d, {});
+    t.setup(d, { fill: 20 });
     const before = Object.fromEntries(t.seeded.culprits.map((c) => { const f = c.slice(0, c.lastIndexOf(':')); return [f, fs.readFileSync(path.join(d, f), 'utf8').split('\n')]; }));
     t.edits(d, {});
     for (const c of t.seeded.culprits) {
@@ -54,7 +54,7 @@ test('seeded culprits name lines the edits changed', () => {
 
 test('the harness runs the plain, skill and v2 arms and writes rows and a summary', { timeout: 180_000 }, () => {
   const out = tmpDir();
-  const r = spawnSync(process.execPath, [path.join(ROOT, 'bench/run.js'), '--tasks', 'fix-test-sum', '--runs', '1', '--arms', 'plain,skill,v2', '--out', out,
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'bench/run.js'), '--tasks', 'fix-test-sum', '--runs', '1', '--arms', 'plain,skill,v2', '--out', out, '--keep',
     '--agent-cmd', `${process.execPath} ${path.join(ROOT, 'bench/fake-agent.js')}`], { encoding: 'utf8', env: baseEnv() });
   assert.equal(r.status, 0, r.stderr);
   const rows = fs.readFileSync(path.join(out, 'rows.jsonl'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
@@ -65,10 +65,52 @@ test('the harness runs the plain, skill and v2 arms and writes rows and a summar
   assert.equal(v2.refusals[0].reason, 'identical_retry');
   assert.equal(v2.refusals[0].correct, true, 'judged by replay: the failure repeats');
   assert.match(fs.readFileSync(path.join(rows.find((x) => x.arm === 'skill').dir, 'AGENTS.md'), 'utf8'), /# Working rules/);
+  for (const x of rows) fs.rmSync(x.dir, { recursive: true, force: true });
   const summary = JSON.parse(fs.readFileSync(path.join(out, 'summary.json'), 'utf8'));
   assert.equal(summary.per_arm.v2.runs, 1);
   assert.ok('success_within_1_point' in summary.launch_gate);
   assert.equal(summary.launch_gate.pass, false, 'one fake run never passes the gate');
+});
+
+test('the harness removes each sandbox after its run unless --keep', { timeout: 120_000 }, () => {
+  const out = tmpDir();
+  // A task no other test runs, so a sandbox another test kept can't be mistaken for this one's.
+  const mine = (f) => f.startsWith('kerb-bench-fix-test-min-');
+  const before = new Set(fs.readdirSync(os.tmpdir()).filter(mine));
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'bench/run.js'), '--tasks', 'fix-test-min', '--runs', '1', '--arms', 'plain', '--out', out,
+    '--agent-cmd', `${process.execPath} ${path.join(ROOT, 'bench/fake-agent.js')}`], { encoding: 'utf8', env: baseEnv() });
+  assert.equal(r.status, 0, r.stderr);
+  const row = JSON.parse(fs.readFileSync(path.join(out, 'rows.jsonl'), 'utf8').trim());
+  assert.equal(row.dir, null);
+  assert.deepEqual(fs.readdirSync(os.tmpdir()).filter((f) => mine(f) && !before.has(f)), []);
+});
+
+test('large tasks (100,000 files) run only when asked for', () => {
+  const large = TASKS.filter((t) => t.large);
+  assert.deepEqual(large.map((t) => t.id).sort(), ['monorepo-package-test', 'seeded-regression-monorepo']);
+  for (const t of large) assert.match(spaceProblem(t), /--large/);
+  for (const t of TASKS.filter((x) => !x.large)) {
+    const d = tmpDir('kerb-size-');
+    t.setup(d, {});
+    const count = (p) => fs.readdirSync(p, { withFileTypes: true }).reduce((n, e) => n + (e.isDirectory() ? count(path.join(p, e.name)) : 1), 0);
+    assert.ok(count(d) < 1000, `${t.id} writes ${count(d)} files: mark it large`);
+  }
+  const out = tmpDir();
+  const r = spawnSync(process.execPath, [path.join(ROOT, 'bench/run.js'), '--tasks', 'monorepo-package-test', '--arms', 'plain', '--out', out, '--agent-cmd', 'true'], { encoding: 'utf8', env: baseEnv() });
+  assert.equal(r.status, 0, r.stderr);
+  const summary = JSON.parse(fs.readFileSync(path.join(out, 'summary.json'), 'utf8'));
+  assert.equal(summary.tasks, 0);
+  assert.match(summary.skipped[0].why, /--large/);
+});
+
+test('temp directories are removed when the process exits, Ctrl-C included', () => {
+  for (const [mod, call, kill] of [['test/helpers.js', 'tmpDir', false], ['bench/sandbox.js', "tempDir('kerb-t-')", false], ['bench/sandbox.js', "tempDir('kerb-t-')", true]]) {
+    const src = `import * as m from ${JSON.stringify(path.join(ROOT, mod))}; const d = m.${call.includes('(') ? call : `${call}()`}; console.log(d);${kill ? " process.kill(process.pid, 'SIGINT'); setTimeout(() => {}, 5000);" : ''}`;
+    const r = spawnSync(process.execPath, ['--input-type=module', '-e', src], { encoding: 'utf8', env: baseEnv() });
+    const d = r.stdout.trim();
+    assert.ok(d, r.stderr);
+    assert.equal(fs.existsSync(d), false, `${mod}${kill ? ' after SIGINT' : ''} left ${d}`);
+  }
 });
 
 test('transcript metrics: attempts, tokens and time to green', () => {

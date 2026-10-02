@@ -4,7 +4,7 @@ The benchmark behind the 1.0 launch gate ([KERB-V2](../docs/KERB-V2.md) section 
 
 | Part | Script | Needs an agent | Status |
 |---|---|---|---|
-| Tasks: 34 across Node, Python and Go, each with a check and a reference solution | `tasks.js`, `sandbox.js` | no | every task without an outside service is validated (see below) |
+| Tasks: 35 across Node, Python and Go, each with a check and a reference solution | `tasks.js`, `sandbox.js` | no | every task without an outside service is validated (see below) |
 | Cause isolation: precision and recall on seeded regressions | `cause.js` | no | **run**: [`results/cause/`](results/cause/) |
 | Hook latency against the section 12 budgets | `hook-latency.js` | no | **run**: `results/hook-latency-*.json` |
 | Four arms × tasks × runs | `run.js` | yes | harness ready, **not run** |
@@ -13,9 +13,11 @@ The benchmark behind the 1.0 launch gate ([KERB-V2](../docs/KERB-V2.md) section 
 
 ## Tasks
 
-`tasks.js` holds 34 tasks in eleven categories: blocked registries and hosts with a sanctioned alternative (`wall`), fix-the-test loops, flaky services (`transient`), a database that starts late (`dependency`), noisy output, hanging commands, seeded regressions that need credit assignment (`regression`, with the culprit lines as ground truth), a 20-function task long enough to compact, a TLS-inspecting proxy (`environment`), slow suites, static checks, and a 100,000-file monorepo. Each has a prompt, the check command an agent would run (for attempts and tokens to green), a success check, and a reference solution.
+`tasks.js` holds 35 tasks in eleven categories: blocked registries and hosts with a sanctioned alternative (`wall`), fix-the-test loops, flaky services (`transient`), a database that starts late (`dependency`), noisy output, hanging commands, seeded regressions that need credit assignment (`regression`, with the culprit lines as ground truth), a 20-function task long enough to compact, a TLS-inspecting proxy (`environment`), slow suites, static checks, and a 100,000-file monorepo. Each has a prompt, the check command an agent would run (for attempts and tokens to green), a success check, and a reference solution.
 
 The tests (`test/bench.test.js`) prove each quick task is sound: its check fails as given and passes after the reference solution, and for seeded regressions the starting point passes and the culprit lines are lines the edits changed. The slow tasks (two slow suites and the monorepo) and the Go tasks were validated the same way by hand. Three tasks need outside services and have no automatic solution: the npm and PyPI mirrors, and the late database.
+
+Disk use: every sandbox and temp HOME is deleted when its run is judged, and on exit or Ctrl-C; `--keep` keeps them (their paths are then in `rows.jsonl`). The two large tasks (`monorepo-package-test`, `seeded-regression-monorepo`) write 100,000 files, about 1 GB each, and run only with `--large`. Any run stops cleanly when less than 1 GB is free (3 GB for a large task).
 
 Validating found one broken task carried over from v1: `fix-test-min` passed before any fix (the stub returned the input's first element, which was its minimum). Fixed.
 
@@ -68,4 +70,4 @@ Per run, `rows.jsonl` records success, turns, tokens and cost from the agent's J
 
 `analyze.js` writes the launch gate: v2's success rate no lower than plain's (within 1 point); v2 beats the skill-only arm on tokens or time to green with a paired bootstrap 95% CI that excludes zero; zero incorrect refusals or cached answers (and none left unreviewed); cause precision ≥ 95%; hook latency within budget. If the skill-only arm matches v2, the spec says to say so publicly and simplify.
 
-Cost, roughly: 34 tasks × 4 arms × 3 runs = 408 agent sessions, several hours of wall time and a real API bill. Running fewer runs or arms first is fine; the summary says what was run.
+Cost, roughly: 35 tasks × 4 arms × 3 runs = 420 agent sessions, several hours of wall time and a real API bill. Running fewer runs or arms first is fine; the summary says what was run.

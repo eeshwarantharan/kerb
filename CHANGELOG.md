@@ -8,12 +8,13 @@ Milestone G of [docs/KERB-V2.md](docs/KERB-V2.md), "Proof", in progress: the ben
 
 ### Added
 
-- **Benchmark v2** in [`bench/`](bench/): 34 tasks across Node, Python and Go (seeded regressions with ground truth, a TLS-inspecting proxy, slow suites, a compaction-length task, a 100,000-file monorepo), each with a reference solution and validated; a four-arm harness (plain, skill-only, Kerb v1, Kerb v2) reading attempts, tokens and time to green from transcripts; refusals and cached answers judged by replay; the launch gate with paired bootstrap confidence intervals. The cause-isolation benchmark and hook latency have been run (results in `bench/results/`); the agent runs have not.
+- **Benchmark v2** in [`bench/`](bench/): 35 tasks across Node, Python and Go (seeded regressions with ground truth, a TLS-inspecting proxy, slow suites, a compaction-length task, a 100,000-file monorepo), each with a reference solution and validated; a four-arm harness (plain, skill-only, Kerb v1, Kerb v2) reading attempts, tokens and time to green from transcripts; refusals and cached answers judged by replay; the launch gate with paired bootstrap confidence intervals. The cause-isolation benchmark and hook latency have been run (results in `bench/results/`); the agent runs have not.
 
 ### Fixed
 
 - Cause isolation never started when the test command names only failing tests (`pytest -q`, Jest's and Vitest's default reporters): a green run without names now counts as every test passing.
 - `pytest -q` output (no header, totals without `===`) wasn't parsed.
+- Tests and benchmark scripts left their temp directories behind (tens of thousands per run, some holding a 100,000-file repo), which filled a developer's disk. Test temp directories are now removed when each test process exits (`KERB_TEST_KEEP=1` keeps them); benchmark sandboxes are removed after each run, on Ctrl-C too (`--keep` keeps them); the 100,000-file tasks run only with `--large`; and a run stops before the disk is nearly full.
 - Cause isolation could confirm an innocent edit for a flaky test: confirmation now needs the state without the culprit to pass twice and the culprit alone to fail.
 - A probe whose build failed (for example an unused Go import with only some edits applied) counted as the test failing; it now counts as "didn't run".
 

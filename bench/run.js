@@ -9,19 +9,22 @@
 //   node bench/run.js --agent-cmd 'claude -p {prompt} --output-format json --max-turns 40' \
 //     [--arms plain,skill,v1,v2] [--tasks id,id] [--runs 3] [--out bench/results/tasks]
 //     [--proxy http://127.0.0.1:8899] [--ca bench/results/tmp/ca/ca.pem] [--kerb-v1 <dir>]
+//     [--large] [--keep]
 //
 // {prompt} is replaced with the shell-quoted prompt. The agent runs in the task directory and
 // prints JSON with num_turns, usage and session_id (Claude Code's --output-format json does);
 // with a Claude Code transcript, attempts, tokens and time to green are read from it
 // (bench/transcript.js). --kerb-v1 is a checkout of tag v0.1.0 (bench/setup-v1.sh makes one).
-// Tasks whose needs this machine can't meet are skipped and listed in the summary.
+// Tasks whose needs this machine can't meet are skipped and listed in the summary, as are large
+// tasks (100,000 files) without --large and any task when the disk is nearly full. Each run's
+// sandbox is removed when the run is judged (--keep leaves them, with their paths in rows.jsonl).
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TASKS } from './tasks.js';
-import { sandbox, available } from './sandbox.js';
+import { sandbox, available, tempDir, release, spaceProblem } from './sandbox.js';
 import { readTranscript, greenMetrics, checkPattern } from './transcript.js';
 import { judgeRun } from './judge.js';
 import { judge as judgeFinding } from './cause.js';
@@ -45,18 +48,23 @@ function main() {
   const proxy = opt('proxy');
   const ca = opt('ca') ? path.resolve(opt('ca')) : null;
   const v1 = opt('kerb-v1') ? path.resolve(opt('kerb-v1')) : null;
+  const large = args.includes('--large');
+  const keep = args.includes('--keep');
   if (arms.includes('v1') && !v1) { console.error('the v1 arm needs --kerb-v1 <checkout of v0.1.0> (bench/setup-v1.sh)'); process.exit(64); }
   const have = available();
   if (proxy) have.add('npm-mirror').add('pypi-mirror');
   if (ca) have.add('tls-proxy');
   const tasks = TASKS.filter((t) => !only || only.includes(t.id));
   const skipped = tasks.filter((t) => (t.needs || []).some((n) => !have.has(n))).map((t) => ({ task: t.id, needs: t.needs }));
+  for (const t of tasks) if (t.large && !large && !skipped.some((s) => s.task === t.id)) skipped.push({ task: t.id, why: spaceProblem(t) });
   fs.mkdirSync(outDir, { recursive: true });
   const rows = [];
-  for (const task of tasks.filter((t) => !skipped.some((s) => s.task === t.id))) {
+  all: for (const task of tasks.filter((t) => !skipped.some((s) => s.task === t.id))) {
     for (let n = 1; n <= runs; n++) {
       for (const arm of arms) {
-        const row = runOnce(task, arm, n, { agentCmd, proxy, ca, v1 });
+        const full = spaceProblem(task, { large });
+        if (full) { console.error(`stopping: ${task.id}: ${full}`); process.exitCode = 1; break all; }
+        const row = runOnce(task, arm, n, { agentCmd, proxy, ca, v1, keep });
         rows.push(row);
         console.log(`${task.id} run ${n} ${arm}: ${row.success ? 'ok' : 'FAIL'} turns ${row.turns} tokens ${row.tokens} green ${row.attempts_to_green ?? '-'}/${row.tokens_to_green ?? '-'} ${Math.round(row.wall_ms / 1000)}s refusals ${row.refusals.length}`);
         fs.writeFileSync(path.join(outDir, 'rows.jsonl'), `${rows.map((x) => JSON.stringify(x)).join('\n')}\n`);
@@ -110,7 +118,7 @@ function kerbJson(kerb, dir, env, a) {
 }
 
 function runOnce(task, arm, n, o) {
-  const home = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'kerb-bench-home-')));
+  const home = tempDir('kerb-bench-home-');
   const env = { ...process.env, HOME: home };
   if (o.proxy) Object.assign(env, { HTTPS_PROXY: o.proxy, HTTP_PROXY: o.proxy, https_proxy: o.proxy, http_proxy: o.proxy, NO_PROXY: 'localhost,127.0.0.1' });
   // Share the agent's login with the sandboxed HOME.
@@ -160,9 +168,10 @@ function runOnce(task, arm, n, o) {
     attempts: g ? g.attempts : null, attempts_to_green: g ? g.attempts_to_green : null, tokens_to_green: g ? g.tokens_to_green : null,
     ms_to_green: g ? g.ms_to_green : null, compactions: g ? g.compactions : null, transcript: tf,
     refusals, findings, hash_budget_skips: report ? report.hash_budget_skips ?? null : null,
-    dir,
+    dir: o.keep ? dir : null,
   };
-  fs.rmSync(home, { recursive: true, force: true });
+  release(home);
+  release(dir, { keep: o.keep });
   return row;
 }
 
