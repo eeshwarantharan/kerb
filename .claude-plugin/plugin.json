@@ -1,6 +1,6 @@
 {
   "name": "kerb",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Skills for working with Kerb: read its refusals, deltas and hints; debug a failing check from Kerb's records; check verification before saying you're done. Install the kerb CLI (npm i -g kerb-cli) and run kerb init for the hooks.",
   "author": { "name": "Tharaneeshwaran V U" },
   "homepage": "https://github.com/eeshwarantharan/kerb#readme",

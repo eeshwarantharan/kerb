@@ -11,7 +11,9 @@ import { parseCommand } from '../src/parse/tokenize.js';
 function setup(policy = null) {
   const files = { 'a.ts': 'x\n', '.gitignore': '*.ignore\n' };
   if (policy) files['kerb.policy.json'] = JSON.stringify(policy);
-  const repo = makeRepo({ git: true, files });
+  // A generous hash budget: on a loaded machine the hook's 300 ms budget can run out, and then it
+  // rightly fails open (no answer), which isn't what these tests are about.
+  const repo = makeRepo({ git: true, files, config: { hash_budget_ms: 20_000 } });
   const bin = path.join(repo.home, 'bin');
   fs.mkdirSync(bin);
   const out = path.join(repo.home, 'out.txt');

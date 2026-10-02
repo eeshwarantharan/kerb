@@ -60,7 +60,7 @@ kerb: environment · TLS interception: a proxy re-signs HTTPS with a company CA 
 ```
 
 > [!NOTE]
-> **0.6 is a preview.** Everything in the [spec](docs/KERB.md) and milestones A to E of [v2](docs/KERB-V2.md) (shadow mode, `kerb scan`, the environment classifier, restorable states, the [KER record format](docs/KER.md), test-level results for eleven tools, deltas, verification status, convergence, the attempt ledger, instant answers, last green, cause isolation and proven fixes) is built and tested on macOS and Linux. Windows is experimental. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
+> **0.7 is a preview.** Everything in the [spec](docs/KERB.md) and milestones A to F of [v2](docs/KERB-V2.md) (shadow mode, `kerb scan`, the environment classifier, restorable states, the [KER record format](docs/KER.md), test-level results for eleven tools, deltas, verification status, convergence, the attempt ledger, instant answers, last green, cause isolation, proven fixes, `kerb query`, the MCP server, plugins and the skills pack) is built and tested on macOS and Linux. Windows is experimental. A full hooked dogfooding session and the savings benchmark come before 1.0. Please [report any false refusal](https://github.com/eeshwarantharan/kerb/issues/new?template=false-refusal.md).
 
 ## Try it safely
 
@@ -115,6 +115,8 @@ Agents burn paid turns hitting walls (blocked registries, hosts and protected br
 | **Last green** | `kerb green` finds the newest state where the tests passed and what changed since; `kerb restore <state> --patch` writes a patch back to it without touching your files. |
 | **Cause isolation** | When a test that passed starts failing, a background worker finds which of your edits broke it, in a separate worktree, and confirms it: `kerb: cause · "logout clears session" broke at attempt 4 · culprit: src/session.ts:88–95 (1 of 6 hunks)`, with a patch that reverts just that. Static checks by default; tests once you turn it on. |
 | **Proven fixes** | A failure you fixed before is recognised when it comes back, with a pointer to the fix (`kerb show fix:<id>`). Committed fixes can be shared with your team through git notes, as fingerprints only. |
+| **MCP and query** | `kerb mcp` lets agents ask read-only questions (is verification green, what was tried, has this been fixed before) over MCP; `kerb query` and `kerb export` give the same answers as JSON. `kerb init` registers the server where the agent supports MCP. |
+| **Skills** | `kerb-diagnose` (a debugging loop over Kerb's records) and `kerb-before-done` (never claim tests pass unless they're green), as a Claude Code plugin or with `npx skills` ([docs/SKILLS.md](docs/SKILLS.md)). |
 | **`kerb wait-for`** | Turns polling into one call: retries inside Kerb and returns once, instead of the agent spending a turn per poll. |
 | **Output shaping** | Strips colour codes and progress bars, folds repeats, trims long output to a head and tail, and keeps the full log on disk. |
 | **Supervisor** | Total and idle timeouts that kill the whole process tree, so watch modes, prompts and stuck servers don't hang the agent. |
@@ -196,7 +198,8 @@ kerb wait-for --until output:ready -- curl -s localhost:8080/health
 - **Locked settings.** The managed config sets defaults and can lock them, and can ignore alternatives named by repo policies (`lock_repo_alternatives`). `mode: enforce` skips the shadow week for everyone.
 - **Environment.** Put the company CA bundle in the org policy or managed config (`tls.ca_bundle`), and name sanctioned fixes for environment failures (`environment_fixes`, for example `"auth_expired": "run corp-login, then retry"`); agents see them with their source, like alternatives.
 - **Review.** `kerb export-denials` (no command text or output) from each machine; `kerb review --denials …` keeps hosts seen on 3+ machines and writes a policy patch plus a Markdown summary with three choices per host.
-- **Records.** Every run, state and test result is an event in `.kerb/runs.jsonl`, in a published format with JSON Schemas ([KER v1](docs/KER.md)), so your own tools can read what actually ran.
+- **Records.** Every run, state and test result is an event in `.kerb/runs.jsonl`, in a published format with JSON Schemas ([KER v1](docs/KER.md)), so your own tools can read what actually ran: `kerb query` answers questions as JSON, and `kerb export --format ker [--no-text]` writes redacted NDJSON.
+- **Plugins.** List ES modules with their SHA-256 under `plugins` in the org bundle, the managed config or `kerb.policy.json`; repo-listed ones run only after a person approves the hash (`kerb plugins approve`). Plugins see a read-only query object and can add a note after runs, refusals, findings and at session start; they can't refuse or allow anything.
 - **Telemetry** is off by default. With an OTLP endpoint in the managed config and telemetry switched on, Kerb sends one metrics batch per session to your collector, never commands, output, paths or usernames.
 
 The full specification is [docs/KERB.md](docs/KERB.md).
@@ -212,6 +215,8 @@ The full specification is [docs/KERB.md](docs/KERB.md).
 | `kerb mode` / `kerb review-shadow` / `kerb why [id]` / `kerb history` / `kerb diff a b` / `kerb map` | Look around |
 | `kerb recap` / `kerb statusline` / `kerb card [--week\|--session\|--scan]` / `kerb watch` | See the saves |
 | `kerb enforce` / `kerb ack` / `kerb reset` / `kerb forget` / `kerb config set` / `kerb uninstall` | Human-only: each asks you to type a code at the terminal |
+| `kerb progress` / `kerb ledger` / `kerb green` / `kerb restore` / `kerb cause` / `kerb show` / `kerb sync` | Insight |
+| `kerb query <what>` / `kerb export` / `kerb mcp` / `kerb plugins` | Platform: JSON, NDJSON, MCP and plugins |
 | `kerb policy keygen\|sign\|verify\|lint`, `kerb export-denials`, `kerb review` | Platform teams |
 
 `kerb help all` lists everything, grouped. Every command takes `--json` (one JSON object), `--cwd <dir>` and `--no-color`.

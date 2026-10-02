@@ -2,6 +2,23 @@
 
 All notable changes to Kerb. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-10-02
+
+Milestone F of [docs/KERB-V2.md](docs/KERB-V2.md), "Platform". Still a preview.
+
+### Added
+
+- **`kerb query`:** read-only answers from the records as JSON: `runs`, `tests`, `verification`, `progress`, `fixes`, `findings`, `states`, with filters (`--key`, `--since`, `--state`, `--status`, `--test`, `--fingerprint`, `--green`). Each result has a published JSON Schema in [docs/KER.md](docs/KER.md).
+- **`kerb export --format ker`:** the records as KER NDJSON for memory tools, dashboards and research, redacted again; `--no-text` keeps only ids, counts, codes and hashes.
+- **MCP server:** `kerb mcp` speaks MCP over stdio (the 2026-07-28 revision and the earlier `initialize` handshake) with nine read-only tools: `verification_status`, `progress`, `attempts`, `test_history`, `known_fixes`, `last_green`, `cause`, `boundaries`, `explain`. Each answer is at most 2 KB with pointers for more. `kerb init` registers it for Claude Code (`.mcp.json`), Cursor, VS Code and Gemini CLI, and prints the command for Codex, OpenCode and Copilot CLI.
+- **Plugins:** ES modules listed with their SHA-256 in policy or the managed config; repo-listed ones need `kerb plugins approve` (human-only). Handlers for `run.end`, `refusal`, `finding` and `session.start` get a read-only query object and may return a note, shown as `kerb: note · [name] …`, and nothing else; each has 50 ms, and timeouts and errors are counted, never raised. `kerb plugins` lists them.
+- **Skills pack:** `kerb` (updated), `kerb-diagnose` (a debugging loop over Kerb's records) and `kerb-before-done` (never claim tests pass unless verification is green), installable as a Claude Code plugin from this repository's marketplace or with `npx skills`; `server.json` describes the MCP server for the MCP registry. See [docs/SKILLS.md](docs/SKILLS.md).
+- `kerb cause [test]` shows the latest cause finding; `kerb why <run>` names the narrow command that reproduces the first failing test; the ledger points to a known fix for the current failure.
+
+### Changed
+
+- `kerb init` adds `.mcp.json` to `.gitignore` when it creates it (the file holds this machine's paths).
+
 ## [0.6.0] - 2026-10-02
 
 Milestone E of [docs/KERB-V2.md](docs/KERB-V2.md), "Cause and proof". Still a preview.
@@ -95,6 +112,7 @@ First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented 
 - The task benchmark has not been run yet, so there are no savings figures.
 - Hook latency is borderline against the 100 ms target for check commands after a failure (see `bench/results/`).
 
+[0.7.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.7.0
 [0.6.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.5.0
 [0.4.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.4.0
