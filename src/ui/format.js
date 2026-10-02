@@ -33,6 +33,7 @@ export function formatRefusal(r, color = false) {
   const lines = [`${head} · ${oneLine(r.summary)}`];
   if (r.evidence) lines.push(`      ${oneLine(r.evidence)}`);
   lines.push(`      next: ${oneLine(r.next)}`);
+  for (const n of r.plugin_notes || []) lines.push(`kerb: note · ${oneLine(n)}`);
   return `${lines.join('\n')}\n`;
 }
 
@@ -47,6 +48,7 @@ export function refusalJson(r) {
     next: r.next,
     exit: r.exit,
     run: r.run ?? null,
+    ...(r.plugin_notes && r.plugin_notes.length ? { notes: r.plugin_notes } : {}),
   };
 }
 

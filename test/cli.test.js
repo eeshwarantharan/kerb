@@ -104,6 +104,7 @@ test('T0 every command supports --json and prints exactly one JSON object', () =
     sync: ['sync'],
     query: ['query', 'runs'],
     export: ['export'],
+    plugins: ['plugins'],
   };
   const skipped = new Set(['watch', 'hook', 'mcp']); // watch streams events; hook and mcp speak their own protocols
   for (const name of Object.keys(COMMANDS)) {

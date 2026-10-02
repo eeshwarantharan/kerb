@@ -2,7 +2,7 @@
 // Deny-only: a handler returns a refusal or nothing, never an allow. The post side lives in
 // observe-post.js and is loaded only by post hooks, so pre hooks stay fast.
 import { newId, now, sha256 } from '../util/core.js';
-import { prepare, preRefusal, recordRefusal } from '../engine.js';
+import { prepare, preRefusal, recordRefusal, refusalNotes } from '../engine.js';
 import { redactText } from '../run/redact.js';
 import { writePending, peekPending, prunePending, kerbInnerCommands } from './pending.js';
 import { kerbArgv } from '../bound/human.js';
@@ -44,16 +44,16 @@ export async function observePre(ctx, o) {
   }
   hookCounter(prep.store, o.agent, 'pre');
   // In shadow mode the refusal is recorded as `would_refuse` and the call goes ahead (KERB-V2 10.2).
-  const deny = (refusal, matched) => {
-    recordRefusal(prep, refusal, matched);
-    if (prep.shadow) return null;
-    const r = { ...refusal, key: prep.key };
+  const deny = async (refusal, matched) => {
+    const fromPlugins = await refusalNotes(prep, recordRefusal(prep, refusal, matched));
+    if (prep.shadow) { pre.notes.push(...fromPlugins); return null; }
+    const r = { ...refusal, key: prep.key, ...(fromPlugins.length ? { plugin_notes: fromPlugins } : {}) };
     delete r.boundary;
     writePending(prep.store.dir, o.toolUseId, { command: o.command, wall_ts: Date.now(), refusal: r, denied: true });
     return { refusal: r, notes: [] };
   };
   const pre = preRefusal(prep);
-  const preDenied = pre.refusal ? deny(pre.refusal, null) : null;
+  const preDenied = pre.refusal ? await deny(pre.refusal, null) : null;
   if (preDenied) return preDenied;
   const isKerb = prep.parsed.segments.some((s) => kerbArgv(s));
   const pending = {
@@ -81,7 +81,7 @@ export async function observePre(ctx, o) {
   if (!isKerb && prep.cls === 'check' && !pre.refusal) {
     const { loopGate } = await import('../loop/gate.js');
     const gate = loopGate(prep, { hashBudgetMs: o.hashBudgetMs || prep.config.values.hash_budget_ms || HOOK_HASH_BUDGET_MS, lazy: true });
-    const loopDenied = gate.refusal ? deny(gate.refusal, gate.matched) : null;
+    const loopDenied = gate.refusal ? await deny(gate.refusal, gate.matched) : null;
     if (loopDenied) return loopDenied;
     Object.assign(pending, { scope: gate.loop.scope, pre_hash: gate.loop.preHash, env_stamp: gate.loop.envStamp, loop_skipped: gate.loop.skipped });
   }

@@ -32,7 +32,7 @@ export async function post(ctx, p) {
   const text = typeof p.output === 'string' ? p.output : '';
   const exit = explicit !== null ? explicit : exitFromText(text);
   const { observePost } = await import('./observe-post.js');
-  const r = observePost(ctx, { agent: AGENT, toolUseId: callId(p.callID, p.sessionID, cwd, command), cwd, command, exit, output: text, session: p.sessionID || null });
+  const r = await observePost(ctx, { agent: AGENT, toolUseId: callId(p.callID, p.sessionID, cwd, command), cwd, command, exit, output: text, session: p.sessionID || null });
   const lines = noteLines(r.notes, r.hints, r.context);
   return lines.length ? { context: lines.join('\n') } : null;
 }

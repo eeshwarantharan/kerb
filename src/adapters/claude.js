@@ -97,7 +97,7 @@ export async function post(ctx, payload, { failure = false } = {}) {
   }
   const cwd = payload.cwd || ctx.cwd;
   const { observePost } = await import('./observe-post.js');
-  const r = observePost(ctx, {
+  const r = await observePost(ctx, {
     agent: agentOf(payload),
     toolUseId: callId(payload.tool_use_id, payload.session_id, cwd, command),
     cwd,

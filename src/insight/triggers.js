@@ -114,12 +114,13 @@ export function findingLines(f) {
  * Findings not yet delivered (at most two), as context lines; marks them delivered.
  * Cheap when there is nothing new: the worker counts pending findings in the summary.
  */
-export function deliverFindings(store, loadSummary, readRecs) {
+export function deliverFindings(store, loadSummary, readRecs, delivered = null) {
   const summary = loadSummary();
   if (!summary.findings_pending) return [];
   const done = new Set(summary.findings_delivered || []);
   const fresh = readRecs().filter((r) => r.type === 'finding' && !done.has(r.id)).slice(-2);
   const lines = fresh.flatMap(findingLines);
+  if (delivered) delivered.push(...fresh);
   store.updateSummary((s) => {
     s.findings_delivered = [...(s.findings_delivered || []), ...fresh.map((f) => f.id)].slice(-100);
     s.findings_pending = 0;

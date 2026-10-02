@@ -4,7 +4,7 @@ import path from 'node:path';
 import { newId, now } from '../util/core.js';
 import { ensureDir } from '../util/fsx.js';
 import { relPath } from '../util/repo.js';
-import { prepare, summaryTweak, resolveSession } from '../engine.js';
+import { prepare, summaryTweak, resolveSession, pluginLines } from '../engine.js';
 import { hashWorkspace, scopeAndStamp, writeSnapshot } from '../loop/workspace.js';
 import { checkSegment } from '../parse/classify-cmd.js';
 import { commandHosts } from '../parse/hosts.js';
@@ -26,7 +26,7 @@ import { afterCommand } from '../insight/deliver.js';
  *   session?: string | null, hashBudgetMs?: number }} o
  * @returns {{ notes: string[], hints: string[] }}
  */
-export function observePost(ctx, o) {
+export async function observePost(ctx, o) {
   const hctx = { ...ctx, cwd: o.cwd };
   const prep = prepare(hctx, { command: o.command, agent: o.agent, tier: 'enforced', session: o.session || null, reap: false });
   const { store } = prep;
@@ -133,7 +133,8 @@ export function observePost(ctx, o) {
   const envFix = insights && failureKind === 'environment' ? envFixFor(prep, analysis.env) : [];
   // One block after the command (KERB-V2 9): delta, environment fix, hints, notes.
   const after = afterCommand({ ...prep, cls }, { runId: id, cls, notes, hints: insights ? [...hints] : [], envFix, insights });
-  return { notes: [], hints: [], context: after.lines };
+  const fromPlugins = await pluginLines(prep, async () => (await import('../platform/plugins.js')).afterEvents(prep, id, after.findings));
+  return { notes: [], hints: [], context: [...after.lines, ...fromPlugins.map((n) => `kerb: note · ${n}`)] };
 }
 
 function startRecord(prep, id, ts, pending, cls) {

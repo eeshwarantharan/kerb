@@ -51,7 +51,7 @@ export async function post(ctx, p, { failure = false } = {}) {
     exit = explicit !== null ? explicit : exitFromText(text);
   }
   const { observePost } = await import('./observe-post.js');
-  const r = observePost(ctx, { agent: AGENT, toolUseId: b.id, cwd: b.cwd, command: b.command, exit, output: text, durationMs: Number.isFinite(p.duration) ? p.duration : null, timedOut, interrupted, session: b.session });
+  const r = await observePost(ctx, { agent: AGENT, toolUseId: b.id, cwd: b.cwd, command: b.command, exit, output: text, durationMs: Number.isFinite(p.duration) ? p.duration : null, timedOut, interrupted, session: b.session });
   const lines = noteLines(r.notes, r.hints, r.context);
   return lines.length ? { additional_context: lines.join('\n') } : null;
 }

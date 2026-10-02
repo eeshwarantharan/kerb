@@ -150,6 +150,26 @@ function ensureSession(prep) {
   return prep.session;
 }
 
+/** Is any plugin listed (managed config, org bundle or repo policy)? Plugins load only then (11.3). */
+export function pluginsListed(prep) {
+  return !!((prep.policy && prep.policy.plugins && prep.policy.plugins.length) || (prep.config && prep.config.managed && Array.isArray(prep.config.managed.plugins) && prep.config.managed.plugins.length));
+}
+
+/** Plugin notes for a recorded refusal (or cached answer, or shadow-mode would-refuse). */
+export function refusalNotes(prep, rec) {
+  if (!pluginsListed(prep) || !rec) return Promise.resolve([]);
+  const { crc, ...body } = rec;
+  void crc;
+  return pluginLines(prep, [['refusal', body]]);
+}
+
+/** Plugin note lines for these events ([] without loading anything when none is listed). */
+export async function pluginLines(prep, events) {
+  if (!pluginsListed(prep)) return [];
+  const { pluginNotes } = await import('./platform/plugins.js');
+  return pluginNotes(prep, typeof events === 'function' ? await events() : events);
+}
+
 export function wallsKnown(policy) {
   return (policy.boundaries || []).length;
 }

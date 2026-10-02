@@ -125,15 +125,20 @@ function sessionId(payload) {
 }
 
 async function startContext(ctx, payload, after) {
-  const { prepare } = await import('../engine.js');
+  const { prepare, pluginsListed } = await import('../engine.js');
   const { regenerateBriefing, briefingLines } = await import('../init/instructions.js');
   const { sessionStartText } = await import('../insight/deliver.js');
   const prep = prepare(ctx, { command: 'true', reap: false });
   if (!after) regenerateBriefing(prep.root);
-  return sessionStartText({
+  const text = sessionStartText({
     root: prep.root, git: prep.git, store: prep.store, policy: prep.policy, env: ctx.env, nowTs: now(), after,
     session: sessionId(payload), briefing: after ? [] : briefingLines(prep.root), insights: prep.config.values.insights !== 'off',
   });
+  // Plugins (11.3): session.start notes, and a line for each listed plugin that didn't load.
+  if (!pluginsListed(prep)) return text;
+  const { pluginNotes } = await import('../platform/plugins.js');
+  const notes = await pluginNotes(prep, [['session.start', { session: sessionId(payload), source: payload.source ? String(payload.source) : null, after }]], { warnings: true });
+  return [text, ...notes.map((n) => `kerb: note · ${n}`)].filter(Boolean).join('\n');
 }
 
 /**

@@ -42,6 +42,7 @@ export function afterCommand(prep, o) {
   let delta = [];
   const hints = [...(o.hints || [])];
   let findings = [];
+  const findingRecs = [];
   if (o.cls === 'check') {
     try {
       const recs = prep.store.read({ maxBytes: READ_BYTES });
@@ -65,10 +66,10 @@ export function afterCommand(prep, o) {
   }
   try {
     if (prep.git && prep.parsed && prep.parsed.segments.some((s) => { const g = s.name === 'git' ? gitSub(s) : null; return g && g.sub === 'commit'; })) afterCommit(prep, prep.store.read({ maxBytes: READ_BYTES }));
-    if (o.insights !== false) findings = deliverFindings(prep.store, () => loadSummary(prep.store.dir), () => prep.store.read({ maxBytes: READ_BYTES }));
+    if (o.insights !== false) findings = deliverFindings(prep.store, () => loadSummary(prep.store.dir), () => prep.store.read({ maxBytes: READ_BYTES }), findingRecs);
   } catch { /* never breaks a run */ }
   const lines = [...findings, ...delta, ...(o.envFix || []), ...hints.map((h) => `kerb: hint · ${h}`), ...(o.notes || []).map((n) => `kerb: note · ${n}`)];
-  return { lines: capLines(lines, AFTER_MAX_LINES), delta, extra: [...findings, ...hints.slice((o.hints || []).length).map((h) => `kerb: hint · ${h}`)] };
+  return { lines: capLines(lines, AFTER_MAX_LINES), delta, findings: findingRecs, extra: [...findings, ...hints.slice((o.hints || []).length).map((h) => `kerb: hint · ${h}`)] };
 }
 
 /**

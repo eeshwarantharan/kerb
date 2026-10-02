@@ -2,7 +2,7 @@
 import { EXIT, UsageError } from '../util/core.js';
 import { parseOpts, commandFromRest } from './args.js';
 import { requireHuman } from '../bound/human.js';
-import { prepare, preRefusal, recordRefusal, emitRefusal, limits, refreshOrgIfDue } from '../engine.js';
+import { prepare, preRefusal, recordRefusal, refusalNotes, emitRefusal, limits, refreshOrgIfDue } from '../engine.js';
 import { loopGate } from '../loop/gate.js';
 import { hookContextFor } from '../adapters/pending.js';
 import { formatNote } from '../ui/format.js';
@@ -31,7 +31,9 @@ export default async function run(ctx, args) {
 
   const pre = preRefusal(prep);
   if (pre.refusal) {
-    recordRefusal(prep, pre.refusal);
+    const fromPlugins = await refusalNotes(prep, recordRefusal(prep, pre.refusal));
+    pre.refusal.plugin_notes = fromPlugins;
+    if (prep.shadow) for (const n of fromPlugins) ctx.err(formatNote(n, ctx.color.err));
     // Shadow mode: recorded as would_refuse; the command runs (KERB-V2 10.2).
     if (!prep.shadow) {
       emitRefusal(ctx, pre.refusal, prep.key);
@@ -48,7 +50,9 @@ export default async function run(ctx, args) {
 
   const gate = prep.cls === 'check' ? loopGate(prep, { force: !!opts.force || !!pre.refusal, hashBudgetMs: prep.config.values.hash_budget_ms || 2000 }) : null;
   if (gate && gate.refusal) {
-    recordRefusal(prep, gate.refusal, gate.matched);
+    const fromPlugins = await refusalNotes(prep, recordRefusal(prep, gate.refusal, gate.matched));
+    gate.refusal.plugin_notes = fromPlugins;
+    if (prep.shadow) for (const n of fromPlugins) ctx.err(formatNote(n, ctx.color.err));
     if (!prep.shadow) {
       emitRefusal(ctx, gate.refusal, prep.key);
       // A cached answer exits with the recorded result's code (KERB-V2 6.3).

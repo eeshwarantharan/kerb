@@ -13,7 +13,7 @@ import { redactText } from './redact.js';
 import { supervise, markActive, clearActive, activeRuns, passthrough, SIGNUMS } from './supervisor.js';
 import { formatNote, paint } from '../ui/format.js';
 import { regenerateBriefing } from '../init/instructions.js';
-import { summaryTweak, startRecord } from '../engine.js';
+import { summaryTweak, startRecord, pluginLines } from '../engine.js';
 import { envFixFor } from '../insight/envclass.js';
 import { testResults } from '../reporters/record.js';
 import { afterCommand, writeLedgerFile } from '../insight/deliver.js';
@@ -180,6 +180,7 @@ export async function runSupervised(prep, o) {
   if (res.reason === 'idle') notes.push(`killed the process tree after ${formatDuration(o.idleMs)} without output`);
   // Delta (KERB-V2 7.1) in place of the generic footer; the ledger file for best-effort agents.
   const after = afterCommand(prep, { runId: id, cls: prep.cls, insights });
+  notes.push(...await pluginLines(prep, async () => (await import('../platform/plugins.js')).afterEvents(prep, id, after.findings)));
   if (prep.cls === 'check' && prep.tier !== 'enforced') writeLedgerFile(prep.root, store, now());
   const footerNeeded = shaped.cut || exit !== 0 || timedOut || notes.length > 0 || hints.length > 0;
   const footer = footerNeeded

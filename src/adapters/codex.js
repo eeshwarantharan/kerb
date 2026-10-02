@@ -31,7 +31,7 @@ export async function post(ctx, p) {
   const explicit = exitField(resp);
   const exit = explicit !== null ? explicit : exitFromText(text);
   const { observePost } = await import('./observe-post.js');
-  const r = observePost(ctx, { agent: AGENT, toolUseId: callId(p.tool_use_id, p.session_id, cwd, command), cwd, command, exit, output: text, session: p.session_id || null, timedOut: /timed out/i.test(text) && exit === null });
+  const r = await observePost(ctx, { agent: AGENT, toolUseId: callId(p.tool_use_id, p.session_id, cwd, command), cwd, command, exit, output: text, session: p.session_id || null, timedOut: /timed out/i.test(text) && exit === null });
   const lines = noteLines(r.notes, r.hints, r.context);
   return lines.length ? { hookSpecificOutput: { hookEventName: 'PostToolUse', additionalContext: lines.join('\n') } } : null;
 }

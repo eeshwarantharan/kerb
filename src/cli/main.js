@@ -48,6 +48,7 @@ export const COMMANDS = {
   query: () => import('./query.js'),
   export: () => import('./export.js'),
   mcp: () => import('./mcp.js'),
+  plugins: () => import('./plugins.js'),
 };
 
 /** The six commands `kerb --help` shows (KERB-V2 10.3). */
@@ -99,6 +100,7 @@ export const GROUPS = [
     ['policy keygen|sign|verify|lint', 'sign and check org policy bundles'],
     ['export-denials [--since 7d]', 'learned boundaries, for team review'],
     ['review --denials <file...>', 'turn exported denials into a policy patch'],
+    ['plugins [list]', 'listed plugins and whether each loads'],
   ]],
   ['Human-only (each asks for a code typed in your terminal)', [
     ['enforce', 'turn blocking on'],
@@ -109,6 +111,7 @@ export const GROUPS = [
     ['uninstall', 'remove everything init added'],
     ['restore <state> --in-place', 'back up your changes with git stash, then restore the state'],
     ['sync --push', 'push shared fixes (refs/notes/kerb) to origin'],
+    ['plugins approve <path>', 'approve a repo-listed plugin at its current hash'],
   ]],
 ];
 

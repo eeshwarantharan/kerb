@@ -10,7 +10,7 @@ export const REPO_POLICY_FILE = 'kerb.policy.json';
 export const POLICY_KEYS = new Set([
   'version', 'breaker_threshold', 'retry_cooldown', 'hash_scope', 'shared_paths', 'check_commands',
   'transient_patterns', 'dependency_patterns', 'env_keys', 'env_markers', 'boundaries', 'fixes', '$schema', 'description',
-  'tls', 'environment_fixes', 'worktree_links', 'stop_gate', 'verify_keys', 'hermetic_commands', 'cache_ttl',
+  'tls', 'environment_fixes', 'worktree_links', 'stop_gate', 'verify_keys', 'hermetic_commands', 'cache_ttl', 'plugins',
 ]);
 /** Environment failure subtypes (KERB-V2 8.3) a policy may name a sanctioned fix for (6.2). */
 export const ENV_SUBTYPES = new Set(['tls_interception', 'proxy_page', 'auth_expired']);
@@ -102,6 +102,17 @@ export function lintPolicy(p, { layer = null } = {}) {
       }
     }
   }
+  if (p.plugins !== undefined) {
+    if (!Array.isArray(p.plugins)) err('plugins must be a list of { "path": …, "sha256": … }');
+    else {
+      p.plugins.forEach((x, i) => {
+        if (!x || typeof x !== 'object') { err(`plugins[${i}] must be an object`); return; }
+        for (const k of Object.keys(x)) if (k !== 'path' && k !== 'sha256') warn(`plugins[${i}]: unknown key ${k}`);
+        if (typeof x.path !== 'string' || !x.path) err(`plugins[${i}]: path is required`);
+        if (typeof x.sha256 !== 'string' || !/^[0-9a-f]{64}$/i.test(x.sha256)) err(`plugins[${i}]: sha256 must be 64 hex digits (the plugin file's SHA-256)`);
+      });
+    }
+  }
   if (p.fixes !== undefined) {
     if (!Array.isArray(p.fixes)) err('fixes must be a list');
     else {
@@ -163,6 +174,8 @@ export function mergeLayers(layers, { lockRepoAlternatives = false } = {}) {
     tls_ca_bundle: null,
     /** @type {Record<string, { text: string, source: string }>} */
     environment_fixes: {},
+    /** @type {{ path: string, sha256: string, layer: string, source: string }[]} plugins listed by the org bundle and the repo policy (11.3) */
+    plugins: [],
     layers: layers.map((l) => ({ name: l.name, version: l.version ?? null, source: l.source, stale: !!l.stale })),
   };
   const numericSet = new Set();
@@ -228,6 +241,11 @@ export function mergeLayers(layers, { lockRepoAlternatives = false } = {}) {
     }
     if (Array.isArray(p.fixes)) {
       for (const f of p.fixes) if (f && typeof f.hint === 'string') merged.fixes.push({ ...f, layer: layer.name });
+    }
+    if (Array.isArray(p.plugins) && (layer.name === 'org' || layer.name === 'repo')) {
+      for (const x of p.plugins) {
+        if (x && typeof x.path === 'string' && x.path && typeof x.sha256 === 'string' && /^[0-9a-f]{64}$/i.test(x.sha256)) merged.plugins.push({ path: x.path, sha256: x.sha256.toLowerCase(), layer: layer.name, source: layer.source });
+      }
     }
   }
   merged.transient_patterns = merged.transient_patterns.slice(0, MAX_PATTERNS * 3);

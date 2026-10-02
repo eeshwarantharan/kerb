@@ -1,6 +1,6 @@
 // kerb wait-for [--until success|exit:<n>|output:<regex>] [--interval 5s] [--max 3m] [--backoff] -- <command>
 import { parseOpts, commandFromRest } from './args.js';
-import { prepare, preRefusal, recordRefusal, emitRefusal, limits, refreshOrgIfDue, resolveSession } from '../engine.js';
+import { prepare, preRefusal, recordRefusal, refusalNotes, emitRefusal, limits, refreshOrgIfDue, resolveSession } from '../engine.js';
 import { waitFor, waitOptions } from '../run/wait.js';
 import { hookContextFor } from '../adapters/pending.js';
 import { checkSegment } from '../parse/classify-cmd.js';
@@ -25,7 +25,9 @@ export default async function waitForCmd(ctx, args) {
   });
   const pre = preRefusal(prep);
   if (pre.refusal) {
-    recordRefusal(prep, pre.refusal);
+    const fromPlugins = await refusalNotes(prep, recordRefusal(prep, pre.refusal));
+    pre.refusal.plugin_notes = fromPlugins;
+    if (prep.shadow) for (const n of fromPlugins) ctx.err(formatNote(n, ctx.color.err));
     // Shadow mode: recorded as would_refuse; the wait goes ahead (KERB-V2 10.2).
     if (!prep.shadow) {
       emitRefusal(ctx, pre.refusal, prep.key);
