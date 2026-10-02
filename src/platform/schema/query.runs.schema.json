@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.runs.schema.json",
+  "title": "kerb query runs",
+  "description": "Finished runs, newest first, as KER `run` records. Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "runs"
+  ],
+  "properties": {
+    "query": {
+      "const": "runs"
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "key",
+          "class"
+        ],
+        "properties": {
+          "type": {
+            "const": "run"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "milliseconds since the Unix epoch"
+          },
+          "session": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cmd": {
+            "type": "string"
+          },
+          "first_fail_line": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string",
+            "enum": [
+              "check",
+              "query",
+              "other",
+              "background"
+            ]
+          },
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pre_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "a state id (v2) or a v1 workspace hash"
+          },
+          "post_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "a state id (v2) or a v1 workspace hash"
+          },
+          "exit": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fingerprint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failure_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "transient",
+              "dependency",
+              "environment",
+              "ordinary",
+              null
+            ]
+          },
+          "class_result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "ok",
+              "failure",
+              "policy_denial",
+              "timeout",
+              "idle",
+              "aborted",
+              null
+            ]
+          },
+          "raw_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "shown_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "framework": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tests_summary": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "passed": {
+                "type": "integer"
+              },
+              "failed": {
+                "type": "integer"
+              },
+              "skipped": {
+                "type": "integer"
+              },
+              "errors": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

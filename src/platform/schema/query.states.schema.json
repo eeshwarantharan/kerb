@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.states.schema.json",
+  "title": "kerb query states",
+  "description": "Kept states of check runs, newest first: the KER `state` fields plus the run, key and whether it passed. Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "states"
+  ],
+  "properties": {
+    "query": {
+      "const": "states"
+    },
+    "states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "ts",
+          "mode",
+          "materializable"
+        ],
+        "properties": {
+          "type": {
+            "const": "state"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^st_[0-9a-f]{16}$"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "milliseconds since the Unix epoch"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "git",
+              "walk"
+            ]
+          },
+          "scope": {
+            "type": "string"
+          },
+          "snapshot_tree": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "env_stamp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "materializable": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "run": {
+            "type": "string"
+          },
+          "green": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

@@ -38,9 +38,9 @@ export const TYPES = [
   ['wait', 'A `kerb wait-for` call: many attempts, counted as one run (v1 4.7.8).', 'event log',
     ['type', 'id', 'ts', 'key', 'attempts', 'result'], { type: { const: 'wait' }, id: str, ts, key: str, attempts: int, duration_ms: numN, result: { type: 'string', enum: ['met', 'gave_up', 'aborted'] }, final_exit: intN, pre_hash: hashN, post_hash: hashN, session: strN }],
   ['run', 'A finished command: a `start` and its `end` (or a `wait`), as `kerb query` and `kerb export` return it.', 'derived',
-    ['type', 'id', 'key', 'class'], { type: { const: 'run' }, id: str, session: strN, key: str, class: cls, scope: strN, pre_state: hashN, post_state: hashN, exit: intN, duration_ms: numN, fingerprint: strN, failure_kind: failureKind, class_result: classResult, raw_bytes: intN, shown_bytes: intN, framework: strN, tests_summary: { type: ['object', 'null'], properties: { passed: int, failed: int, skipped: int, errors: int, total: int } } }],
+    ['type', 'id', 'key', 'class'], { type: { const: 'run' }, id: str, ts, session: strN, cmd: str, first_fail_line: strN, key: str, class: cls, scope: strN, pre_state: hashN, post_state: hashN, exit: intN, duration_ms: numN, fingerprint: strN, failure_kind: failureKind, class_result: classResult, raw_bytes: intN, shown_bytes: intN, framework: strN, tests_summary: { type: ['object', 'null'], properties: { passed: int, failed: int, skipped: int, errors: int, total: int } } }],
   ['test_result', 'One test (or diagnostic) in a run (5.3, 5.4).', 'event log',
-    ['type', 'run', 'test_id', 'status'], { type: { const: 'test_result' }, run: str, test_id: str, status: { type: 'string', enum: ['pass', 'fail', 'skip', 'error'] }, location: strN, message: { type: ['string', 'null'], maxLength: 200 }, duration_ms: numN, key: str, state: hashN }],
+    ['type', 'run', 'test_id', 'status'], { type: { const: 'test_result' }, run: str, ts, test_id: str, status: { type: 'string', enum: ['pass', 'fail', 'skip', 'error'] }, location: strN, message: { type: ['string', 'null'], maxLength: 200 }, duration_ms: numN, key: str, state: hashN }],
   ['refusal', 'Kerb refused a command.', 'event log',
     ['type', 'id', 'ts', 'key', 'reason'], { type: { const: 'refusal' }, id: str, ts, key: str, reason: str, matched_run: strN, avoided_duration_ms: { type: 'number', minimum: 0 }, avoided_output_bytes: { type: 'integer', minimum: 0 } }],
   ['would_refuse', 'In shadow mode: a refusal Kerb recorded instead of making (10.2).', 'event log',
@@ -63,6 +63,44 @@ export const TYPES = [
     ['type', 'id', 'ts'], { type: { const: 'reset' }, id: str, ts, key: strN }],
 ];
 
+const byName = (n) => TYPES.find((t) => t[0] === n);
+/** A record type's schema as an item inside a query result. */
+const item = (n, extra = {}) => { const t = byName(n); return { type: 'object', required: t[3], properties: { ...t[4], ...extra } }; };
+const verificationStatus = { type: 'string', enum: ['green', 'red', 'stale', 'never', 'unknown'] };
+
+/** [name, description, result properties] for `kerb query <name>` (KERB-V2 11.1); MCP tools return the same shapes. */
+export const QUERIES = [
+  ['runs', 'Finished runs, newest first, as KER `run` records.', { runs: { type: 'array', items: item('run') } }],
+  ['tests', 'One entry per test id seen in the window: its latest status, flaky when it both passed and failed on one state.',
+    { tests: { type: 'array', items: { type: 'object', required: ['test_id', 'status', 'last_run'], properties: {
+      test_id: str, status: { type: 'string', enum: ['failing', 'flaky', 'passing', 'skipped'] }, key: strN, last_run: str, last_state: hashN, last_ts: { type: ['integer', 'null'] },
+      runs: int, failures: int, message: { type: ['string', 'null'], maxLength: 200 } } } } }],
+  ['verification', 'Is each tracked check key\'s last result about the files as they are now (7.2)?',
+    { keys: { type: 'array', items: { type: 'object', required: ['key', 'command', 'status'], properties: {
+      key: str, command: str, status: verificationStatus, run: strN, ts: { type: ['integer', 'null'] }, files: { type: 'array', items: str },
+      last_green: { type: ['object', 'null'], properties: { run: str, ts, files: { type: 'array', items: str } } } } } } }],
+  ['progress', 'Failing counts per check key since its last success, and the signal (7.3).',
+    { keys: { type: 'array', items: { type: 'object', required: ['key', 'command', 'counts', 'signal', 'runs'], properties: {
+      key: str, command: str, counts: { type: 'array', items: { type: ['integer', 'null'] } },
+      signal: { type: ['string', 'null'], enum: ['green', 'oscillating', 'stalled', 'diverging', 'converging', null] }, runs: { type: 'array', items: str } } } } }],
+  ['fixes', 'Proven fixes, newest first, as KER `fix` records (the latest version of each).', { fixes: { type: 'array', items: item('fix') } }],
+  ['findings', 'Cause findings, newest first, as KER `finding` records.', { findings: { type: 'array', items: item('finding') } }],
+  ['states', 'Kept states of check runs, newest first: the KER `state` fields plus the run, key and whether it passed.',
+    { states: { type: 'array', items: item('state', { key: str, run: str, green: bool }) } }],
+];
+
+export function querySchemaFor([name, description, properties]) {
+  return {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: `${ID_BASE}query.${name}.schema.json`,
+    title: `kerb query ${name}`,
+    description: `${description} Readers must ignore fields they don't know.`,
+    type: 'object',
+    required: ['query', ...Object.keys(properties)],
+    properties: { query: { const: name }, ...properties },
+  };
+}
+
 export function schemaFor([name, description, , required, properties]) {
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
@@ -79,7 +117,7 @@ export function docsText() {
   const lines = [
     '# Kerb Execution Record (KER) v1',
     '',
-    'Kerb records what actually ran in an append-only event log, `.kerb/runs.jsonl` (one JSON object per line, each ending with a `crc` field). This page is the published format ([KERB-V2](KERB-V2.md) 5.1). Memory tools, dashboards and research can read the log directly; `kerb query` and `kerb export` (milestone F) will return the same records.',
+    'Kerb records what actually ran in an append-only event log, `.kerb/runs.jsonl` (one JSON object per line, each ending with a `crc` field). This page is the published format ([KERB-V2](KERB-V2.md) 5.1). Memory tools, dashboards and research can read the log directly; `kerb query` and `kerb export` return the same records.',
     '',
     '**Stability.** Within KER v1, changes are additive only: new record types and new optional fields. Readers must ignore fields and record types they don\'t know. Every record has a `type`. Timestamps (`ts`) are milliseconds since the Unix epoch. State ids look like `st_` and 16 hex digits.',
     '',
@@ -93,14 +131,18 @@ export function docsText() {
   for (const t of TYPES) {
     lines.push(`## \`${t[0]}\``, '', t[1], '', '```json', JSON.stringify(schemaFor(t), null, 2), '```', '');
   }
+  lines.push('## Query results', '', '`kerb query <name>` prints one JSON object (KERB-V2 11.1); the MCP server\'s tools return the same shapes in `structuredContent`. `kerb export --format ker` writes the records above as NDJSON: runs as `run` records (never `start`, `end` or `wait`), without `crc`, with text redacted again; `--no-text` keeps only ids, counts, codes and hashes (keys, test ids and patterns become `h:` and 16 hex digits).', '');
+  for (const q of QUERIES) lines.push(`### \`kerb query ${q[0]}\``, '', q[1], '', '```json', JSON.stringify(querySchemaFor(q), null, 2), '```', '');
   return `${lines.join('\n').trimEnd()}\n`;
 }
 
 export function schemaFiles() {
   const files = Object.fromEntries(TYPES.map((t) => [path.join(ROOT, 'src/platform/schema', `${t[0]}.schema.json`), `${JSON.stringify(schemaFor(t), null, 2)}\n`]));
   // The same schemas as a module, so the standalone binary (which has no src/ on disk) has them.
+  for (const q of QUERIES) files[path.join(ROOT, 'src/platform/schema', `query.${q[0]}.schema.json`)] = `${JSON.stringify(querySchemaFor(q), null, 2)}\n`;
   const all = Object.fromEntries(TYPES.map((t) => [t[0], schemaFor(t)]));
-  files[path.join(ROOT, 'src/platform/schema/index.js')] = `// Generated by scripts/ker-schemas.js; do not edit.\nexport const SCHEMAS = ${JSON.stringify(all, null, 2)};\n`;
+  const queries = Object.fromEntries(QUERIES.map((q) => [q[0], querySchemaFor(q)]));
+  files[path.join(ROOT, 'src/platform/schema/index.js')] = `// Generated by scripts/ker-schemas.js; do not edit.\nexport const SCHEMAS = ${JSON.stringify(all, null, 2)};\nexport const QUERY_SCHEMAS = ${JSON.stringify(queries, null, 2)};\n`;
   return files;
 }
 

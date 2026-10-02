@@ -1,6 +1,6 @@
 # Kerb Execution Record (KER) v1
 
-Kerb records what actually ran in an append-only event log, `.kerb/runs.jsonl` (one JSON object per line, each ending with a `crc` field). This page is the published format ([KERB-V2](KERB-V2.md) 5.1). Memory tools, dashboards and research can read the log directly; `kerb query` and `kerb export` (milestone F) will return the same records.
+Kerb records what actually ran in an append-only event log, `.kerb/runs.jsonl` (one JSON object per line, each ending with a `crc` field). This page is the published format ([KERB-V2](KERB-V2.md) 5.1). Memory tools, dashboards and research can read the log directly; `kerb query` and `kerb export` return the same records.
 
 **Stability.** Within KER v1, changes are additive only: new record types and new optional fields. Readers must ignore fields and record types they don't know. Every record has a `type`. Timestamps (`ts`) are milliseconds since the Unix epoch. State ids look like `st_` and 16 hex digits.
 
@@ -526,7 +526,21 @@ A finished command: a `start` and its `end` (or a `wait`), as `kerb query` and `
     "id": {
       "type": "string"
     },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
     "session": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cmd": {
+      "type": "string"
+    },
+    "first_fail_line": {
       "type": [
         "string",
         "null"
@@ -678,6 +692,11 @@ One test (or diagnostic) in a run (5.3, 5.4).
     },
     "run": {
       "type": "string"
+    },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
     },
     "test_id": {
       "type": "string"
@@ -1299,6 +1318,742 @@ A human cleared loop state for a key, or all keys (v1 4.7.7).
         "string",
         "null"
       ]
+    }
+  }
+}
+```
+
+## Query results
+
+`kerb query <name>` prints one JSON object (KERB-V2 11.1); the MCP server's tools return the same shapes in `structuredContent`. `kerb export --format ker` writes the records above as NDJSON: runs as `run` records (never `start`, `end` or `wait`), without `crc`, with text redacted again; `--no-text` keeps only ids, counts, codes and hashes (keys, test ids and patterns become `h:` and 16 hex digits).
+
+### `kerb query runs`
+
+Finished runs, newest first, as KER `run` records.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.runs.schema.json",
+  "title": "kerb query runs",
+  "description": "Finished runs, newest first, as KER `run` records. Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "runs"
+  ],
+  "properties": {
+    "query": {
+      "const": "runs"
+    },
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "key",
+          "class"
+        ],
+        "properties": {
+          "type": {
+            "const": "run"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "milliseconds since the Unix epoch"
+          },
+          "session": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cmd": {
+            "type": "string"
+          },
+          "first_fail_line": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "class": {
+            "type": "string",
+            "enum": [
+              "check",
+              "query",
+              "other",
+              "background"
+            ]
+          },
+          "scope": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "pre_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "a state id (v2) or a v1 workspace hash"
+          },
+          "post_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "a state id (v2) or a v1 workspace hash"
+          },
+          "exit": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fingerprint": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "failure_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "transient",
+              "dependency",
+              "environment",
+              "ordinary",
+              null
+            ]
+          },
+          "class_result": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "ok",
+              "failure",
+              "policy_denial",
+              "timeout",
+              "idle",
+              "aborted",
+              null
+            ]
+          },
+          "raw_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "shown_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "framework": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tests_summary": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "passed": {
+                "type": "integer"
+              },
+              "failed": {
+                "type": "integer"
+              },
+              "skipped": {
+                "type": "integer"
+              },
+              "errors": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### `kerb query tests`
+
+One entry per test id seen in the window: its latest status, flaky when it both passed and failed on one state.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.tests.schema.json",
+  "title": "kerb query tests",
+  "description": "One entry per test id seen in the window: its latest status, flaky when it both passed and failed on one state. Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "tests"
+  ],
+  "properties": {
+    "query": {
+      "const": "tests"
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "test_id",
+          "status",
+          "last_run"
+        ],
+        "properties": {
+          "test_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "failing",
+              "flaky",
+              "passing",
+              "skipped"
+            ]
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_run": {
+            "type": "string"
+          },
+          "last_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "a state id (v2) or a v1 workspace hash"
+          },
+          "last_ts": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "runs": {
+            "type": "integer"
+          },
+          "failures": {
+            "type": "integer"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### `kerb query verification`
+
+Is each tracked check key's last result about the files as they are now (7.2)?
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.verification.schema.json",
+  "title": "kerb query verification",
+  "description": "Is each tracked check key's last result about the files as they are now (7.2)? Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "keys"
+  ],
+  "properties": {
+    "query": {
+      "const": "verification"
+    },
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "command",
+          "status"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "green",
+              "red",
+              "stale",
+              "never",
+              "unknown"
+            ]
+          },
+          "run": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ts": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "last_green": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "run": {
+                "type": "string"
+              },
+              "ts": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "milliseconds since the Unix epoch"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### `kerb query progress`
+
+Failing counts per check key since its last success, and the signal (7.3).
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.progress.schema.json",
+  "title": "kerb query progress",
+  "description": "Failing counts per check key since its last success, and the signal (7.3). Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "keys"
+  ],
+  "properties": {
+    "query": {
+      "const": "progress"
+    },
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "command",
+          "counts",
+          "signal",
+          "runs"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "signal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "green",
+              "oscillating",
+              "stalled",
+              "diverging",
+              "converging",
+              null
+            ]
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### `kerb query fixes`
+
+Proven fixes, newest first, as KER `fix` records (the latest version of each).
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.fixes.schema.json",
+  "title": "kerb query fixes",
+  "description": "Proven fixes, newest first, as KER `fix` records (the latest version of each). Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "fixes"
+  ],
+  "properties": {
+    "query": {
+      "const": "fixes"
+    },
+    "fixes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "fingerprint",
+          "confidence"
+        ],
+        "properties": {
+          "type": {
+            "const": "fix"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "milliseconds since the Unix epoch"
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "test_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "from_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^st_[0-9a-f]{16}$"
+          },
+          "to_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^st_[0-9a-f]{16}$"
+          },
+          "hunks": {
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "full diff",
+              "shared"
+            ]
+          },
+          "shared": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### `kerb query findings`
+
+Cause findings, newest first, as KER `finding` records.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.findings.schema.json",
+  "title": "kerb query findings",
+  "description": "Cause findings, newest first, as KER `finding` records. Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "findings"
+  ],
+  "properties": {
+    "query": {
+      "const": "findings"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "kind",
+          "test_id",
+          "confidence"
+        ],
+        "properties": {
+          "type": {
+            "const": "finding"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "milliseconds since the Unix epoch"
+          },
+          "kind": {
+            "const": "cause"
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "test_id": {
+            "type": "string"
+          },
+          "good_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^st_[0-9a-f]{16}$"
+          },
+          "bad_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^st_[0-9a-f]{16}$"
+          },
+          "culprit_hunks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "locations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hunk_count": {
+            "type": "integer"
+          },
+          "probes": {
+            "type": "integer"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "undetermined"
+            ]
+          },
+          "reason_if_undetermined": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### `kerb query states`
+
+Kept states of check runs, newest first: the KER `state` fields plus the run, key and whether it passed.
+
+```json
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.states.schema.json",
+  "title": "kerb query states",
+  "description": "Kept states of check runs, newest first: the KER `state` fields plus the run, key and whether it passed. Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "states"
+  ],
+  "properties": {
+    "query": {
+      "const": "states"
+    },
+    "states": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "ts",
+          "mode",
+          "materializable"
+        ],
+        "properties": {
+          "type": {
+            "const": "state"
+          },
+          "id": {
+            "type": "string",
+            "pattern": "^st_[0-9a-f]{16}$"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "milliseconds since the Unix epoch"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "git",
+              "walk"
+            ]
+          },
+          "scope": {
+            "type": "string"
+          },
+          "snapshot_tree": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "env_stamp": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "materializable": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "run": {
+            "type": "string"
+          },
+          "green": {
+            "type": "boolean"
+          }
+        }
+      }
     }
   }
 }

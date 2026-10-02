@@ -276,7 +276,7 @@ test('LG5 the ledger has attempts, edits, returns and the last green with the cu
   assert.match(t, /last green: \d\d:\d\d \(st_\w{4}\) · now: red/);
 });
 
-test('LG6 a known-fix pointer when one matches', { todo: 'proven fixes arrive in milestone E (E4)' }, () => {});
+// LG6 (a known-fix pointer) is in test/fixes.test.js, next to the fixes it points to.
 
 test('LG7 best-effort agents get the ledger through the instructions block', () => {
   const repo = makeRepo({ git: true });

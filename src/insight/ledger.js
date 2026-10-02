@@ -8,7 +8,8 @@ import path from 'node:path';
 import { readSnapshot, diffSnapshots } from '../loop/workspace.js';
 import { buildRuns } from '../store/jsonl.js';
 import { progress, series } from './converge.js';
-import { keyRuns, isSuccess, endTs } from './history.js';
+import { keyRuns, isSuccess, isFailure, endTs } from './history.js';
+import { matchingFix } from './fixes.js';
 
 export const MAX_BYTES = 250 * 4;
 export const WINDOW_MS = 24 * 3600_000;
@@ -77,5 +78,8 @@ function keyBlock(o, key, sinceTs) {
   const now = v ? ` · now: ${v.status}` : '';
   if (green) out.push(`  last green: ${hhmm(endTs(green))} (${String(green.post_hash || '').slice(0, 7)})${now}`);
   else if (now) out.push(`  never green yet${now}`);
+  const last = runs[runs.length - 1];
+  const m = last && isFailure(last) ? matchingFix(o.recs, last.id) : null;
+  if (m && m.exact) out.push(`  known fix for this failure: fix:${m.fix.id.slice(0, 6)} (kerb show fix:${m.fix.id.slice(0, 6)})`);
   return out;
 }

@@ -118,6 +118,15 @@ test('FX8 no hint when the fix\'s tests no longer exist', () => {
   assert.equal(hintOf(p.run()), null);
 });
 
+test('LG6 the ledger has a known-fix pointer when one matches', () => {
+  const p = project();
+  redGreenRed(p);
+  breakLogout(p.repo, 'again');
+  p.run();
+  const id = fixes(p.repo)[0].id.slice(0, 6);
+  assert.match(p.repo.kerb(['ledger']).stdout, new RegExp(`^ {2}known fix for this failure: fix:${id} \\(kerb show fix:${id}\\)$`, 'm'));
+});
+
 // ---- Notes sharing ----
 
 function committedFix(config = {}) {

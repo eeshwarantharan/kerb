@@ -45,6 +45,8 @@ export const COMMANDS = {
   jobs: () => import('./jobs.js'),
   show: () => import('./show.js'),
   sync: () => import('./sync.js'),
+  query: () => import('./query.js'),
+  export: () => import('./export.js'),
 };
 
 /** The six commands `kerb --help` shows (KERB-V2 10.3). */
@@ -88,6 +90,8 @@ export const GROUPS = [
     ['hook <agent> <event>', 'hook handler for an agent'],
     ['worker [status|stop]', 'the background worker (started on demand)'],
     ['jobs', "the worker's queue"],
+    ['query <what> [filters]', 'runs, tests, verification, progress, fixes, findings, states as JSON'],
+    ['export [--since 7d] [--no-text]', 'the records as KER NDJSON, redacted'],
   ]],
   ['Platform teams', [
     ['policy keygen|sign|verify|lint', 'sign and check org policy bundles'],

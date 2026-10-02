@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.tests.schema.json",
+  "title": "kerb query tests",
+  "description": "One entry per test id seen in the window: its latest status, flaky when it both passed and failed on one state. Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "tests"
+  ],
+  "properties": {
+    "query": {
+      "const": "tests"
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "test_id",
+          "status",
+          "last_run"
+        ],
+        "properties": {
+          "test_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "failing",
+              "flaky",
+              "passing",
+              "skipped"
+            ]
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_run": {
+            "type": "string"
+          },
+          "last_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "a state id (v2) or a v1 workspace hash"
+          },
+          "last_ts": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "runs": {
+            "type": "integer"
+          },
+          "failures": {
+            "type": "integer"
+          },
+          "message": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          }
+        }
+      }
+    }
+  }
+}

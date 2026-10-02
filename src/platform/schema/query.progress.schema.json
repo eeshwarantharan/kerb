@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.progress.schema.json",
+  "title": "kerb query progress",
+  "description": "Failing counts per check key since its last success, and the signal (7.3). Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "keys"
+  ],
+  "properties": {
+    "query": {
+      "const": "progress"
+    },
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "command",
+          "counts",
+          "signal",
+          "runs"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "signal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "green",
+              "oscillating",
+              "stalled",
+              "diverging",
+              "converging",
+              null
+            ]
+          },
+          "runs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    }
+  }
+}

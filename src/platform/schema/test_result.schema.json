@@ -17,6 +17,11 @@
     "run": {
       "type": "string"
     },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
     "test_id": {
       "type": "string"
     },

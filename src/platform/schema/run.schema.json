@@ -17,7 +17,21 @@
     "id": {
       "type": "string"
     },
+    "ts": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "milliseconds since the Unix epoch"
+    },
     "session": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "cmd": {
+      "type": "string"
+    },
+    "first_fail_line": {
       "type": [
         "string",
         "null"

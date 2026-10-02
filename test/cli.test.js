@@ -102,6 +102,8 @@ test('T0 every command supports --json and prints exactly one JSON object', () =
     jobs: ['jobs'],
     show: ['show', 'fix:nope'],
     sync: ['sync'],
+    query: ['query', 'runs'],
+    export: ['export'],
   };
   const skipped = new Set(['watch', 'hook']); // watch streams events; hook speaks each agent's protocol
   for (const name of Object.keys(COMMANDS)) {

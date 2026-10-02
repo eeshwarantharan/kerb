@@ -98,11 +98,11 @@ const short = (id) => id.slice(0, 6);
 const day = (ts) => new Date(ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 /**
- * The one hint for a failing run (7.6): an exact fingerprint match, else a family match.
- * No hint when none of a fix's tests exist in this run's results any more.
- * @returns {string | null}
+ * The fix that matches a failing run (7.6): an exact fingerprint match first, else a family match.
+ * Fixes none of whose tests appear in this run's results any more are left out.
+ * @returns {{ fix: any, exact: boolean } | null}
  */
-export function fixHint(recs, runId) {
+export function matchingFix(recs, runId) {
   const end = recs.find((r) => r.type === 'end' && r.id === runId);
   if (!end || end.exit === 0) return null;
   const run = keyRuns(recs, end.key).find((r) => r.id === runId);
@@ -113,6 +113,19 @@ export function fixHint(recs, runId) {
   const family = familyPrint(run, tests);
   const fixes = latestFixes(recs).filter((f) => f.to_run !== runId && (!f.test_ids || !f.test_ids.length || !present.size || f.test_ids.some((id) => present.has(id))));
   const exact = [...fixes].reverse().find((f) => f.fingerprint === print);
+  if (exact) return { fix: exact, exact: true };
+  const fam = [...fixes].reverse().find((f) => f.family === family);
+  return fam ? { fix: fam, exact: false } : null;
+}
+
+/**
+ * The one hint for a failing run (7.6): an exact fingerprint match, else a family match.
+ * No hint when none of a fix's tests exist in this run's results any more.
+ * @returns {string | null}
+ */
+export function fixHint(recs, runId) {
+  const m = matchingFix(recs, runId);
+  if (!m) return null;
   const where = (f) => {
     if (f.shared) return `fixed in commit ${String(f.commit || '').slice(0, 7)} (shared)`;
     const n = f.hunks ? f.hunks.length : f.stats ? f.stats.files : 0;
@@ -120,10 +133,9 @@ export function fixHint(recs, runId) {
     const files = (f.hunks ? [...new Set(f.hunks.map((h) => h.location.split(':')[0]))] : f.files || []).slice(0, 2).join(', ');
     return `fixed on ${day(f.ts)} in ${n} ${unit}${files ? ` (${files})` : ''}`;
   };
-  if (exact) return `seen before · ${where(exact)} · kerb show fix:${short(exact.id)} (${exact.shared ? 'shared' : exact.confidence})`;
-  const fam = [...fixes].reverse().find((f) => f.family === family);
-  if (fam) return `similar failure fixed before · kerb show fix:${short(fam.id)} (not the same error)`;
-  return null;
+  const f = m.fix;
+  if (m.exact) return `seen before · ${where(f)} · kerb show fix:${short(f.id)} (${f.shared ? 'shared' : f.confidence})`;
+  return `similar failure fixed before · kerb show fix:${short(f.id)} (not the same error)`;
 }
 
 /**

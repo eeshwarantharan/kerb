@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.fixes.schema.json",
+  "title": "kerb query fixes",
+  "description": "Proven fixes, newest first, as KER `fix` records (the latest version of each). Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "fixes"
+  ],
+  "properties": {
+    "query": {
+      "const": "fixes"
+    },
+    "fixes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "fingerprint",
+          "confidence"
+        ],
+        "properties": {
+          "type": {
+            "const": "fix"
+          },
+          "id": {
+            "type": "string"
+          },
+          "ts": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "milliseconds since the Unix epoch"
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "family": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "test_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "from_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^st_[0-9a-f]{16}$"
+          },
+          "to_state": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^st_[0-9a-f]{16}$"
+          },
+          "hunks": {
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "commit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "minimal",
+              "full diff",
+              "shared"
+            ]
+          },
+          "shared": {
+            "type": "boolean"
+          }
+        }
+      }
+    }
+  }
+}

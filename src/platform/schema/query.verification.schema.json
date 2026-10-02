@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/eeshwarantharan/kerb/blob/main/src/platform/schema/query.verification.schema.json",
+  "title": "kerb query verification",
+  "description": "Is each tracked check key's last result about the files as they are now (7.2)? Readers must ignore fields they don't know.",
+  "type": "object",
+  "required": [
+    "query",
+    "keys"
+  ],
+  "properties": {
+    "query": {
+      "const": "verification"
+    },
+    "keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "command",
+          "status"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "command": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "green",
+              "red",
+              "stale",
+              "never",
+              "unknown"
+            ]
+          },
+          "run": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ts": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "last_green": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "run": {
+                "type": "string"
+              },
+              "ts": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "milliseconds since the Unix epoch"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
