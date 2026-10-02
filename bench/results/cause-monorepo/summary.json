@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-02T18:38:12.043Z",
+  "kerb": "0.7.0",
+  "platform": "darwin-arm64",
+  "node": "v20.12.2",
+  "seed": 1,
+  "scenarios": 1,
+  "controls": 0,
+  "confirmed_findings": 1,
+  "correct_findings": 1,
+  "exact_findings": 1,
+  "undetermined_findings": 0,
+  "false_positives_in_controls": 0,
+  "precision": 1,
+  "recall": 1,
+  "gate": {
+    "precision_at_least_95": true
+  },
+  "wrong": []
+}

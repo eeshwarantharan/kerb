@@ -396,7 +396,7 @@ export const TASKS = [
       for (let i = 0; i < (ctx.fill ?? 100_000); i++) files[`packages/lib${i % 200}/src/f${i}.js`] = `export const v${i} = ${i};\n`;
       for (let i = 0; i < 200; i++) files[`packages/lib${i}/package.json`] = JSON.stringify({ name: `lib${i}` });
       files['packages/app/package.json'] = PKG();
-      files['packages/app/src/greet.js'] = "export function greet(n) {\n  return `Hello, ${n}!`;\n}\n\nexport function initials(n) {\n  return n.split(' ').map((w) => w[0]).join('');\n}\n\nexport function polite(n) {\n  return 'Dear ' + n;\n}\n";
+      files['packages/app/src/greet.js'] = "export function greet(n) {\n  return `Hello, ${n}!`;\n}\n\nexport function initials(n) {\n  return n.split(' ').map((w) => w[0]).join('');\n}\n\nexport function first(n) {\n  return n.split(' ')[0];\n}\n\nexport function last(n) {\n  return n.split(' ').pop();\n}\n\nexport function polite(n) {\n  return 'Dear ' + n;\n}\n";
       files['packages/app/test/greet.test.js'] = nodeTest("import { greet, initials } from '../src/greet.js';", "test('greet', () => assert.equal(greet('Ada'), 'Hello, Ada!'));\ntest('initials', () => assert.equal(initials('Ada Lovelace'), 'AL'));");
       w(d, files);
     },
