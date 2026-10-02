@@ -9,7 +9,7 @@ import { sha256, isWindows } from '../util/core.js';
 import { isSea } from '../util/lazy.js';
 import { atomicWrite, ensureDir, readJson } from '../util/fsx.js';
 import { INSTRUCTION_FILES, SKILL, START_MARKER, END_MARKER, instructionsBlock, briefingLines, replaceBlock } from './instructions.js';
-import { AGENT_DESCRIPTORS } from './agents.js';
+import { AGENT_DESCRIPTORS, stripKerbMcp } from './agents.js';
 
 export const MANIFEST = '.kerb/install.json';
 
@@ -213,5 +213,6 @@ export function stripKerbJson(text, descriptor) {
   try { obj = JSON.parse(text); } catch { return text; }
   const isKerb = (cmd) => typeof cmd === 'string' && /\bkerb(\.js)?\b/.test(cmd) && /\b(hook|statusline)\b/.test(cmd);
   if (descriptor && descriptor.strip) descriptor.strip(obj, isKerb);
+  stripKerbMcp(obj);
   return `${JSON.stringify(obj, null, 2)}\n`;
 }

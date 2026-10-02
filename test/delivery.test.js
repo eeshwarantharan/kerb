@@ -7,6 +7,7 @@ import { makeRepo, ROOT } from './helpers.js';
 import { Store } from '../src/store/jsonl.js';
 import { sessionStartText } from '../src/insight/deliver.js';
 import { mergeLayers } from '../src/bound/policy.js';
+import { createServer } from '../src/platform/mcp.js';
 
 const FIX = path.join(ROOT, 'test/fixtures/hooks');
 const payload = (agent, name, repo, over = {}) => ({ ...JSON.parse(fs.readFileSync(path.join(FIX, agent, `${name}.json`), 'utf8')), cwd: repo.dir, ...over });
@@ -92,7 +93,18 @@ test('VS6 stop_gate "off" says nothing', () => {
   assert.equal(c.stop(), null);
 });
 
-test('VS7 MCP verification_status matches the CLI', { todo: 'the MCP server arrives in milestone F (F2)' }, () => {});
+test('VS7 MCP verification_status matches the CLI', () => {
+  const repo = makeRepo({ git: true, files: { 'src/cart.py': 'v = 1\n', 'kerb.policy.json': JSON.stringify({ verify_keys: ['npm run lint'] }) } });
+  const c = claude(repo);
+  c.check({ fail: ['test_a'] });
+  repo.write('src/cart.py', 'v = 2\n');
+  const server = createServer({ cwd: repo.dir, env: repo.env });
+  const r = server.handle({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'verification_status', arguments: {} } }).result;
+  const cli = status(repo).map(({ current, ...v }) => (void current, v));
+  assert.deepEqual(r.structuredContent.keys, cli);
+  assert.deepEqual(cli.map((v) => v.status), ['stale', 'never']);
+  assert.match(r.content[0].text, /^pytest -v: stale \(changed: src\/cart\.py\)/);
+});
 
 test('VS8 policy verify_keys are tracked even before they run', () => {
   const repo = makeRepo({ git: true, files: { 'kerb.policy.json': JSON.stringify({ verify_keys: ['npm run lint', '.::make check'] }) } });

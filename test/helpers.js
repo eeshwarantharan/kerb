@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Store } from '../src/store/jsonl.js';
 
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const KERB = path.join(ROOT, 'bin', 'kerb.js');
@@ -177,4 +178,46 @@ export async function inproc(repo, args, { cwd } = {}) {
   } finally {
     process.env.HOME = oldHome;
   }
+}
+
+// ---- A fixture log for the query and MCP tests (KERB-V2 11) ----
+
+export const RECORDS_CMD = 'node --test test/app.test.js';
+const CMD = RECORDS_CMD;
+const mod = (name, body) => `${body}\nmodule.exports = { ${name} };\n`;
+const TEST_FILE = [
+  "const { it } = require('node:test');", "const assert = require('node:assert/strict');", "const { logout } = require('../src/session.js');",
+  "it('logout clears session', () => { assert.equal(logout({ user: 'a' }).user, null); });",
+  "it('always passes', () => {});",
+].join('\n');
+const GOOD = mod('logout', 'function logout(s) {\n  s.user = null;\n  return s;\n}');
+const BAD = (v) => mod('logout', `function logout(s) {\n  s.user = s.user; // ${v}\n  return s;\n}`);
+
+let shared = null;
+/** One fixture log (shared by the query and MCP tests) for every query: green, red, green (a fix), red again, plus a finding and a refusal. */
+export function recordsFixture() {
+  if (shared) return shared;
+  const repo = makeRepo({ git: true, config: { worker: 'manual' }, files: { 'src/session.js': GOOD, 'test/app.test.js': `${TEST_FILE}\n` } });
+  const run = () => repo.kerb(['run', '--', CMD]);
+  run();
+  repo.write('src/session.js', BAD('one'));
+  run();
+  repo.write('src/session.js', GOOD.replace('s.user = null;', 's.user = null; // fixed'));
+  run();
+  repo.write('src/session.js', BAD('two'));
+  run();
+  const recs = records(repo.dir);
+  const ends = recs.filter((r) => r.type === 'end');
+  appendRecords(repo.dir, [
+    { type: 'finding', id: '3b2e5a71c0', ts: Date.now(), kind: 'cause', key: ends[3].key, test_id: 'node:test/app.test.js::logout clears session', good_state: ends[2].post_hash, bad_state: ends[3].post_hash,
+      culprit_hunks: ['src/session.js#0'], locations: ['src/session.js:2'], hunk_count: 1, probes: 7, confidence: 'confirmed', reason_if_undetermined: null },
+    { type: 'refusal', id: 'rf1', ts: Date.now(), key: ends[3].key, reason: 'identical_retry', matched_run: ends[3].id, cmd: CMD, summary: 'same files as a failed run', evidence: 'token=sk-ant-0123456789abcdefghijklmnop at /Users/someone/project', avoided_duration_ms: 10, avoided_output_bytes: 10 },
+  ]);
+  shared = { repo, ends };
+  return shared;
+}
+
+/** Append records through Kerb's own store (so they carry a crc). */
+function appendRecords(dir, recs) {
+  new Store(dir).append(recs);
 }

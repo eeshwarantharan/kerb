@@ -47,6 +47,7 @@ export const COMMANDS = {
   sync: () => import('./sync.js'),
   query: () => import('./query.js'),
   export: () => import('./export.js'),
+  mcp: () => import('./mcp.js'),
 };
 
 /** The six commands `kerb --help` shows (KERB-V2 10.3). */
@@ -92,6 +93,7 @@ export const GROUPS = [
     ['jobs', "the worker's queue"],
     ['query <what> [filters]', 'runs, tests, verification, progress, fixes, findings, states as JSON'],
     ['export [--since 7d] [--no-text]', 'the records as KER NDJSON, redacted'],
+    ['mcp', 'the read-only MCP server over stdio (agents start it)'],
   ]],
   ['Platform teams', [
     ['policy keygen|sign|verify|lint', 'sign and check org policy bundles'],

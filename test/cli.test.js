@@ -105,7 +105,7 @@ test('T0 every command supports --json and prints exactly one JSON object', () =
     query: ['query', 'runs'],
     export: ['export'],
   };
-  const skipped = new Set(['watch', 'hook']); // watch streams events; hook speaks each agent's protocol
+  const skipped = new Set(['watch', 'hook', 'mcp']); // watch streams events; hook and mcp speak their own protocols
   for (const name of Object.keys(COMMANDS)) {
     if (skipped.has(name)) continue;
     assert.ok(cases[name], `a --json case for ${name}`);

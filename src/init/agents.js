@@ -113,7 +113,8 @@ const claude = {
       notes.push(`Claude Code already has a status line; add Kerb's part by appending the output of \`${inv.command} statusline --segment\` to your status line command.`);
     }
     const after = `${JSON.stringify(obj, null, 2)}\n`;
-    return { actions: [{ file: CLAUDE_SETTINGS, kind: 'json', before: text, after }], tier: 'enforced', how: 'native hooks', notes };
+    const m = mcpJson(root, '.mcp.json', 'mcpServers', { type: 'stdio', ...mcpLaunch(root, inv) }, `Add it for yourself: claude mcp add --scope local kerb -- ${mcpCommandLine(root, inv)}`);
+    return { actions: [{ file: CLAUDE_SETTINGS, kind: 'json', before: text, after }, ...m.actions], tier: 'enforced', how: 'native hooks', notes: [...notes, ...m.notes], gitignore: m.gitignore };
   },
   skillPaths: () => ['.claude/skills/kerb/SKILL.md'],
   strip: stripClaudeStyle,
@@ -135,6 +136,45 @@ function trackedNote(root, rel, before) {
   return before !== null && gitTracked(root, rel)
     ? [`${rel} is committed; Kerb's hook entries contain absolute paths for this machine, so keep them out of shared commits.`]
     : [];
+}
+
+/** How an agent starts Kerb's MCP server (11.2): absolute paths, the repo as --cwd. */
+export function mcpLaunch(root, inv) {
+  return inv.binary ? { command: inv.binary, args: ['--cwd', root, 'mcp'] } : { command: inv.node, args: [inv.script, '--cwd', root, 'mcp'] };
+}
+
+/** The one-line command that starts the server, for agents Kerb doesn't configure itself. */
+export function mcpCommandLine(root, inv) {
+  const l = mcpLaunch(root, inv);
+  return [l.command, ...l.args].map((a) => (/^[A-Za-z0-9_@%+=:,./-]+$/.test(a) ? a : `"${a}"`)).join(' ');
+}
+
+/** Is this server entry Kerb's? */
+export function isKerbMcp(e) {
+  return !!e && typeof e === 'object' && /\bkerb(\.js|\.cjs)?\b/.test(JSON.stringify([e.command, e.args])) && JSON.stringify(e.args || e.command || []).includes('"mcp"');
+}
+
+/**
+ * Register Kerb's MCP server in a JSON file under `servers[key].kerb`. A file committed to git is
+ * left alone (the entry holds this machine's paths); the note says how to add it instead.
+ * @returns {{ actions: any[], notes: string[], gitignore: string[] }}
+ */
+function mcpJson(root, rel, key, entry, insteadNote) {
+  const { text, obj } = readJsonText(root, rel);
+  if (text !== null && gitTracked(root, rel)) return { actions: [], notes: [`${rel} is committed, so Kerb didn't add its MCP server there (it holds this machine's paths). ${insteadNote}`], gitignore: [] };
+  obj[key] = obj[key] && typeof obj[key] === 'object' ? obj[key] : {};
+  obj[key].kerb = entry;
+  return { actions: [{ file: rel, kind: 'json', before: text, after: `${JSON.stringify(obj, null, 2)}\n` }], notes: [], gitignore: text === null ? [rel] : [] };
+}
+
+/** Remove Kerb's MCP server entries (mcpServers, servers, mcp) from a parsed JSON file. */
+export function stripKerbMcp(obj) {
+  for (const key of ['mcpServers', 'servers', 'mcp']) {
+    const m = obj[key];
+    if (!m || typeof m !== 'object' || !isKerbMcp(m.kerb)) continue;
+    delete m.kerb;
+    if (!Object.keys(m).length) delete obj[key];
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -159,12 +199,13 @@ const copilot = {
       hooks[event] = [{ type: 'command', bash: cmd, powershell: `& ${cmd}`, timeoutSec: short === 'start' || short === 'end' ? 10 : 5 }];
     }
     const after = `${JSON.stringify({ version: 1, hooks }, null, 2)}\n`;
+    const m = mcpJson(root, '.vscode/mcp.json', 'servers', { type: 'stdio', ...mcpLaunch(root, inv) }, 'Add it in VS Code with "MCP: Add Server".');
     return {
-      actions: [{ file: COPILOT_FILE, kind: 'file', before, after }],
+      actions: [{ file: COPILOT_FILE, kind: 'file', before, after }, ...m.actions],
       tier: 'enforced',
       how: 'native hooks (Copilot CLI and VS Code)',
-      gitignore: [COPILOT_FILE],
-      notes: [],
+      gitignore: [COPILOT_FILE, ...m.gitignore],
+      notes: [...m.notes, `Copilot CLI reads MCP servers from ~/.copilot/mcp-config.json; to use Kerb's there, add "kerb": { "type": "stdio", "command": ${JSON.stringify(mcpLaunch(root, inv).command)}, "args": ${JSON.stringify(mcpLaunch(root, inv).args)} } under "mcpServers".`],
     };
   },
   skillPaths: () => ['.github/skills/kerb/SKILL.md'],
@@ -205,12 +246,13 @@ const cursor = {
       if (entry) Object.assign(entry, fresh);
       else list.push(fresh);
     }
+    const m = mcpJson(root, '.cursor/mcp.json', 'mcpServers', { type: 'stdio', ...mcpLaunch(root, inv) }, 'Add it in Cursor Settings → MCP.');
     return {
-      actions: [{ file: CURSOR_FILE, kind: 'json', before: text, after: `${JSON.stringify(obj, null, 2)}\n` }],
+      actions: [{ file: CURSOR_FILE, kind: 'json', before: text, after: `${JSON.stringify(obj, null, 2)}\n` }, ...m.actions],
       tier: 'enforced',
       how: 'native hooks',
-      gitignore: text === null ? [CURSOR_FILE] : [],
-      notes: trackedNote(root, CURSOR_FILE, text),
+      gitignore: [...(text === null ? [CURSOR_FILE] : []), ...m.gitignore],
+      notes: [...trackedNote(root, CURSOR_FILE, text), ...m.notes],
     };
   },
   strip(obj, isKerb) {
@@ -236,7 +278,7 @@ const cursor = {
 // ---------------------------------------------------------------------------
 // Codex CLI and Gemini CLI: Claude-style settings with their own event names.
 
-function claudeStyleAgent({ id, name, file, events, detect, units = 1, how = 'native hooks', note }) {
+function claudeStyleAgent({ id, name, file, events, detect, units = 1, how = 'native hooks', note, extra }) {
   return {
     id,
     name,
@@ -247,15 +289,16 @@ function claudeStyleAgent({ id, name, file, events, detect, units = 1, how = 'na
       for (const [event, [short, matcher]] of Object.entries(events)) {
         mergeClaudeStyle(obj, event, matcher, `${inv.command} hook ${id} ${short}`, (short === 'start' || short === 'end' ? 10 : 5) * units, KERB_HOOK(id, short));
       }
+      const more = extra ? extra(root, inv, obj) : [];
       return {
         actions: [{ file, kind: 'json', before: text, after: `${JSON.stringify(obj, null, 2)}\n` }],
         tier: 'enforced',
         how,
         gitignore: text === null ? [file] : [],
-        notes: [...trackedNote(root, file, text), ...(note ? [note] : [])],
+        notes: [...trackedNote(root, file, text), ...(note ? [note] : []), ...more],
       };
     },
-    strip: stripClaudeStyle,
+      strip: stripClaudeStyle,
     hookCommands(root) {
       const { obj } = readJsonText(root, file);
       return claudeStyleCommands(obj, id, Object.fromEntries(Object.entries(events).map(([e, [s]]) => [e, s])));
@@ -270,6 +313,7 @@ const codex = claudeStyleAgent({
   events: { SessionStart: ['start', null], PreToolUse: ['pre', 'Bash'], PostToolUse: ['post', 'Bash'], Stop: ['stop', null], SessionEnd: ['end', null] },
   detect: (root, home) => exists(path.join(root, '.codex')) || exists(path.join(home, '.codex')) || onPath('codex'),
   note: 'Codex runs new hooks only after you trust them: open /hooks in Codex once and trust the Kerb entries.',
+  extra: (root, inv) => [`Kerb's MCP server for Codex (optional, read-only): codex mcp add kerb -- ${mcpCommandLine(root, inv)}`],
 });
 
 const gemini = claudeStyleAgent({
@@ -280,6 +324,11 @@ const gemini = claudeStyleAgent({
   detect: (root, home) => exists(path.join(root, '.gemini')) || exists(path.join(home, '.gemini')) || exists(path.join(root, 'GEMINI.md')) || onPath('gemini'),
   units: 1000,
   note: 'Gemini CLI asks you to trust changed project hooks the first time they run.',
+  extra: (root, inv, obj) => {
+    obj.mcpServers = obj.mcpServers && typeof obj.mcpServers === 'object' ? obj.mcpServers : {};
+    obj.mcpServers.kerb = mcpLaunch(root, inv);
+    return [];
+  },
 });
 
 // ---------------------------------------------------------------------------
@@ -302,7 +351,7 @@ const opencode = {
       tier: 'enforced',
       how: 'plugin (tool.execute.before/after)',
       gitignore: [OPENCODE_FILE],
-      notes: [],
+      notes: [`Kerb's MCP server for OpenCode (optional, read-only): add "mcp": { "kerb": { "type": "local", "command": ${JSON.stringify([mcpLaunch(root, inv).command, ...mcpLaunch(root, inv).args])}, "enabled": true } } to opencode.json.`],
     };
   },
   hookCommands(root) {

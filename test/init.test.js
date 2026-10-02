@@ -102,7 +102,8 @@ test('I5 .kerb/ is added to .gitignore once', () => {
   const repo = makeRepo({ git: true, files: { '.gitignore': 'dist' } });
   initClaude(repo);
   initClaude(repo);
-  assert.equal(repo.read('.gitignore'), 'dist\n.kerb/\n');
+  // .mcp.json (KERB-V2 11.2, MC8) holds this machine's paths, so it is ignored with .kerb/.
+  assert.equal(repo.read('.gitignore'), 'dist\n.kerb/\n.mcp.json\n');
 });
 
 test('I6 the skill is installed with frontmatter on line 1', () => {
