@@ -118,3 +118,14 @@ test('QY6 export --no-text removes all text and paths, leaving ids, counts and h
   assert.match(t.test_id, /^h:[0-9a-f]{16}$/);
   assert.equal(t.message, undefined);
 });
+
+test('kerb cause shows the latest finding; kerb why <run> names the narrow command (KERB-V2 10.4)', () => {
+  const { repo, ends } = fixture();
+  const c = repo.kerb(['cause', 'logout clears session']);
+  assert.match(c.stdout, /^kerb: cause · "logout clears session" broke\n/);
+  assert.match(c.stdout, /details: kerb show f:3b2e5a$/m);
+  assert.equal(repo.kerb(['cause', '--json']).json.finding.id, '3b2e5a71c0');
+  assert.match(repo.kerb(['cause', 'always passes']).stdout, /^kerb cause · no cause finding for always passes yet/);
+  const w = repo.kerb(['why', ends[1].id]); // ends[3] has a refusal, which kerb why shows first
+  assert.match(w.stdout, /^ {2}narrow {4}node --test --test-name-pattern='\(\^\| \)logout clears session\$' 'test\/app\.test\.js' {2}\(reproduces just logout clears session\)$/m);
+});

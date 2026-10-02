@@ -10,6 +10,7 @@
     "bin/",
     "src/",
     "templates/",
+    "skills/",
     "docs/KERB.md",
     "docs/KERB-V2.md",
     "docs/KER.md",
@@ -45,5 +46,6 @@
   "bugs": {
     "url": "https://github.com/eeshwarantharan/kerb/issues"
   },
-  "author": "Tharaneeshwaran V U"
+  "author": "Tharaneeshwaran V U",
+  "mcpName": "io.github.eeshwarantharan/kerb"
 }

@@ -49,6 +49,7 @@ export const COMMANDS = {
   export: () => import('./export.js'),
   mcp: () => import('./mcp.js'),
   plugins: () => import('./plugins.js'),
+  cause: () => import('./cause.js'),
 };
 
 /** The six commands `kerb --help` shows (KERB-V2 10.3). */
@@ -78,6 +79,7 @@ export const GROUPS = [
     ['ledger', 'what was tried in the last 24 hours, from the records'],
     ['green [--key K] [--test T]', 'the newest state where a check (or one test) passed'],
     ['restore <state> --patch', 'a patch back to that state (or --keep-except <finding>); applies nothing'],
+    ['cause [test]', 'which edit broke a test, confirmed by probes'],
     ['show fix:<id> | f:<id>', 'a proven fix or a cause finding, with its diff'],
     ['sync', 'merge fixes teammates shared through git notes'],
     ['why [run-id]', 'explain a refusal (or a run\'s test results) with its evidence'],

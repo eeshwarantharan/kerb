@@ -1,0 +1,14 @@
+{
+  "name": "kerb",
+  "owner": { "name": "Tharaneeshwaran V U" },
+  "description": "Kerb's skills for Claude Code.",
+  "plugins": [
+    {
+      "name": "kerb",
+      "source": ".",
+      "description": "Skills for working with Kerb: refusals and hints, a debugging loop over Kerb's records, and a verification check before finishing.",
+      "category": "development",
+      "tags": ["testing", "debugging", "verification"]
+    }
+  ]
+}

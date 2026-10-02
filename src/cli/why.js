@@ -3,6 +3,7 @@ import { findRoot } from '../util/repo.js';
 import { Store, buildRuns } from '../store/jsonl.js';
 import { formatDuration, UsageError } from '../util/core.js';
 import { parseOpts } from './args.js';
+import { narrowCommand } from '../worker/narrow.js';
 
 const EXPLAIN = {
   identical_retry: 'Your files (in this command\'s scope) and environment were identical to the end state of a run that failed, and no setup command ran since, so running it again could not change the result.',
@@ -58,10 +59,14 @@ export default async function why(ctx, args) {
 function explainRun(ctx, recs, run) {
   const tests = recs.filter((r) => r.type === 'test_result' && r.run === run.id);
   const failing = tests.filter((t) => t.status === 'fail' || t.status === 'error');
-  if (ctx.json) { ctx.emitJson({ run, tests }); return 0; }
+  // The narrowest command that reproduces the first failing test (KERB-V2 8.2, 10.4).
+  let narrow = null;
+  try { narrow = failing.length ? narrowCommand(failing[0].test_id, run.cmd || run.key.slice(run.key.indexOf('::') + 2)) : null; } catch { narrow = null; }
+  if (ctx.json) { ctx.emitJson({ run, tests, narrow }); return 0; }
   ctx.out(`kerb why · run ${run.id} · ${run.cmd || run.key} · exit ${run.exit ?? '?'}${run.framework ? ` · ${run.framework}` : ''}\n`);
   if (run.tests_summary) ctx.out(`  tests     ${run.tests_summary.failed} failed, ${run.tests_summary.passed} passed, ${run.tests_summary.skipped} skipped of ${run.tests_summary.total}\n`);
   for (const t of failing) ctx.out(`  ${t.status.padEnd(5)} ${t.test_id}${t.location ? ` · ${t.location}` : ''}${t.message ? ` · ${t.message}` : ''}\n`);
+  if (narrow) ctx.out(`  narrow    ${narrow}  (reproduces just ${failing[0].test_id.slice(failing[0].test_id.indexOf('::') + 2)})\n`);
   if (run.log) ctx.out(`  log       ${run.log}\n`);
   return 0;
 }
