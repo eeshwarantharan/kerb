@@ -44,6 +44,17 @@ export function shPath(...parts) {
   return process.platform === 'win32' ? p.replace(/\\/g, '/') : p;
 }
 
+/** Run fn with HOME (and USERPROFILE) set to home, for in-process calls that read ~/.kerb. */
+export function asHome(home, fn) {
+  const old = [process.env.HOME, process.env.USERPROFILE];
+  process.env.HOME = home;
+  process.env.USERPROFILE = home;
+  try { return fn(); } finally {
+    if (old[0] === undefined) delete process.env.HOME; else process.env.HOME = old[0];
+    if (old[1] === undefined) delete process.env.USERPROFILE; else process.env.USERPROFILE = old[1];
+  }
+}
+
 /** A temp repo with an isolated HOME. `git: true` initialises git with one commit. `config` seeds ~/.kerb/config.json. */
 export function makeRepo({ git = false, files = {}, config = null } = {}) {
   const dir = tmpDir('kerb-repo-');

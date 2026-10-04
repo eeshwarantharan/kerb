@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { makeRepo, records } from './helpers.js';
+import { makeRepo, records, asHome } from './helpers.js';
 import { listJobs, enqueue } from '../src/worker/queue.js';
 
 const CMD = 'node --test test/app.test.js';
@@ -164,7 +164,7 @@ test('CA8 probe results are cached by tree id', () => {
   work(repo);
   const first = findings(repo)[0];
   const job = listJobs(repo.dir).find((j) => j.kind === 'cause');
-  enqueue(repo.dir, 'cause', job.payload);
+  asHome(repo.home, () => enqueue(repo.dir, 'cause', job.payload));
   work(repo);
   const second = findings(repo)[1];
   assert.equal(second.confidence, 'confirmed');

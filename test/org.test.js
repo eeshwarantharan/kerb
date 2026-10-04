@@ -88,6 +88,28 @@ test('O2 a tampered bundle is rejected; the previous verified bundle stays in us
   }
 });
 
+test('O9 a validly signed older bundle (a replayed response) is refused; the newer one stays', async () => {
+  const k = keys();
+  const v2 = JSON.stringify(signBundle(POLICY, k.priv, 2));
+  const v1 = JSON.stringify(signBundle({ version: 1, boundaries: [] }, k.priv, 1));
+  const s = await server((req, res) => { res.end(v2); });
+  try {
+    await withManaged({ org: { bundle_url: s.url, public_key: k.pub } }, async ({ managedFile }) => {
+      const managed = JSON.parse(fs.readFileSync(managedFile, 'utf8'));
+      assert.equal((await refreshOrg(managed, { force: true })).updated, true);
+      s.handler = (req, res) => res.end(v1);
+      const r = await refreshOrg(managed, { force: true });
+      assert.match(r.error, /older than the cached v2/);
+      assert.equal(orgLayer(managed).status.version, 2);
+      assert.equal(orgLayer(managed).layer.policy.boundaries.length, 1);
+      s.handler = (req, res) => res.end(v2);
+      assert.equal((await refreshOrg(managed, { force: true })).updated, true, 'the same version again is fine');
+    });
+  } finally {
+    s.close();
+  }
+});
+
 test('O3 ETag 304 → the cache is used', async () => {
   const k = keys();
   const body = JSON.stringify(signBundle(POLICY, k.priv, 7));

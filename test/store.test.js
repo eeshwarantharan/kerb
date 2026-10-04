@@ -127,3 +127,22 @@ test('buildRuns joins start/end and folds waits', () => {
   assert.equal(runs[1].is_wait, true);
   assert.equal(runs[2].finished, false);
 });
+
+test('S20 a lock broken as stale is not deleted by its old holder, and two breakers keep one lock', () => {
+  const dir = tmpDir();
+  const store = new Store(dir, { staleLockMs: 10_000 });
+  let other = null;
+  store.withLock(() => {
+    // Someone judged our lock stale, broke it and took their own.
+    fs.unlinkSync(store.lockPath);
+    fs.writeFileSync(store.lockPath, 'other 1 x');
+    other = fs.readFileSync(store.lockPath, 'utf8');
+  });
+  assert.equal(fs.readFileSync(store.lockPath, 'utf8'), other, 'the other holder keeps its lock');
+  fs.unlinkSync(store.lockPath);
+  // A dead holder's lock is broken once; a fresh lock taken meanwhile survives.
+  fs.writeFileSync(store.lockPath, '999999 1 dead');
+  assert.equal(store.breakStaleLock(), true);
+  assert.equal(fs.existsSync(store.lockPath), false);
+  assert.deepEqual(fs.readdirSync(path.join(dir, '.kerb')).filter((n) => n.startsWith('lock.')), [], 'nothing left aside');
+});

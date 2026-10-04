@@ -25,6 +25,10 @@ function why(reason) {
 export function worktreeAt(root, stateId, job, o = {}) {
   const state = readState(root, stateId);
   if (!state) return why('state not kept');
+  // States live in .kerb/ inside the repo, which a cloned repo could have planted: nothing in one
+  // may name a path outside the worktree or pass git an option.
+  if (state.mode !== 'walk' && !(typeof state.commit === 'string' && /^[0-9a-f]{40,64}$/.test(state.commit))) return why('state has no commit');
+  if (state.scope != null && state.scope !== '.' && !insideRel(state.scope)) return why('state scope is outside the repo');
   if (!state.materializable) return why('not materializable: it has a file over 5 MB whose content was not stored');
   if (o.envStamp != null && state.env_stamp && o.envStamp !== state.env_stamp) return why('dependencies changed');
   const dir = path.join(root, '.kerb', 'worktrees', job.replace(/[^A-Za-z0-9_.-]/g, '_'));
@@ -34,7 +38,6 @@ export function worktreeAt(root, stateId, job, o = {}) {
     const r = restoreWalk(root, state, dir);
     if (!r.ok) return r;
   } else {
-    if (!state.commit) return why('state has no commit');
     const r = git(root, ['worktree', 'add', '--detach', '--quiet', dir, state.commit], { encoding: 'utf8' });
     if (r.status !== 0) return why(`git worktree add failed: ${r.stderr.trim()}`);
   }
@@ -47,6 +50,7 @@ function linkDependencies(root, dir, state, links) {
   const bases = ['.', ...(state.scope && state.scope !== '.' ? [state.scope] : [])];
   for (const base of bases) {
     for (const name of links) {
+      if (typeof name !== 'string' || !/^[\w.@-]+$/.test(name) || name === '.' || name === '..') continue;
       const src = path.join(root, base, name);
       const dest = path.join(dir, base, name);
       if (!fs.existsSync(src) || fs.existsSync(dest)) continue;
@@ -66,7 +70,7 @@ export function removeWorktree(root, dir) {
     try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
     for (const e of ents) {
       const p = path.join(d, e.name);
-      if (e.isSymbolicLink()) { if (DEFAULT_WORKTREE_LINKS.includes(e.name)) fs.unlinkSync(p); } else if (e.isDirectory() && depth < 4 && e.name !== '.git') unlinkLinks(p, depth + 1);
+      if (e.isSymbolicLink()) fs.unlinkSync(p); else if (e.isDirectory() && depth < 4 && e.name !== '.git') unlinkLinks(p, depth + 1);
     }
   };
   unlinkLinks(dir);
@@ -75,9 +79,17 @@ export function removeWorktree(root, dir) {
   git(root, ['worktree', 'prune']);
 }
 
+/** A relative path that stays inside its base (no absolute paths, no `..` segments). */
+export function insideRel(rel) {
+  if (typeof rel !== 'string' || !rel || rel.includes('\0') || path.isAbsolute(rel) || /^[A-Za-z]:/.test(rel)) return false;
+  return !rel.split(/[\\/]+/).includes('..');
+}
+
 /** Write the files of a walk-mode state into `dir`. */
 export function restoreWalk(root, state, dir) {
   for (const [rel, f] of Object.entries(state.files || {})) {
+    if (!insideRel(rel)) return why(`state names a path outside the repo: ${rel.slice(0, 80)}`);
+    if (!f || typeof f.h !== 'string' || !/^[0-9a-f]{64}$/.test(f.h)) return why(`state has a bad content hash for ${rel}`);
     const src = blobPath(root, f.h);
     if (!fs.existsSync(src)) return why(`content of ${rel} is not in the blob store`);
     const dest = path.join(dir, rel);

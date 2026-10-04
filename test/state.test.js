@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { makeRepo, records, tmpDir, runKerbAsync, baseEnv } from './helpers.js';
 import { computeScope } from '../src/loop/scope.js';
 import { hashWorkspace } from '../src/loop/workspace.js';
@@ -263,4 +264,38 @@ test('the state cache answers an untouched retry and never hides a later edit', 
   assert.notEqual(stateOf(repo).hash, first.hash);
   repo.write('a.js', 'bbbb\n');
   assert.equal(stateOf(repo).hash, first.hash, 'same content, same state');
+});
+
+test('ST20 a planted state (a cloned repo\'s .kerb/) can\'t write outside the worktree, pass git an option or link outside', () => {
+  const repo = makeRepo({ git: true, files: { 'a.js': 'a\n' } });
+  const content = 'planted\n';
+  const h = createHash('sha256').update(content).digest('hex');
+  fs.mkdirSync(path.join(repo.dir, '.kerb/blobs', h.slice(0, 2)), { recursive: true });
+  fs.writeFileSync(path.join(repo.dir, '.kerb/blobs', h.slice(0, 2), h.slice(2)), content);
+  const plant = (id, s) => { fs.mkdirSync(path.join(repo.dir, '.kerb/states'), { recursive: true }); fs.writeFileSync(path.join(repo.dir, '.kerb/states', `${id}.json`), JSON.stringify({ id, materializable: true, ...s })); };
+  const outside = path.join(repo.home, 'escaped.txt');
+  plant('st_aa01', { mode: 'walk', files: { [path.relative(path.join(repo.dir, '.kerb/worktrees/x'), outside)]: { h } } });
+  plant('st_aa02', { mode: 'walk', files: { [outside]: { h } } });
+  plant('st_aa03', { mode: 'walk', files: { 'ok.txt': { h: `../../${h}` } } });
+  plant('st_aa04', { mode: 'git', commit: '--orphan=x' });
+  plant('st_aa05', { mode: 'walk', scope: '../..', files: { 'ok.txt': { h } } });
+  for (const id of ['st_aa01', 'st_aa02', 'st_aa03', 'st_aa04', 'st_aa05']) {
+    const r = worktreeAt(repo.dir, id, `t-${id}`);
+    assert.equal(r.ok, false, id);
+  }
+  assert.equal(fs.existsSync(outside), false);
+  plant('st_aa06', { mode: 'walk', files: { 'sub/ok.txt': { h } } });
+  const ok = worktreeAt(repo.dir, 'st_aa06', 't-ok', { links: ['../../../outside-link', 'node_modules'] });
+  assert.equal(ok.ok, true);
+  assert.equal(fs.readFileSync(path.join(ok.dir, 'sub/ok.txt'), 'utf8'), content);
+  assert.equal(fs.existsSync(path.join(repo.dir, '.kerb', 'outside-link')), false);
+  removeWorktree(repo.dir, ok.dir);
+});
+
+test('ST21 doctor warns when git tracks files under .kerb/ (records from another machine)', () => {
+  const repo = makeRepo({ git: true, files: { '.kerb/runs.jsonl': '' } });
+  const warns = repo.kerb(['doctor', '--json']).json.checks.filter((c) => c.level === 'warn');
+  const w = warns.find((c) => /git tracks 1 file\(s\) under \.kerb\//.test(c.text));
+  assert.ok(w, JSON.stringify(warns));
+  assert.match(w.fix, /git rm -r --cached \.kerb/);
 });

@@ -79,10 +79,11 @@ export class Store {
     this.ensure();
     const deadline = Date.now() + this.opts.lockWaitMs;
     let fd = null;
+    const token = `${process.pid} ${Date.now()} ${Math.random().toString(36).slice(2)}`;
     for (;;) {
       try {
         fd = fs.openSync(this.lockPath, 'wx', 0o600);
-        fs.writeSync(fd, `${process.pid} ${Date.now()}`);
+        fs.writeSync(fd, token);
         break;
       } catch (e) {
         if (e.code !== 'EEXIST') throw e;
@@ -99,7 +100,8 @@ export class Store {
     } finally {
       if (fd !== null) {
         fs.closeSync(fd);
-        try { fs.unlinkSync(this.lockPath); } catch { /* already gone */ }
+        // Only our own lock: if it was broken as stale and someone else holds it now, leave theirs.
+        try { if (fs.readFileSync(this.lockPath, 'utf8') === token) fs.unlinkSync(this.lockPath); } catch { /* already gone */ }
       }
     }
   }
@@ -108,12 +110,20 @@ export class Store {
   breakStaleLock() {
     try {
       const st = fs.statSync(this.lockPath);
-      const [pidStr] = fs.readFileSync(this.lockPath, 'utf8').split(' ');
+      const held = fs.readFileSync(this.lockPath, 'utf8');
+      const pidStr = held.split(' ')[0];
       const pid = Number(pidStr);
       const stale = Date.now() - st.mtimeMs > this.opts.staleLockMs;
       const dead = pidStr !== '' && Number.isInteger(pid) && pid > 0 && !pidAlive(pid);
       if (stale || dead) {
-        fs.unlinkSync(this.lockPath);
+        // Move it aside atomically, then check it is the lock we judged: two processes breaking
+        // the same stale lock must not delete a fresh one taken in between.
+        const aside = `${this.lockPath}.${process.pid}.${Date.now()}`;
+        fs.renameSync(this.lockPath, aside);
+        if (fs.readFileSync(aside, 'utf8') !== held) {
+          try { fs.linkSync(aside, this.lockPath); } catch { /* a newer lock exists: it wins */ }
+        }
+        fs.unlinkSync(aside);
         return true;
       }
     } catch {

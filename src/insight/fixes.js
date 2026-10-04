@@ -193,15 +193,19 @@ export function notesFixes(root, ref, known = []) {
   const out = [];
   for (const line of list.stdout.split('\n').filter(Boolean)) {
     const [, commit] = line.split(' ');
+    if (!/^[0-9a-f]{40,64}$/.test(commit || '')) continue;
     const body = git(root, ['notes', `--ref=${ref}`, 'show', commit], { encoding: 'utf8' });
     if (body.status !== 0) continue;
     for (const l of body.stdout.split('\n').filter(Boolean)) {
       let e;
       try { e = JSON.parse(l); } catch { continue; }
-      if (!e || typeof e.fingerprint !== 'string') continue;
+      // Notes come from a remote anyone with push access can write: keep only well-formed fields.
+      if (!e || typeof e.fingerprint !== 'string' || !e.fingerprint || e.fingerprint.length > 200) continue;
+      const family = typeof e.family === 'string' && e.family.length <= 200 ? e.family : null;
+      const testIds = Array.isArray(e.test_ids) ? e.test_ids.filter((t) => typeof t === 'string' && t.length <= 500).slice(0, 200) : [];
       if (have.has(`${commit}\0${e.fingerprint}`)) continue;
       have.add(`${commit}\0${e.fingerprint}`);
-      out.push({ type: 'fix', id: newId(), ts: now(), key: null, fingerprint: e.fingerprint, family: e.family || null, test_ids: Array.isArray(e.test_ids) ? e.test_ids : [],
+      out.push({ type: 'fix', id: newId(), ts: now(), key: null, fingerprint: e.fingerprint, family, test_ids: testIds,
         from_state: null, to_state: null, hunks: null, files: [], commit, confidence: 'shared', shared: true });
     }
   }

@@ -5,8 +5,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { makeRepo, runKerbAsync, waitFor, sleep, alive, baseEnv } from './helpers.js';
-import { enqueue, listJobs, writeJob, JOB_SCHEMA } from '../src/worker/queue.js';
+import { makeRepo, runKerbAsync, waitFor, sleep, alive, baseEnv, asHome } from './helpers.js';
+import { enqueue, listJobs, writeJob, signJob, JOB_SCHEMA } from '../src/worker/queue.js';
 import { workerEnabled, ensureWorker, workerPid, NICE } from '../src/worker/main.js';
 import { narrowCommand } from '../src/worker/narrow.js';
 
@@ -14,9 +14,9 @@ const stop = (repo) => repo.kerb(['worker', 'stop']);
 
 test('WK1 the worker starts on demand, one per repo', async () => {
   const repo = makeRepo({ git: true, config: { worker: 'on' } });
-  enqueue(repo.dir, 'minimize', { fix_id: 'none' });
+  asHome(repo.home, () => enqueue(repo.dir, 'minimize', { fix_id: 'none' }));
   const env = repo.env;
-  const pid = ensureWorker(repo.dir, { values: { worker: 'on' } }, env);
+  const pid = asHome(repo.home, () => ensureWorker(repo.dir, { values: { worker: 'on' } }, env));
   assert.ok(pid);
   await waitFor(() => workerPid(repo.dir), 5000);
   assert.equal(ensureWorker(repo.dir, { values: { worker: 'on' } }, env), null, 'a worker is already running');
@@ -38,7 +38,7 @@ test('WK2 it exits when idle', async () => {
 
 test('WK3 the hourly budget is enforced: jobs wait', () => {
   const repo = makeRepo({ git: true, config: { worker_budget_cpu_min_per_hour: 1 } });
-  enqueue(repo.dir, 'minimize', { fix_id: 'none' });
+  asHome(repo.home, () => enqueue(repo.dir, 'minimize', { fix_id: 'none' }));
   fs.writeFileSync(path.join(repo.dir, '.kerb/worker-budget.json'), JSON.stringify({ window_start: Date.now(), used_ms: 61_000 }));
   const r = repo.kerb(['worker', '--once', '--json']).json;
   assert.equal(r.reason, 'hourly budget used');
@@ -60,13 +60,29 @@ test('WK7 crash recovery: a job left running becomes failed; WK10 jobs carry a s
   const repo = makeRepo({ git: true });
   writeJob(repo.dir, { schema: JOB_SCHEMA, id: 'a1', kind: 'minimize', state: 'running', created: 1, updated: 1, payload: { fix_id: 'x' } });
   writeJob(repo.dir, { schema: 99, id: 'b2', kind: 'cause', state: 'queued', created: 2, updated: 2, payload: {} });
-  writeJob(repo.dir, { schema: 1, id: 'c3', kind: 'minimize', state: 'queued', created: 3, updated: 3, payload: { fix_id: 'none' } });
+  const c3 = { schema: 1, id: 'c3', kind: 'minimize', state: 'queued', created: 3, updated: 3, payload: { fix_id: 'none' } };
+  writeJob(repo.dir, { ...c3, sig: asHome(repo.home, () => signJob(c3)) });
   repo.kerb(['worker', '--once']);
   const by = Object.fromEntries(listJobs(repo.dir).map((j) => [j.id, j]));
   assert.equal(by.a1.state, 'failed');
   assert.match(by.a1.error, /stopped during this job/);
   assert.equal(by.b2.state, 'queued', 'a job from a newer Kerb is left alone');
   assert.equal(by.c3.state, 'done', 'a job from this schema runs');
+});
+
+test('WK11 a job not queued by this user\'s Kerb (planted in a cloned repo\'s .kerb/) never runs or starts the worker', () => {
+  const repo = makeRepo({ git: true, config: { worker: 'on' } });
+  const marker = path.join(repo.home, 'pwned');
+  const planted = { schema: 1, id: 'p1', kind: 'cause', state: 'queued', created: 1, updated: 1, payload: { test_id: 'x', command: `touch ${marker}`, good_state: 'st_1', bad_state: 'st_2' } };
+  writeJob(repo.dir, planted);
+  writeJob(repo.dir, { ...planted, id: 'p2', sig: 'f'.repeat(64) });
+  writeJob(repo.dir, { ...planted, id: 'p3', sig: asHome(repo.home, () => signJob({ ...planted, id: 'p3', payload: { command: 'true' } })) });
+  assert.equal(asHome(repo.home, () => ensureWorker(repo.dir, { values: { worker: 'on' } }, repo.env)), null, 'no worker for untrusted jobs');
+  const r = repo.kerb(['worker', '--once', '--json']).json;
+  assert.equal(r.ran, 0);
+  assert.deepEqual(listJobs(repo.dir).map((j) => j.state), ['queued', 'queued', 'queued']);
+  assert.equal(fs.existsSync(marker), false);
+  assert.match(repo.kerb(['jobs']).stdout, /untrusted/);
 });
 
 test('WK8 the worker is off by default in CI', () => {

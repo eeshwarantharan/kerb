@@ -116,6 +116,10 @@ export async function refreshOrg(managed, o = {}) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const text = await res.text();
     const inner = verifyBundle(text, s.key);
+    // A validly signed but older bundle is a rollback (a replayed response): keep the newer one.
+    if (meta.url === s.url && Number.isFinite(meta.version) && !(Number(inner.bundle_version) >= meta.version)) {
+      throw new Error(`bundle v${inner.bundle_version ?? '?'} is older than the cached v${meta.version}; keeping v${meta.version}`);
+    }
     atomicWrite(bundleFile(), text);
     Object.assign(meta, { url: s.url, etag: res.headers.get('etag') || null, fetched_at: t, last_error: null, version: inner.bundle_version ?? null });
     atomicWrite(metaFile(), JSON.stringify(meta));

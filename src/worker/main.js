@@ -33,8 +33,17 @@ function acquire(root) {
       return true;
     } catch (e) {
       if (e.code !== 'EEXIST') throw e;
+      let held = null;
+      try { held = fs.readFileSync(lockPath(root), 'utf8'); } catch { continue; }
       if (workerPid(root)) return false;
-      try { fs.unlinkSync(lockPath(root)); } catch { /* raced */ }
+      // Break the dead worker's lock only if it is still the one we read (another process may
+      // have broken it and taken a fresh one meanwhile).
+      const aside = `${lockPath(root)}.${process.pid}`;
+      try {
+        fs.renameSync(lockPath(root), aside);
+        if (fs.readFileSync(aside, 'utf8') !== held) { try { fs.linkSync(aside, lockPath(root)); } catch { /* newer lock wins */ } }
+        fs.unlinkSync(aside);
+      } catch { /* raced */ }
     }
   }
   return false;
@@ -77,7 +86,7 @@ export function chargeBudget(root, ms, nowTs = now()) {
 /** Start the worker in the background unless one is running or the worker is off. */
 export function ensureWorker(root, config, env = process.env, argv = null) {
   if (!workerEnabled(config, env) || config.values.worker === 'manual' || workerPid(root)) return null;
-  if (!listJobs(root).some((j) => j.state === 'queued')) return null;
+  if (!nextJob(root)) return null;
   const inv = argv || workerArgv();
   try {
     const child = spawn(inv[0], [...inv.slice(1), 'worker'], { cwd: root, env, detached: true, stdio: 'ignore' });

@@ -57,6 +57,13 @@ export async function runDoctor(root) {
   const inv = kerbInvocation();
   const current = inv.binary ? [inv.binary] : [inv.node, inv.script];
 
+  // .kerb/ is local state; committed, it came from someone else's machine (a cloned repo can plant
+  // records). Jobs and states from it are refused anyway; this says why answers may look odd.
+  const tracked = spawnSync('git', ['-C', root, 'ls-files', '--', '.kerb'], { encoding: 'utf8' });
+  if (tracked.status === 0 && tracked.stdout.trim()) {
+    add('warn', `git tracks ${tracked.stdout.trim().split('\n').length} file(s) under .kerb/: Kerb's records there came from another machine and may not be yours`, 'git rm -r --cached .kerb && echo .kerb/ >> .gitignore');
+  }
+
   // Installation and hook paths.
   const manifest = readJson(path.join(root, MANIFEST), null);
   if (!manifest) add('warn', 'Kerb is not wired into any agent in this repo', 'kerb init');
