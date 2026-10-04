@@ -164,6 +164,7 @@ export async function runSupervised(prep, o) {
   // Test-level results from the output (and any report file the command wrote).
   const tests = res.reason === 'aborted' ? null : testResults(prep, { runId: id, postState: postHash, logFile: logPath, cwd: ctx.cwd, startedAt: startRec ? startRec.ts : now() - res.durationMs });
   if (tests) Object.assign(endRec, tests.fields);
+  if (tests && tests.promote) endRec.class = 'check';
   applyMask(endRec, !!(prep.identity && prep.identity.masked), analysis, redactText);
   if (!startRec) {
     // Spawn failed before onSpawn: still write a start record so the pair is complete.
@@ -181,7 +182,7 @@ export async function runSupervised(prep, o) {
   if (res.reason === 'timeout') notes.push(`killed the process tree after the ${formatDuration(o.timeoutMs)} total timeout`);
   if (res.reason === 'idle') notes.push(`killed the process tree after ${formatDuration(o.idleMs)} without output`);
   // Delta (KERB-V2 7.1) in place of the generic footer; the ledger file for best-effort agents.
-  const after = afterCommand(prep, { runId: id, cls: prep.cls, insights });
+  const after = afterCommand(prep, { runId: id, cls: endRec.class, insights });
   notes.push(...await pluginLines(prep, async () => (await import('../platform/plugins.js')).afterEvents(prep, id, after.findings)));
   if (prep.cls === 'check' && prep.tier !== 'enforced') writeLedgerFile(prep.root, store, now());
   const footerNeeded = shaped.cut || exit !== 0 || timedOut || notes.length > 0 || hints.length > 0;

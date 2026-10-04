@@ -30,6 +30,8 @@ export function emptyCounters() {
     // Instant answers (KERB-V2 6.3).
     cached_answers: 0,
     cached_ms: 0,
+    // The same failing tests run another way after a refusal: that re-run wasn't avoided.
+    worked_around: 0,
   };
 }
 
@@ -126,6 +128,14 @@ function bump(c, r) {
       c.raw_bytes += r.raw_bytes || 0;
       c.shown_bytes += r.shown_bytes || 0;
       c.trimmed_bytes += Math.max(0, (r.raw_bytes || 0) - (r.shown_bytes || 0));
+      break;
+    case 'workaround':
+      if (r.after_refusal) {
+        c.worked_around = (c.worked_around || 0) + 1;
+        c.reruns_avoided = Math.max(0, (c.reruns_avoided || 0) - 1);
+        c.avoided_ms = Math.max(0, (c.avoided_ms || 0) - (r.avoided_ms || 0));
+        c.avoided_bytes = Math.max(0, (c.avoided_bytes || 0) - (r.avoided_bytes || 0));
+      }
       break;
     case 'learn':
       if (r.status === 'confirmed') c.walls_new++;

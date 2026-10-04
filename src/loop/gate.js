@@ -3,6 +3,8 @@
 import { checkSegment } from '../parse/classify-cmd.js';
 import { hashWorkspace, scopeAndStamp, writeSnapshot } from './workspace.js';
 import { evaluateRules, keyHistory, isFailure } from './rules.js';
+import { onlyScriptsChanged } from '../insight/workaround.js';
+import { currentState } from '../insight/verify.js';
 import { loadRuns } from '../engine.js';
 import { now } from '../util/core.js';
 import { isHermetic } from '../insight/cache.js';
@@ -46,7 +48,7 @@ export function loopGate(prep, o = {}) {
   };
   if (o.force || pre.skipped) return { refusal: null, matched: null, loop };
   const runs = recs || o.runs || loadRuns(prep.store).recs;
-  const verdict = evaluateRules({
+  const input = {
     recs: runs,
     key: prep.key,
     hash: pre.hash,
@@ -57,6 +59,16 @@ export function loopGate(prep, o = {}) {
     store: prep.store,
     command: prep.command,
     hermetic,
-  });
+  };
+  let verdict = evaluateRules(input);
+  // The retry written into a new script (`sh run-tests.sh`): writing the script changed the state,
+  // but nothing the check depends on. Judge it against the state before the script.
+  if (!verdict && prep.identity && prep.identity.script) {
+    const last = keyHistory(runs, prep.key).postAck.filter(isFailure).pop();
+    if (last && last.post_hash && last.post_hash !== pre.hash) {
+      const cur = currentState(prep.root, prep.git, prep.key, prep.policy, prep.ctx.env, budget);
+      if (cur.snapshot && onlyScriptsChanged(prep, last, cur.snapshot)) verdict = evaluateRules({ ...input, hash: last.post_hash });
+    }
+  }
   return { refusal: verdict ? verdict.refusal : null, matched: verdict ? verdict.matched : null, loop };
 }

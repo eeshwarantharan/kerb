@@ -43,6 +43,7 @@ export function renderRecap(session, { title = 'this session' } = {}) {
     rows.push(['walls', parts.join(', ')]);
   }
   if (c.hangs_killed) rows.push(['hangs killed', String(c.hangs_killed)]);
+  if (c.worked_around) rows.push(['worked around', `${c.worked_around} refusal${c.worked_around === 1 ? '' : 's'}: the same failing tests ran another way (not counted as avoided)`]);
   if (c.would_refuse) rows.push(['would have stopped', `${wouldStopped(c)} (shadow mode; nothing was blocked)`]);
   const width = Math.max(...rows.map((r) => r[0].length));
   const tier = session.tier ? ` (${tierLabel(session.tier, session.agent)}${c.would_refuse ? ' · shadow mode' : ''})` : '';

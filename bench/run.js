@@ -29,6 +29,7 @@ import { readTranscript, greenMetrics, checkPattern } from './transcript.js';
 import { judgeRun } from './judge.js';
 import { judge as judgeFinding } from './cause.js';
 import { analyze } from './analyze.js';
+import { Store } from '../src/store/jsonl.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -147,10 +148,14 @@ function runOnce(task, arm, n, o) {
   const usage = agent.usage || {};
   // Kerb arms: refusals and cached answers (judged by replay), cause findings (judged against the seed).
   let refusals = [];
+  let workarounds = null;
   let findings = [];
   let report = null;
   if (kerb) {
     refusals = judgeRun(dir, { env });
+    // Refusals the agent worked around (the same failing tests run another way): the number that
+    // says whether refusing pays (src/insight/workaround.js).
+    try { workarounds = new Store(dir).read({ maxBytes: Number.MAX_SAFE_INTEGER, repair: false }).filter((r) => r.type === 'workaround' && r.after_refusal).length; } catch { workarounds = null; }
     if (arm === 'v2') {
       spawnSync(kerb[0], [...kerb.slice(1), 'worker', '--once'], { cwd: dir, env, stdio: 'ignore', timeout: 10 * 60_000 });
       const fq = kerbJson(kerb, dir, env, ['query', 'findings']);
@@ -167,7 +172,7 @@ function runOnce(task, arm, n, o) {
     cost_usd: agent.total_cost_usd ?? null,
     attempts: g ? g.attempts : null, attempts_to_green: g ? g.attempts_to_green : null, tokens_to_green: g ? g.tokens_to_green : null,
     ms_to_green: g ? g.ms_to_green : null, compactions: g ? g.compactions : null, transcript: tf,
-    refusals, findings, hash_budget_skips: report ? report.hash_budget_skips ?? null : null,
+    refusals, workarounds, findings, hash_budget_skips: report ? report.hash_budget_skips ?? null : null,
     dir: o.keep ? dir : null,
   };
   release(home);

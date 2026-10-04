@@ -64,8 +64,8 @@ export function prepare(ctx, o) {
   const policy = loadPolicy(root, config, nowTs);
   const parsed = parseCommand(o.command, { cwd: ctx.cwd });
   const checkCommands = compileCheckCommands(policy.check_commands);
-  const cls = o.cls || classifyCommand(parsed, { checkCommands, background: !!o.background });
   const identity = runIdentity(parsed);
+  const cls = o.cls || classifyCommand(identity && identity.script ? parseCommand(identity.text, { cwd: identity.cwd }) : parsed, { checkCommands, background: !!o.background });
   if (o.reap !== false && fs.existsSync(store.dir)) reapOrphans(store, (info) => orphanEnd(info));
   const agent = o.agent !== undefined ? o.agent : detectAgent(ctx.env);
   const mode = effectiveMode(root, config, nowTs);

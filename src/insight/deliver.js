@@ -14,6 +14,7 @@ import { renderLedger, recentKeys, WINDOW_MS } from './ledger.js';
 import { verification, verificationLine } from './verify.js';
 import { afterRun, afterCommit, deliverFindings } from './triggers.js';
 import { loadSummary } from '../store/summary.js';
+import { sameResultElsewhere } from './workaround.js';
 import { gitSub } from '../parse/tokenize.js';
 
 export const AFTER_MAX_LINES = 10;
@@ -43,9 +44,15 @@ export function afterCommand(prep, o) {
   const hints = [...(o.hints || [])];
   let findings = [];
   const findingRecs = [];
+  let same = null;
   if (o.cls === 'check') {
     try {
       const recs = prep.store.read({ maxBytes: READ_BYTES });
+      // Shown whatever the insight setting: it's the Loopbreaker's answer to a workaround.
+      try {
+        same = sameResultElsewhere(prep, recs, o.runId);
+        if (same) prep.store.append([same.rec]);
+      } catch { /* never breaks a run */ }
       if (o.insights !== false) {
         const d = computeDelta(recs, o.runId);
         if (d) delta = d.lines;
@@ -68,7 +75,7 @@ export function afterCommand(prep, o) {
     if (prep.git && prep.parsed && prep.parsed.segments.some((s) => { const g = s.name === 'git' ? gitSub(s) : null; return g && g.sub === 'commit'; })) afterCommit(prep, prep.store.read({ maxBytes: READ_BYTES }));
     if (o.insights !== false) findings = deliverFindings(prep.store, () => loadSummary(prep.store.dir), () => prep.store.read({ maxBytes: READ_BYTES }), findingRecs);
   } catch { /* never breaks a run */ }
-  const lines = [...findings, ...delta, ...(o.envFix || []), ...hints.map((h) => `kerb: hint · ${h}`), ...(o.notes || []).map((n) => `kerb: note · ${n}`)];
+  const lines = [...(same ? [same.line] : []), ...findings, ...delta, ...(o.envFix || []), ...hints.map((h) => `kerb: hint · ${h}`), ...(o.notes || []).map((n) => `kerb: note · ${n}`)];
   return { lines: capLines(lines, AFTER_MAX_LINES), delta, findings: findingRecs, extra: [...findings, ...hints.slice((o.hints || []).length).map((h) => `kerb: hint · ${h}`)] };
 }
 

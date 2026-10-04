@@ -41,7 +41,7 @@ export async function observePost(ctx, o) {
   if (pending) prep.session = pending.session || prep.session;
   if (!prep.session) prep.session = resolveSession(store);
   const id = pending ? pending.id : newId();
-  const cls = pending ? pending.class : prep.cls;
+  let cls = pending ? pending.class : prep.cls;
   const startTs = pending ? pending.ts : now() - (o.durationMs || 0);
 
   // Background launches: record that something was started (it makes a retry legitimate).
@@ -106,7 +106,7 @@ export async function observePost(ctx, o) {
     if (post.snapshot) writeSnapshot(store, id, post.snapshot);
   }
   const failureKind = classResult === 'failure' || classResult === 'timeout' ? (o.timedOut ? 'transient' : analysis.kind) : null;
-  const tests = cls === 'check' && !o.interrupted ? testResults({ ...prep, cls }, { runId: id, postState: postHash, text: o.output || '', cwd: o.cwd, startedAt: pending ? pending.wall_ts : Date.now() - (o.durationMs || 0) }) : null;
+  const tests = (cls === 'check' || cls === 'other') && !o.interrupted ? testResults({ ...prep, cls }, { runId: id, postState: postHash, text: o.output || '', cwd: o.cwd, startedAt: pending ? pending.wall_ts : Date.now() - (o.durationMs || 0) }) : null;
   const end = endRecord(prep, id, cls, {
       exit: o.exit,
       duration_ms: o.durationMs ?? now() - startTs,
@@ -123,6 +123,7 @@ export async function observePost(ctx, o) {
       log: relPath(prep.root, logPath),
       ...(tests ? tests.fields : {}),
   });
+  if (tests && tests.promote) { end.class = 'check'; cls = 'check'; }
   applyMask(end, !!(prep.identity && prep.identity.masked), analysis, redactText);
   store.append([
     startRecord(prep, id, startTs, pending, cls),

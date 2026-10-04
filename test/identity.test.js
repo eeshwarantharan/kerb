@@ -2,7 +2,10 @@
 // false refusals; and a filtered run's exit code never counts as a pass.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { makeRepo, runKerb } from './helpers.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { makeRepo, runKerb, records, tmpDir } from './helpers.js';
 import { parseCommand } from '../src/parse/tokenize.js';
 import { runIdentity, maskedExit } from '../src/parse/identity.js';
 
@@ -43,7 +46,7 @@ test('RI2 a masked run fails only on failures in its output, and never passes', 
 });
 
 function failing() {
-  return makeRepo({ git: true, config: { mode: 'enforce' }, files: {
+  return makeRepo({ git: true, config: { mode: 'enforce', hash_budget_ms: 20_000 }, files: {
     'package.json': JSON.stringify({ name: 'v', type: 'module', scripts: { test: 'node --test' } }),
     'test/a.test.js': "import test from 'node:test'; import assert from 'node:assert'; test('a', () => assert.equal(1, 2));\n",
     'app/package.json': JSON.stringify({ name: 'app', type: 'module', scripts: { test: 'node --test' } }),
@@ -51,10 +54,15 @@ function failing() {
   } });
 }
 
+let lastReason = '';
 function pre(repo, command, cwd = repo.dir) {
   const r = runKerb(['hook', 'claude', 'pre'], { cwd, env: repo.env, envMerged: true,
     input: JSON.stringify({ session_id: 's1', cwd, hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command } }) });
-  try { return JSON.parse(r.stdout).hookSpecificOutput?.permissionDecision === 'deny'; } catch { return false; }
+  try {
+    const h = JSON.parse(r.stdout).hookSpecificOutput || {};
+    lastReason = h.permissionDecisionReason || '';
+    return h.permissionDecision === 'deny';
+  } catch { lastReason = ''; return false; }
 }
 
 test('RI3 after a failing npm test with nothing changed, its rewordings are refused', () => {
@@ -62,12 +70,10 @@ test('RI3 after a failing npm test with nothing changed, its rewordings are refu
   assert.equal(repo.kerb(['run', '--', 'npm test']).code, 1);
   for (const c of ['npm test 2>&1 | tail -50', 'npm test; echo "exit: $?"', 'npm test || true', 'bash -c "npm test"', 'npm run test', 'npm t', `cd ${repo.dir} && npm test`]) {
     assert.equal(pre(repo, c), true, c);
+    if (c === 'npm test 2>&1 | tail -50') assert.match(lastReason, /same check as `npm test`/);
   }
   repo.kerb(['run', '--', 'cd app && npm test']);
   assert.equal(pre(repo, 'npm test', `${repo.dir}/app`), true, 'cd app && npm test, then npm test in app');
-  const msg = runKerb(['hook', 'claude', 'pre'], { cwd: repo.dir, env: repo.env, envMerged: true,
-    input: JSON.stringify({ session_id: 's1', cwd: repo.dir, hook_event_name: 'PreToolUse', tool_name: 'Bash', tool_input: { command: 'npm test 2>&1 | tail -50' } }) });
-  assert.match(msg.stdout, /same check as `npm test`/);
 });
 
 test('RI4 look-alikes that can change the result are still allowed', () => {
@@ -107,4 +113,53 @@ test('RI6 the Boundary Map sees blocked hosts in inline interpreter code', async
   assert.deepEqual(hosts(`node --eval="fetch('https://example.com')"`), ['example.com']);
   assert.deepEqual(hosts('node -e "console.log(1)"'), []);
   assert.deepEqual(hosts('node script.js https://example.com'), [], 'a script argument is not inline code');
+});
+
+// Claude Code's flow: pre hook; if allowed, the command runs; post hook with its output.
+function agentRuns(repo, command) {
+  const hook = (ev, body) => runKerb(['hook', 'claude', ev], { cwd: repo.dir, env: repo.env, envMerged: true,
+    input: JSON.stringify({ session_id: 's1', cwd: repo.dir, hook_event_name: ev === 'pre' ? 'PreToolUse' : 'PostToolUse', tool_name: 'Bash', tool_input: { command }, ...body }) });
+  const p = hook('pre', {});
+  if (p.json?.hookSpecificOutput?.permissionDecision === 'deny') return { refused: true, reason: p.json.hookSpecificOutput.permissionDecisionReason };
+  const x = spawnSync('/bin/sh', ['-c', command], { cwd: repo.dir, env: repo.env, encoding: 'utf8' });
+  const q = hook('post', { tool_response: { stdout: x.stdout, stderr: x.stderr, exit_code: x.status, interrupted: false } });
+  return { refused: false, exit: x.status, note: q.json?.hookSpecificOutput?.additionalContext || '' };
+}
+
+test('RI7 a retry written into a script, heredoc or eval is judged by what it runs', () => {
+  const repo = failing();
+  const outside = tmpDir('kerb-scr-');
+  assert.equal(agentRuns(repo, 'npm test').exit, 1);
+  fs.writeFileSync(path.join(outside, 't.sh'), '#!/bin/sh\n# retry\nnpm test 2>&1 | tail -40\n');
+  assert.equal(agentRuns(repo, `sh ${outside}/t.sh`).refused, true, 'script outside the repo');
+  assert.equal(agentRuns(repo, "bash <<'EOF'\nnpm test\nEOF").refused, true, 'heredoc');
+  assert.equal(agentRuns(repo, 'eval "npm test"').refused, true, 'eval');
+  repo.write('run-tests.sh', '#!/bin/sh\nset -e\nnpm test\n');
+  assert.equal(agentRuns(repo, 'sh run-tests.sh').refused, true, 'a new script in the repo changes nothing the tests depend on');
+  repo.write('setup-and-test.sh', '#!/bin/sh\nnpm install --offline\nnpm test\n');
+  assert.equal(agentRuns(repo, 'sh setup-and-test.sh').refused, false, 'a script with more than one step is its own command');
+});
+
+test('RI8 the same failing tests run another way: the agent is told, the workaround is counted, the saving taken back', () => {
+  const repo = failing();
+  agentRuns(repo, 'npm test');
+  assert.equal(agentRuns(repo, 'npm test').refused, true);
+  const r = agentRuns(repo, `python3 -c "import subprocess,sys; sys.exit(subprocess.run(['npm','test']).returncode)"`);
+  assert.equal(r.refused, false, 'no parser sees inside every program');
+  assert.match(r.note, /same result · this failed the same 2 tests as `npm test`, refused at \d\d:\d\d because nothing had changed/);
+  assert.match(r.note, /change the code first/);
+  const w = records(repo.dir).filter((x) => x.type === 'workaround');
+  assert.equal(w.length, 1);
+  assert.equal(w[0].after_refusal, true);
+  const recap = repo.kerb(['recap', '--session', 's1']).stdout;
+  assert.match(recap, /worked around\s+1 refusal/);
+  assert.doesNotMatch(recap, /re-runs avoided/, 'the refusal it undid no longer counts as a saving');
+});
+
+test('RI9 no "same result" when different tests fail or the code changed', () => {
+  const repo = failing();
+  agentRuns(repo, 'npm test');
+  assert.doesNotMatch(agentRuns(repo, 'node --test test/a.test.js').note, /same result/, 'a different set of failing tests');
+  repo.write('test/a.test.js', "import test from 'node:test'; import assert from 'node:assert'; test('a', () => assert.equal(1, 3));\n");
+  assert.doesNotMatch(agentRuns(repo, 'node --test').note, /same result/, 'after an edit');
 });

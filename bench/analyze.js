@@ -48,6 +48,8 @@ export function armSummary(rows, arm) {
     median_attempts_to_green: med('attempts_to_green'), median_tokens_to_green: med('tokens_to_green'), median_ms_to_green: med('ms_to_green'),
     tokens: sum('tokens'), wall_ms: sum('wall_ms'), cost_usd: +sum('cost_usd').toFixed(2),
     refusals: rs.reduce((n, r) => n + (r.refusals || []).length, 0),
+    // Refusals followed by the same failing tests run another way.
+    worked_around: rs.reduce((n, r) => n + (r.workarounds || 0), 0),
   };
 }
 

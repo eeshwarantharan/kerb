@@ -19,6 +19,7 @@ export function computeReport(recs, { fromTs, price = null }) {
     by_tier: {},
     refusals: 0,
     refusals_by_reason: {},
+    worked_around: 0,
     reruns_avoided: 0,
     run_time_avoided_ms: 0,
     output_avoided_bytes: 0,
@@ -51,6 +52,11 @@ export function computeReport(recs, { fromTs, price = null }) {
   }
   for (const r of recs) {
     if (!inWindow(r.ts)) continue;
+    if (r.type === 'workaround' && r.after_refusal) {
+      m.worked_around++;
+      m.reruns_avoided = Math.max(0, m.reruns_avoided - 1);
+      m.run_time_avoided_ms = Math.max(0, m.run_time_avoided_ms - (r.avoided_ms || 0));
+    }
     if (r.type === 'refusal') {
       m.refusals++;
       m.refusals_by_reason[r.reason] = (m.refusals_by_reason[r.reason] || 0) + 1;
@@ -114,6 +120,7 @@ export default async function report(ctx, args) {
     ['runs', `${m.runs} (${list(m.by_class)}) · ${list(m.by_tier)}`],
     ['refusals', `${m.refusals} (${list(m.refusals_by_reason)})`],
     ['re-runs avoided', String(m.reruns_avoided)],
+    ...(m.worked_around ? [['refusals worked around', `${m.worked_around} (the same tests ran another way; not counted as avoided)`]] : []),
     ['run time avoided', formatDuration(m.run_time_avoided_ms)],
     ['output avoided', `${formatBytes(m.output_avoided_bytes)} (≈ ${formatCount(m.output_avoided_tokens_est)} tokens, estimated at 4 bytes per token)`],
     ['polls folded', `${m.polls_folded_attempts} attempts in ${m.wait_calls} wait-for call${m.wait_calls === 1 ? '' : 's'}`],

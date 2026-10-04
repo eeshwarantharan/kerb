@@ -49,8 +49,11 @@ Agents rarely repeat a command word for word: they add `2>&1 | tail -50`, `; ech
 |---|---|---|
 | Rewordings of a failing check refused | 2 of 26 | 22 of 26 |
 | Ways to a blocked host refused | 25 of 29 | 27 of 29 |
+| Workarounds after a refusal (script, heredoc, `eval`, `make`, a subprocess, the runner directly) | 0 of 7 noticed | 4 refused before running, 3 told at once, 0 silent |
 
 The misses left are deliberate, because they can change the result: `npm test` and `node --test` (a package script can run anything), `pytest` and `python -m pytest` (the second puts the current directory on the import path), and `npx` (Kerb can't tell whether the package is installed, and refusing `npx jest` would be a false refusal). A URL in a shell variable (`U=…; curl $U`) gets through once; the denial teaches Kerb the wall.
+
+Workarounds: Kerb reads a small shell script the command runs (`sh t.sh`, `./run.sh`), a heredoc fed to a shell and `eval`, and judges the command inside; a new script written into the repo doesn't count as a change for the check it runs. What no parser can see into (a `python3 -c` subprocess, a Makefile target) is caught by its output: when a run fails exactly the tests a recent check failed and that check's files are unchanged, the agent is told at once ("same result … running the tests another way can't change the result"), the workaround is recorded, and `kerb recap` and `kerb report` show it and stop counting that refusal as a saving. The agent benchmark records workarounds per run (`workarounds` in `rows.jsonl`, `worked_around` per arm): the number that says whether refusing pays.
 
 Running this also found a worse problem: `npm test | tail` exits 0 when the tests fail, and Kerb recorded it as a pass, so `kerb status`, the MCP `verification` answer and the stop gate could say green. Fixed: see the decisions log (2026-10-04).
 

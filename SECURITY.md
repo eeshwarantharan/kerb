@@ -8,7 +8,7 @@ Useful details: the Kerb version (`kerb --version`), how Kerb was installed (bin
 
 ## What Kerb is, and isn't
 
-Kerb is a guard against wasted agent turns. It is **not** a security boundary against a hostile agent: an agent with shell access can edit `.kerb/` or `kerb.policy.json`, or run commands in ways Kerb can't see. Your firewall, egress proxy and platform permissions remain the enforcement. Tools built for command security, such as GuardRail, can run alongside Kerb.
+Kerb is a guard against wasted agent turns. It is **not** a security boundary against a hostile agent: an agent with shell access can edit `.kerb/` or `kerb.policy.json`, or run commands in ways Kerb can't see. Kerb does see through common rewordings and workarounds (scripts, heredocs, `eval`), and notices the same failing tests run another way by their output, records it and reports it, but that is a guard against waste, not containment. Your firewall, egress proxy and platform permissions remain the enforcement. Tools built for command security, such as GuardRail, can run alongside Kerb.
 
 Within that scope, these properties are security-relevant and we treat breaking them as vulnerabilities:
 

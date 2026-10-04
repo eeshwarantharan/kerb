@@ -98,7 +98,11 @@ export function lex(src) {
       flush();
       tokens.push({ t: 'op', v: '\n' });
       i++;
-      if (heredocs.length) i = skipHeredocs(src, i, heredocs.splice(0));
+      if (heredocs.length) {
+        const docs = skipHeredocs(src, i, heredocs.splice(0));
+        i = docs.i;
+        for (const body of docs.bodies) tokens.push({ t: 'heredoc', v: body });
+      }
       continue;
     }
     if (c === '>' || c === '<' || (c === '&' && src[i + 1] === '>')) {
@@ -177,19 +181,24 @@ function matchBacktick(src, start) {
   throw new ParseError('unbalanced backtick');
 }
 
+/** Skip heredoc bodies; returns where the command continues and each body's text. */
 function skipHeredocs(src, i, docs) {
+  const bodies = [];
   for (const d of docs) {
+    const body = [];
     for (;;) {
-      if (i >= src.length) return i;
+      if (i >= src.length) break;
       const nl = src.indexOf('\n', i);
       const lineEnd = nl === -1 ? src.length : nl;
       let line = src.slice(i, lineEnd);
       if (d.strip) line = line.replace(/^\t+/, '');
       i = nl === -1 ? src.length : nl + 1;
       if (line === d.delim) break;
+      body.push(line);
     }
+    bodies.push(body.join('\n'));
   }
-  return i;
+  return { i, bodies };
 }
 
 /**
@@ -241,6 +250,8 @@ function parseInner(command, baseCwd, home, depth) {
   let lastOp = null;
   let wordsAfterLastOp = false;
   for (const tok of tokens) {
+    // A heredoc body belongs to the command before the newline that ended it.
+    if (tok.t === 'heredoc') { if (meta.length) meta[meta.length - 1].heredoc = tok.v; continue; }
     if (tok.t === 'redir') { skipNext = true; if (tok.v.startsWith('<')) stdin = true; continue; }
     if (tok.t === 'word') {
       if (skipNext) { skipNext = false; continue; }
@@ -271,8 +282,10 @@ function parseInner(command, baseCwd, home, depth) {
     const seg = simplify(words, cwd);
     seg.op = meta[gi].op;
     seg.stdin = meta[gi].stdin;
-    if (seg.name && SHELLS.has(seg.name) && depth === 0) {
-      const inner = shellCString(seg.args);
+    if (seg.name && (SHELLS.has(seg.name) || seg.name === 'eval') && depth === 0) {
+      // `bash -c "…"`, `bash <<'EOF' … EOF` (a shell reading its script from a heredoc), `eval "…"`.
+      const inner = seg.name === 'eval' ? (seg.args.length ? seg.args.join(' ') : null)
+        : shellCString(seg.args) ?? (meta[gi].heredoc != null && seg.args.every((a) => /^-[a-zA-Z]+$/.test(a) && !a.includes('c')) ? meta[gi].heredoc : null);
       if (inner != null) {
         try {
           const p = parseInner(inner, cwd, home, depth + 1);

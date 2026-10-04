@@ -45,7 +45,8 @@ function claude(repo, { session = 's1' } = {}) {
 const status = (repo) => repo.kerb(['status', '--json']).json.verification;
 
 test('VS1 green, red, stale and never; VS2 stale lists the changed files', () => {
-  const repo = makeRepo({ git: true, files: { 'src/cart.py': 'v = 1\n', 'kerb.policy.json': JSON.stringify({ verify_keys: ['npm run lint'] }) } });
+  // A generous hash budget: under a loaded full run the default (300 ms) can fail open.
+  const repo = makeRepo({ git: true, config: { hash_budget_ms: 20_000 }, files: { 'src/cart.py': 'v = 1\n', 'kerb.policy.json': JSON.stringify({ verify_keys: ['npm run lint'] }) } });
   const c = claude(repo);
   c.check({ fail: ['test_a'] });
   const [red] = status(repo).filter((v) => v.command === 'pytest -v');
