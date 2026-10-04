@@ -37,6 +37,23 @@ Results are in `results/cause/summary.json` (and every scenario in `rows.jsonl`)
 
 Known limit: git merges edits less than seven lines apart into one hunk, and Kerb blames whole hunks, so a culprit next to a harmless edit takes the harmless edit with it. The seeded tasks keep their edits apart; real work won't always.
 
+## Rewordings (no agent)
+
+```bash
+node bench/rewordings.js
+```
+
+Agents rarely repeat a command word for word: they add `2>&1 | tail -50`, `; echo $?` or `|| true`, switch to `npm run test`, or prefix `cd app &&`. This offers 26 such rewordings of a failing check (nothing changed since) and 29 ways of reaching a blocked registry to Claude Code's pre-tool hook and counts what Kerb refuses. Results: [`results/rewordings.json`](results/rewordings.json).
+
+| | Before (0.7.0) | Now |
+|---|---|---|
+| Rewordings of a failing check refused | 2 of 26 | 22 of 26 |
+| Ways to a blocked host refused | 25 of 29 | 27 of 29 |
+
+The misses left are deliberate, because they can change the result: `npm test` and `node --test` (a package script can run anything), `pytest` and `python -m pytest` (the second puts the current directory on the import path), and `npx` (Kerb can't tell whether the package is installed, and refusing `npx jest` would be a false refusal). A URL in a shell variable (`U=…; curl $U`) gets through once; the denial teaches Kerb the wall.
+
+Running this also found a worse problem: `npm test | tail` exits 0 when the tests fail, and Kerb recorded it as a pass, so `kerb status`, the MCP `verification` answer and the stop gate could say green. Fixed: see the decisions log (2026-10-04).
+
 ## Hook latency (no agent)
 
 ```bash

@@ -81,7 +81,10 @@ const DOCKER_RUN_VALUE = new Set(['-e', '--env', '-v', '--volume', '-p', '--publ
  * @returns {HostRef[]}
  */
 export function explicitHosts(seg, { resolveGitRemote = gitRemoteUrl } = {}) {
-  if (seg.opaque || !seg.name || !NETWORK_PROGRAMS.has(seg.name)) return [];
+  if (seg.opaque || !seg.name) return [];
+  const code = inlineCode(seg);
+  if (code != null) return dedupe([...code.matchAll(URL_IN_TEXT)].map((m) => ({ host: hostFromUrl(m[0]), how: 'url', detail: 'inline code' })).filter((h) => h.host));
+  if (!NETWORK_PROGRAMS.has(seg.name)) return [];
   /** @type {HostRef[]} */
   const out = [];
   const add = (host, how, detail) => { if (host) out.push({ host, how, detail }); };
@@ -158,6 +161,24 @@ export function explicitHosts(seg, { resolveGitRemote = gitRemoteUrl } = {}) {
     }
   }
   return dedupe(out);
+}
+
+// Interpreters running code from the command line (`node -e`, `python3 -c` with a URL inside the
+// code). Measured: these were a way around a blocked host that the Boundary Map missed.
+const INLINE_FLAGS = {
+  node: ['-e', '--eval', '-p', '--print'], bun: ['-e', '--eval', '-p', '--print'], deno: ['eval'],
+  python: ['-c'], python3: ['-c'], ruby: ['-e'], perl: ['-e', '-E'], php: ['-r'],
+};
+
+/** The code a segment runs from the command line, or null. */
+function inlineCode(seg) {
+  const name = /^python3?(\.\d+)?$/.test(seg.name) ? (seg.name.startsWith('python3') ? 'python3' : 'python') : seg.name;
+  const flags = INLINE_FLAGS[name];
+  if (!flags) return null;
+  const i = seg.args.findIndex((a) => flags.includes(a));
+  if (i !== -1 && seg.args[i + 1] != null) return seg.args[i + 1];
+  const eq = seg.args.find((a) => flags.some((f) => f.startsWith('--') && a.startsWith(`${f}=`)));
+  return eq ? eq.slice(eq.indexOf('=') + 1) : null;
 }
 
 /** Registry host of a container image reference (Docker's rules). */

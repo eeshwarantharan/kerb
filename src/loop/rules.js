@@ -79,7 +79,11 @@ export function evaluateRules(input) {
     && !setupBetween(runs, key, endTs(latest))) {
     const kind = latest.failure_kind || 'ordinary';
     if (kind === 'ordinary') {
-      return refuse('identical_retry', 'nothing relevant changed since this failed', evidenceFor(latest),
+      // Reworded (`npm test | tail`, `npm run test`): say it's the same check, so the agent
+      // doesn't try another wording.
+      const norm = (c) => String(c || '').trim().replace(/\s+/g, ' ');
+      const same = command && latest.cmd && norm(command) !== norm(latest.cmd) ? ` (this is the same check as \`${latest.cmd}\`; output filters and wrappers don't change its result)` : '';
+      return refuse('identical_retry', `nothing relevant changed since this failed${same}`, evidenceFor(latest),
         'change something first, or run `kerb diff` to compare attempts', latest, { kind });
     }
     if (kind === 'transient') {

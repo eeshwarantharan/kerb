@@ -18,6 +18,7 @@ import { hookCounter, HOOK_HASH_BUDGET_MS } from './observe.js';
 import { envFixFor } from '../insight/envclass.js';
 import { testResults } from '../reporters/record.js';
 import { afterCommand } from '../insight/deliver.js';
+import { applyMask } from '../loop/outcome.js';
 
 /**
  * @param {any} ctx
@@ -106,9 +107,7 @@ export async function observePost(ctx, o) {
   }
   const failureKind = classResult === 'failure' || classResult === 'timeout' ? (o.timedOut ? 'transient' : analysis.kind) : null;
   const tests = cls === 'check' && !o.interrupted ? testResults({ ...prep, cls }, { runId: id, postState: postHash, text: o.output || '', cwd: o.cwd, startedAt: pending ? pending.wall_ts : Date.now() - (o.durationMs || 0) }) : null;
-  store.append([
-    startRecord(prep, id, startTs, pending, cls),
-    endRecord(prep, id, cls, {
+  const end = endRecord(prep, id, cls, {
       exit: o.exit,
       duration_ms: o.durationMs ?? now() - startTs,
       post_hash: postHash,
@@ -123,7 +122,11 @@ export async function observePost(ctx, o) {
       loop_checked: cls === 'check' && !!pending && !loopSkipped,
       log: relPath(prep.root, logPath),
       ...(tests ? tests.fields : {}),
-    }),
+  });
+  applyMask(end, !!(prep.identity && prep.identity.masked), analysis, redactText);
+  store.append([
+    startRecord(prep, id, startTs, pending, cls),
+    end,
     ...extra,
     ...(tests ? tests.recs : []),
   ], summaryTweak(prep, learnedNew ? 1 : 0));

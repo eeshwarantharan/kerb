@@ -17,6 +17,7 @@ import { summaryTweak, startRecord, pluginLines } from '../engine.js';
 import { envFixFor } from '../insight/envclass.js';
 import { testResults } from '../reporters/record.js';
 import { afterCommand, writeLedgerFile } from '../insight/deliver.js';
+import { applyMask } from '../loop/outcome.js';
 
 /**
  * Background commands: pre-check only, then run with the agent's normal behaviour.
@@ -163,6 +164,7 @@ export async function runSupervised(prep, o) {
   // Test-level results from the output (and any report file the command wrote).
   const tests = res.reason === 'aborted' ? null : testResults(prep, { runId: id, postState: postHash, logFile: logPath, cwd: ctx.cwd, startedAt: startRec ? startRec.ts : now() - res.durationMs });
   if (tests) Object.assign(endRec, tests.fields);
+  applyMask(endRec, !!(prep.identity && prep.identity.masked), analysis, redactText);
   if (!startRec) {
     // Spawn failed before onSpawn: still write a start record so the pair is complete.
     startRec = startRecord(prep, id, {});
@@ -203,7 +205,9 @@ export function printRun(ctx, r, { showOutput = true } = {}) {
   if (showOutput && r.shaped.text) ctx.out(r.shaped.text);
   if (r.delta && r.delta.length) {
     const [head, ...rest] = r.delta;
-    ctx.err(`${[`${head} · exit ${r.exit} · log ${r.logRel}`, ...rest].join('\n')}\n`);
+    // A filtered run (`npm test | tail`): say whose exit code the shell reported.
+    const masked = r.endRec && r.endRec.exit_masked ? ` (from the pipe or what follows; the check ${r.endRec.exit === 1 ? 'failed' : 'result is unknown: drop the filter or use set -o pipefail'})` : '';
+    ctx.err(`${[`${head} · exit ${r.exit}${masked} · log ${r.logRel}`, ...rest].join('\n')}\n`);
   } else if (r.footer) ctx.err(`${paint(ctx.color.err, 'dim', r.footer)}\n`);
   for (const h of r.hints) ctx.err(`      hint: ${h}\n`);
   for (const l of r.envFix || []) ctx.err(`${l}\n`);

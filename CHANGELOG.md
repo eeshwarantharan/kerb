@@ -10,6 +10,11 @@ Milestone G of [docs/KERB-V2.md](docs/KERB-V2.md), "Proof", in progress: the ben
 
 - **Benchmark v2** in [`bench/`](bench/): 35 tasks across Node, Python and Go (seeded regressions with ground truth, a TLS-inspecting proxy, slow suites, a compaction-length task, a 100,000-file monorepo), each with a reference solution and validated; a four-arm harness (plain, skill-only, Kerb v1, Kerb v2) reading attempts, tokens and time to green from transcripts; refusals and cached answers judged by replay; the launch gate with paired bootstrap confidence intervals. The cause-isolation benchmark and hook latency have been run (results in `bench/results/`); the agent runs have not.
 
+### Changed
+
+- **The Loopbreaker sees through rewordings.** A command's identity is now the check it runs, past output-only wrappers: pipes into `tail`, `head`, `grep` or `tee`, redirections, a trailing `; echo $?` or `|| true`, `time`, `timeout`, `bash -c`, subshells, a leading `cd dir &&`, and `npm run test` / `npm t`. Of 26 natural rewordings of a failing check with nothing changed, 22 are now refused (2 before); the rest can change the result and stay allowed (`bench/rewordings.js`). A refused rewording says it's the same check. Commands with more than one real step (`npm install && npm test`), stdin redirects or environment assignments keep their own identity.
+- The Boundary Map finds blocked hosts in inline interpreter code (`node -e`, `python3 -c`, `ruby -e`, `perl -e`, `php -r`, `deno eval`).
+
 ### Security
 
 - Worker jobs are signed with a per-user secret when queued, and unsigned jobs never run: a cloned repo that ships a `.kerb/jobs/` folder could otherwise have had Kerb run a command of its choosing after the next check, without the agent's permission prompt.
@@ -22,6 +27,8 @@ Milestone G of [docs/KERB-V2.md](docs/KERB-V2.md), "Proof", in progress: the ben
 
 - Cause isolation never started when the test command names only failing tests (`pytest -q`, Jest's and Vitest's default reporters): a green run without names now counts as every test passing.
 - `pytest -q` output (no header, totals without `===`) wasn't parsed.
+- **A failing test run behind a filter was recorded as a pass.** `npm test | tail` exits 0 when the tests fail (likewise `|| true` and `; echo $?`), and Kerb took the shell's exit code, so `kerb status`, the MCP `verification` answer and the stop gate could report green. When a wrapper hides the exit code, the run now counts as a failure only if its output shows failures, and never as a pass; with `set -o pipefail` the exit code is used. The agent still sees the shell's exit code, with a note saying where it came from.
+- Node's TAP output whose start was cut off (`| tail -30`) wasn't recognised; its summary block now is.
 - Two processes breaking the same stale lock could delete a fresh one, and a slow holder whose lock was broken deleted its successor's on release, so a summary update could be lost (the event log itself was safe: appends are atomic). The worker's lock had the same race, which could start two workers.
 - Tests and benchmark scripts left their temp directories behind (tens of thousands per run, some holding a 100,000-file repo), which filled a developer's disk. Test temp directories are now removed when each test process exits (`KERB_TEST_KEEP=1` keeps them); benchmark sandboxes are removed after each run, on Ctrl-C too (`--keep` keeps them); the 100,000-file tasks run only with `--large`; and a run stops before the disk is nearly full.
 - Cause isolation could confirm an innocent edit for a flaky test: confirmation now needs the state without the culprit to pass twice and the culprit alone to fail.

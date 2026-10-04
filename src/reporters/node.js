@@ -26,6 +26,9 @@ function counts(text) {
 export function parse(text, ctx) {
   if (/(^|\n)TAP version \d+/.test(text)) return parseTap(text, ctx);
   if (/(^|\n)ℹ tests \d+/.test(text)) return parseSpec(text, ctx);
+  // The end of a TAP run whose start was cut off (`node --test | tail -30`): the summary block
+  // alone, which nothing else prints. Counts only, no per-test results.
+  if (/(^|\n)# tests \d+\n# suites \d+\n# pass \d+\n# fail \d+/.test(text)) return { framework, results: [], summary: counts(text) };
   return null;
 }
 

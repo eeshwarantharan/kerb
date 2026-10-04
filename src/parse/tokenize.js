@@ -232,12 +232,16 @@ function parseInner(command, baseCwd, home, depth) {
   const tokens = lex(command);
   /** @type {WordTok[][]} */
   const groups = [];
+  // Per group: the operator after it (|, |&, ||, &&, ;, &, newline) and whether it reads stdin
+  // from a file, for the run identity (src/parse/identity.js).
+  const meta = [];
   let cur = [];
+  let stdin = false;
   let skipNext = false;
   let lastOp = null;
   let wordsAfterLastOp = false;
   for (const tok of tokens) {
-    if (tok.t === 'redir') { skipNext = true; continue; }
+    if (tok.t === 'redir') { skipNext = true; if (tok.v.startsWith('<')) stdin = true; continue; }
     if (tok.t === 'word') {
       if (skipNext) { skipNext = false; continue; }
       cur.push(tok);
@@ -245,28 +249,34 @@ function parseInner(command, baseCwd, home, depth) {
       continue;
     }
     skipNext = false;
-    if (cur.length) groups.push(cur);
+    // Subshell parentheses don't end a command for the identity: `(npm test) | tail` pipes npm test.
+    if ((tok.v === '(' || tok.v === ')') && cur.length) continue;
+    if (cur.length) { groups.push(cur); meta.push({ op: tok.v === '\n' ? ';' : tok.v, stdin }); }
     cur = [];
+    stdin = false;
     if (tok.v !== '\n') {
       lastOp = tok.v;
       wordsAfterLastOp = false;
     }
   }
-  if (cur.length) groups.push(cur);
+  if (cur.length) { groups.push(cur); meta.push({ op: null, stdin }); }
   const background = lastOp === '&' && !wordsAfterLastOp;
 
   /** @type {Segment[]} */
   const segments = [];
   let cwd = baseCwd;
-  for (const g of groups) {
+  for (const [gi, g] of groups.entries()) {
     const words = g.filter((w) => w.quoted || (w.v !== '{' && w.v !== '}' && w.v !== '!'));
     if (!words.length) continue;
     const seg = simplify(words, cwd);
+    seg.op = meta[gi].op;
+    seg.stdin = meta[gi].stdin;
     if (seg.name && SHELLS.has(seg.name) && depth === 0) {
       const inner = shellCString(seg.args);
       if (inner != null) {
         try {
           const p = parseInner(inner, cwd, home, depth + 1);
+          if (p.segments.length && p.segments[p.segments.length - 1].op == null) p.segments[p.segments.length - 1].op = seg.op;
           for (const s of p.segments) {
             s.viaShell = true;
             s.assigns = [...seg.assigns, ...s.assigns];
@@ -322,6 +332,7 @@ const ASSIGN_RE = /^[A-Za-z_][A-Za-z0-9_]*=/;
 function simplify(words, cwd) {
   let w = words.map((x) => ({ v: x.v, raw: x.raw }));
   const assigns = [];
+  const assignWords = [];
   let nohup = false;
   let setsid = false;
   for (let guard = 0; guard < 20 && w.length; guard++) {
@@ -329,6 +340,7 @@ function simplify(words, cwd) {
     let k = 0;
     while (k < w.length && ASSIGN_RE.test(w[k].raw)) {
       assigns.push(w[k].v.slice(0, w[k].v.indexOf('=')));
+      assignWords.push(w[k].raw);
       k++;
     }
     if (k) { w = w.slice(k); continue; }
@@ -339,6 +351,7 @@ function simplify(words, cwd) {
     if (rest == null) break;
     if (name === 'nohup') nohup = true;
     if (name === 'setsid') setsid = true;
+    if (name === 'env') for (const x of w.slice(1, w.length - rest)) if (ASSIGN_RE.test(x.raw)) assignWords.push(x.raw);
     w = w.slice(w.length - rest);
   }
   const vals = w.map((x) => x.v);
@@ -350,6 +363,9 @@ function simplify(words, cwd) {
     name,
     args,
     text: [name, ...args].filter((x) => x != null).join(' '),
+    // As written (quoting kept), after wrappers: for the run identity.
+    words: w.map((x) => x.raw),
+    assignWords,
     cwd,
     assigns,
     nohup,

@@ -4,7 +4,8 @@ import { globToRegExp } from '../util/core.js';
 
 const B = '(?=$|[^A-Za-z0-9_])';
 const CHECK_DEFAULTS = [
-  `^(npm|pnpm|yarn|bun)( run)? (test|build|lint|typecheck|check)${B}`,
+  `^(npm|pnpm|yarn|bun)( run| run-script)? (test|build|lint|typecheck|check)${B}`,
+  `^(npm|pnpm) (t|tst)${B}`,
   `^(npx|pnpm dlx) (jest|vitest|mocha|tsc|eslint|prettier( \\S+)* --check)${B}`,
   `^(jest|vitest|mocha|tsc|eslint|pytest|mypy|rspec|phpunit)${B}`,
   `^node( \\S+)* --test(?=$| )`,

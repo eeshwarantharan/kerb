@@ -2,8 +2,10 @@
 // parse → human-only check → Boundary Map → Loopbreaker. The supervised runner lives in
 // run/runner.js and is loaded only when a command runs.
 import fs from 'node:fs';
+import path from 'node:path';
 import { newId, now, parseDuration } from './util/core.js';
 import { findRoot, relPath } from './util/repo.js';
+import { runIdentity } from './parse/identity.js';
 import { Store, buildRuns } from './store/jsonl.js';
 import { loadSummary } from './store/summary.js';
 import { loadConfig } from './config.js';
@@ -22,7 +24,12 @@ export const DEFAULT_TIMEOUT_MS = 30 * 60_000;
 export const DEFAULT_IDLE_MS = 10 * 60_000;
 
 /** Collapse runs of whitespace; keep leading VAR=value assignments (they change behaviour). */
-export function makeKey(root, cwd, command) {
+export function makeKey(root, cwd, command, identity = null) {
+  // The run identity when it stays inside the repo: the same check, however it was worded.
+  if (identity) {
+    const rel = relPath(root, identity.cwd);
+    if (rel !== '..' && !rel.startsWith('../') && !path.isAbsolute(rel)) return `${rel}::${identity.text}`;
+  }
   return `${relPath(root, cwd)}::${command.trim().replace(/\s+/g, ' ')}`;
 }
 
@@ -58,6 +65,7 @@ export function prepare(ctx, o) {
   const parsed = parseCommand(o.command, { cwd: ctx.cwd });
   const checkCommands = compileCheckCommands(policy.check_commands);
   const cls = o.cls || classifyCommand(parsed, { checkCommands, background: !!o.background });
+  const identity = runIdentity(parsed);
   if (o.reap !== false && fs.existsSync(store.dir)) reapOrphans(store, (info) => orphanEnd(info));
   const agent = o.agent !== undefined ? o.agent : detectAgent(ctx.env);
   const mode = effectiveMode(root, config, nowTs);
@@ -73,7 +81,8 @@ export function prepare(ctx, o) {
     checkCommands,
     cls,
     command: o.command,
-    key: o.key || makeKey(root, ctx.cwd, o.command),
+    key: o.key || makeKey(root, ctx.cwd, o.command, identity),
+    identity: o.key ? null : identity,
     cwdRel: relPath(root, ctx.cwd),
     agent,
     tier: o.tier || (agent ? 'best effort' : null),

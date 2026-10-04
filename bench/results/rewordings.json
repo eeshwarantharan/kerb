@@ -1,0 +1,266 @@
+{
+  "date": "2026-10-04T13:05:24.137Z",
+  "kerb": "0.7.0",
+  "loop": {
+    "caught": 22,
+    "total": 26,
+    "missed": [
+      {
+        "case": "npm test  →  node --test",
+        "deliberate": true
+      },
+      {
+        "case": "node --test  →  npm test",
+        "deliberate": true
+      },
+      {
+        "case": "python3 -m pytest  →  pytest",
+        "deliberate": true
+      },
+      {
+        "case": "pytest  →  python3 -m pytest",
+        "deliberate": true
+      }
+    ]
+  },
+  "policy": {
+    "caught": 27,
+    "total": 29,
+    "missed": [
+      {
+        "case": "npx --yes cowsay hi",
+        "deliberate": true
+      },
+      {
+        "case": "U=https://registry.npmjs.org/x; curl $U",
+        "deliberate": false
+      }
+    ]
+  },
+  "cases": {
+    "loop": [
+      {
+        "case": "npm test  →  npm test",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm  test ",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm test 2>&1",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm test 2>&1 | tail -50",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm test | head -100",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm test 2>&1 | grep -E \"fail|not ok\"",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm test 2>&1 | tee out.txt",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm test > out.txt 2>&1; cat out.txt",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm test; echo \"exit: $?\"",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm test || true",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  time npm test",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  timeout 120 npm test",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  bash -c \"npm test\"",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  sh -c 'npm test'",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  (npm test)",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm run test",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm t",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  npm run-script test",
+        "result": "caught"
+      },
+      {
+        "case": "npm test  →  node --test",
+        "result": "missed"
+      },
+      {
+        "case": "node --test  →  npm test",
+        "result": "missed"
+      },
+      {
+        "case": "npm test  →  cd <repo> && npm test",
+        "result": "caught"
+      },
+      {
+        "case": "cd app && npm test  →  [in app] npm test",
+        "result": "caught"
+      },
+      {
+        "case": "[in app] npm test  →  cd app && npm test",
+        "result": "caught"
+      },
+      {
+        "case": "python3 -m pytest  →  python3 -m pytest 2>&1 | tail -20",
+        "result": "caught"
+      },
+      {
+        "case": "python3 -m pytest  →  pytest",
+        "result": "missed"
+      },
+      {
+        "case": "pytest  →  python3 -m pytest",
+        "result": "missed"
+      }
+    ],
+    "policy": [
+      {
+        "case": "curl https://registry.npmjs.org/left-pad",
+        "result": "caught"
+      },
+      {
+        "case": "curl -sSL \"https://registry.npmjs.org/left-pad\"",
+        "result": "caught"
+      },
+      {
+        "case": "curl -s https://registry.npmjs.org/left-pad | head",
+        "result": "caught"
+      },
+      {
+        "case": "wget -qO- https://registry.npmjs.org/left-pad",
+        "result": "caught"
+      },
+      {
+        "case": "npm install left-pad",
+        "result": "caught"
+      },
+      {
+        "case": "npm i left-pad",
+        "result": "caught"
+      },
+      {
+        "case": "npm install left-pad --registry=https://registry.npmjs.org",
+        "result": "caught"
+      },
+      {
+        "case": "npm_config_registry=https://registry.npmjs.org/ npm install left-pad",
+        "result": "caught"
+      },
+      {
+        "case": "npx --yes cowsay hi",
+        "result": "missed"
+      },
+      {
+        "case": "yarn add left-pad",
+        "result": "caught"
+      },
+      {
+        "case": "pnpm add left-pad",
+        "result": "caught"
+      },
+      {
+        "case": "bash -c \"curl https://registry.npmjs.org/left-pad\"",
+        "result": "caught"
+      },
+      {
+        "case": "sh -c 'npm install left-pad'",
+        "result": "caught"
+      },
+      {
+        "case": "env curl https://registry.npmjs.org/x",
+        "result": "caught"
+      },
+      {
+        "case": "command curl https://registry.npmjs.org/x",
+        "result": "caught"
+      },
+      {
+        "case": "/usr/bin/curl https://registry.npmjs.org/x",
+        "result": "caught"
+      },
+      {
+        "case": "\\curl https://registry.npmjs.org/x",
+        "result": "caught"
+      },
+      {
+        "case": "curl https://REGISTRY.npmjs.org/x",
+        "result": "caught"
+      },
+      {
+        "case": "curl https://registry.npmjs.org./x",
+        "result": "caught"
+      },
+      {
+        "case": "cd app && npm install left-pad",
+        "result": "caught"
+      },
+      {
+        "case": "pip install requests",
+        "result": "caught"
+      },
+      {
+        "case": "pip3 install requests",
+        "result": "caught"
+      },
+      {
+        "case": "python3 -m pip install requests",
+        "result": "caught"
+      },
+      {
+        "case": "uv pip install requests",
+        "result": "caught"
+      },
+      {
+        "case": "curl https://pypi.org/simple/requests/",
+        "result": "caught"
+      },
+      {
+        "case": "node -e \"fetch('https://registry.npmjs.org/x')\"",
+        "result": "caught"
+      },
+      {
+        "case": "python3 -c \"import urllib.request; urllib.request.urlopen('https://pypi.org/simple')\"",
+        "result": "caught"
+      },
+      {
+        "case": "U=https://registry.npmjs.org/x; curl $U",
+        "result": "missed"
+      },
+      {
+        "case": "curl $(echo https://registry.npmjs.org/x)",
+        "result": "caught"
+      }
+    ]
+  }
+}
