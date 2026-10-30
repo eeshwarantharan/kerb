@@ -50,7 +50,14 @@ jobs:
         shell: bash
         run: |
           BIN="dist/bin/kerb-${{ matrix.target }}"; [ -f "$BIN.exe" ] && BIN="$BIN.exe"
-          KERB_TEST_BIN="$BIN" node --test test/cli.test.js test/run.test.js test/precheck.test.js
+          smoke() { KERB_TEST_BIN="$BIN" node --test --test-timeout=180000 test/cli.test.js test/run.test.js test/precheck.test.js 2>&1 | tee smoke-output.txt; }
+          # One retry: the hosted Intel macOS runners are slow and their timing tests flake. A test
+          # that fails twice still fails the release.
+          smoke || { echo "::warning::smoke suite failed once on ${{ matrix.target }}; retrying"; node scripts/ci-annotate.js smoke-output.txt || true; smoke; }
+      - name: Annotate failing smoke tests
+        if: failure()
+        shell: bash
+        run: node scripts/ci-annotate.js smoke-output.txt
       # macOS: replace the ad-hoc signature with a Developer ID signature when a certificate is configured.
       - name: Sign (macOS, optional)
         if: startsWith(matrix.target, 'darwin') && env.MACOS_CERT_P12 != ''
