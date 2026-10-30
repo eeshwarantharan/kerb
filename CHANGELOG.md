@@ -4,7 +4,11 @@ All notable changes to Kerb. The format follows [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
-Milestone G of [docs/KERB-V2.md](docs/KERB-V2.md), "Proof", in progress: the benchmark (section 15), and what running it found.
+## [0.8.0] - 2026-10-30
+
+Beta. Feature-complete for KERB-V2 milestones A–F, with the benchmark from milestone G (everything that doesn't need an agent has been run) and what running it found. The agent benchmark, which decides 1.0, hasn't been run yet; no token-savings figure is claimed.
+
+Docs: [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md), the design and the reasoning behind it.
 
 ### Added
 

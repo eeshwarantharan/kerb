@@ -231,6 +231,28 @@ The full specification is [docs/KERB.md](docs/KERB.md).
 
 Exit codes can collide with a tool's own codes, so **trust the `kerb:` line** (or `"refused": true` in JSON), not the code alone.
 
+## How it works
+
+Kerb answers one question before a command runs: **can this produce a result we haven't already seen?**
+
+```
+agent wants to run a command
+        │
+        ▼
+  parse ─► identity ─► Boundary Map ─► state hash ─► loop rules ─► allow (run, record, shape output)
+                           │                              │
+                           └─ blocked here: refuse,       └─ same result as before: refuse,
+                              name the alternative           show the recorded result
+```
+
+- **A run is identified by what runs and the state it runs on, not by its text.** `npm test 2>&1 | tail -50`, `npm run test` and `cd app && npm test` are the same check; `npm install && npm test` and `CI=1 npm test` are not. The state is a hash of the HEAD tree plus `git status` for the command's package and the root files that affect it, plus an environment stamp (selected variables and dependency markers), computed within a time budget.
+- **Loop rules** refuse a retry on a state that already failed, a return to an earlier failing state, a cycle between failing states, and the same failure three times despite edits. Transient, dependency and environment failures are handled separately, so legitimate retries go through.
+- **Results come from parsed test output**, not just exit codes, so a failing suite behind `| tail` is never recorded as passing.
+- **Cause isolation** runs delta debugging over your edits in a separate git worktree, reproduces before searching, and confirms the culprit with three fresh runs.
+- **Built to be wrong safely**: deny-only hooks, fail open on any error or timeout, shadow mode first, no dependencies, nothing leaves the machine.
+
+The full design, the reasoning behind each choice and answers to common questions: **[docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md)**.
+
 ## Honest numbers
 
 `kerb report` has two sections, labelled.

@@ -3,13 +3,13 @@
   "name": "io.github.eeshwarantharan/kerb",
   "title": "Kerb",
   "description": "Read-only records of what your coding agent ran: verification status, attempts, test history, proven fixes, cause findings, last green state.",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "repository": { "url": "https://github.com/eeshwarantharan/kerb", "source": "github" },
   "packages": [
     {
       "registryType": "npm",
       "identifier": "kerb-cli",
-      "version": "0.7.0",
+      "version": "0.8.0",
       "transport": { "type": "stdio" },
       "packageArguments": [{ "type": "positional", "value": "mcp" }]
     }
