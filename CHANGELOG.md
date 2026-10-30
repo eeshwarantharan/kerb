@@ -10,6 +10,8 @@ Beta. Feature-complete for KERB-V2 milestones A–F, with the benchmark from mil
 
 Docs: [docs/HOW-IT-WORKS.md](docs/HOW-IT-WORKS.md), the design and the reasoning behind it.
 
+Platforms: macOS and Linux (x64 and arm64) pass the full suite in CI. **Windows is experimental**: 24 tests fail there, and the Windows binary ships for testing only.
+
 ### Added
 
 - **Benchmark v2** in [`bench/`](bench/): 35 tasks across Node, Python and Go (seeded regressions with ground truth, a TLS-inspecting proxy, slow suites, a compaction-length task, a 100,000-file monorepo), each with a reference solution and validated; a four-arm harness (plain, skill-only, Kerb v1, Kerb v2) reading attempts, tokens and time to green from transcripts; refusals and cached answers judged by replay; the launch gate with paired bootstrap confidence intervals. The cause-isolation benchmark and hook latency have been run (results in `bench/results/`); the agent runs have not.
