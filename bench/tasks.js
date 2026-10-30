@@ -274,7 +274,7 @@ const pyFix = {
   solve: (d) => w(d, { 'slug.py': 'import re\n\n\ndef slugify(s):\n    return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")\n' }),
 };
 const pyFlaky = {
-  id: 'py-flaky-service', category: 'transient', lang: 'python', needs: ['python'], test: 'python3 -m unittest', check: 'for i in 1 2 3 4 5; do python3 -m unittest -q || exit 1; done',
+  id: 'py-flaky-service', category: 'transient', lang: 'python', needs: ['python'], test: 'python3 -m unittest', check: 'for i in $(seq 20); do python3 -m unittest -q 2>/dev/null || exit 1; done', // unfixed passes by chance 0.5^20
   prompt: 'The tests fail now and then: client.fetch() talks to a flaky service. Make fetch() robust so the tests pass reliably, without changing the tests or the service.',
   setup: (d) => w(d, withPolicy({
     'service.py': 'import random\n\n\ndef call():\n    if random.random() < 0.5:\n        raise ConnectionResetError("connection reset by peer")\n    return {"ok": True}\n',
@@ -326,7 +326,7 @@ export const TASKS = [
   },
   ...fixTests,
   {
-    id: 'flaky-network-test', category: 'transient', lang: 'node', test: 'npm test', check: 'for i in 1 2 3 4 5; do npm test || exit 1; done',
+    id: 'flaky-network-test', category: 'transient', lang: 'node', test: 'npm test', check: 'for i in $(seq 20); do node --test >/dev/null 2>&1 || exit 1; done', // unfixed passes by chance 0.5^20
     prompt: 'The tests fail now and then: src/client.js talks to a flaky service. Make the client robust so the tests pass reliably, without changing the tests or the service.',
     setup: (d) => w(d, withPolicy({
       'package.json': PKG(),

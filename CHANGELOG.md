@@ -151,6 +151,7 @@ First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented 
 - The task benchmark has not been run yet, so there are no savings figures.
 - Hook latency is borderline against the 100 ms target for check commands after a failure (see `bench/results/`).
 
+[0.8.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.8.0
 [0.7.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.7.0
 [0.6.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.6.0
 [0.5.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.5.0
