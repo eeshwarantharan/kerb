@@ -4,7 +4,11 @@ All notable changes to Kerb. The format follows [Keep a Changelog](https://keepa
 
 ## [Unreleased]
 
-## [0.8.0] - 2026-10-30
+## [0.8.1] - 2026-10-31
+
+The first published 0.8 release (0.8.0 was tagged, but its release run stopped at the test step and nothing was published). Also: the release workflow's test step now matches CI's (per-test timeout, failing tests annotated); the Apple Silicon binary builds on macOS 15; the two flaky-service benchmark tasks can no longer pass by chance.
+
+## [0.8.0] - 2026-10-30 (not published)
 
 Beta. Feature-complete for KERB-V2 milestones A–F, with the benchmark from milestone G (everything that doesn't need an agent has been run) and what running it found. The agent benchmark, which decides 1.0, hasn't been run yet; no token-savings figure is claimed.
 
@@ -151,6 +155,7 @@ First public preview. Everything in [docs/KERB.md](docs/KERB.md) is implemented 
 - The task benchmark has not been run yet, so there are no savings figures.
 - Hook latency is borderline against the 100 ms target for check commands after a failure (see `bench/results/`).
 
+[0.8.1]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.8.1
 [0.8.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.8.0
 [0.7.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.7.0
 [0.6.0]: https://github.com/eeshwarantharan/kerb/releases/tag/v0.6.0

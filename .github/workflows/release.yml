@@ -15,7 +15,16 @@ jobs:
         with:
           node-version: 22
       - run: git config --global user.name ci && git config --global user.email ci@example.com
-      - run: node --test
+      # As in ci.yml: per-test timeout, and failing tests annotated on the run.
+      - name: node --test
+        shell: bash
+        run: node --test --test-timeout=180000 2>&1 | tee test-output.txt
+        env:
+          CI: 'true'
+      - name: Annotate failing tests
+        if: failure()
+        shell: bash
+        run: node scripts/ci-annotate.js test-output.txt
 
   binaries:
     needs: test
