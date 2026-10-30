@@ -167,7 +167,7 @@ test('NS3 only committed fixes produce notes; NS4 notes hold only fingerprint, f
 
 test('NS5 kerb sync merges a teammate\'s notes into the fix index; NS7 states and findings are never shared', async () => {
   const bare = tmpDir('kerb-remote-');
-  execFileSync('git', ['init', '-q', '--bare', bare]);
+  execFileSync('git', ['init', '-q', '--bare', '-b', 'main', bare]);
   const a = committedFix({ share_fixes: true });
   a.repo.git('remote', 'add', 'origin', bare);
   a.repo.git('push', '-q', 'origin', 'main');
