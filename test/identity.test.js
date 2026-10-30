@@ -101,7 +101,8 @@ test('RI5 a failing suite piped through a filter is never reported green; with p
   repo.write('app/test/b.test.js', "import test from 'node:test'; import assert from 'node:assert'; test('b', () => assert.equal(2, 2));\n");
   repo.kerb(['run', '--', 'npm test | tail -30']);
   assert.notEqual(status().status, 'green', 'a filtered pass is unknown, not green');
-  repo.kerb(['run', '--', 'set -o pipefail; npm test | tail -30']);
+  // bash: Ubuntu's /bin/sh (dash) has no pipefail, and the shell exits on `set -o pipefail`.
+  repo.kerb(['run', '--', 'bash -c "set -o pipefail; npm test | tail -30"']);
   assert.equal(status().status, 'green', 'pipefail keeps the exit code');
 });
 

@@ -12,7 +12,8 @@ import { Store } from '../src/store/jsonl.js';
 
 /** A repo plus a check-class failing command whose side effects land outside the repo. */
 function setup({ git = true, files = {} } = {}) {
-  const repo = makeRepo({ git, files: { 'a.js': '1\n', ...files } });
+  // A generous hash budget: on slow runners (Intel macOS, emulation) the default can fail open.
+  const repo = makeRepo({ git, files: { 'a.js': '1\n', ...files }, config: { hash_budget_ms: 20_000 } });
   const ran = shPath(repo.home, 'ran.log');
   const count = () => (fs.existsSync(ran) ? fs.readFileSync(ran, 'utf8').split('\n').filter(Boolean).length : 0);
   const cmd = (body = 'echo "FAIL: expected 1 to equal 2"; exit 1') => `echo x >> ${ran}; ${body}`;
